@@ -21,6 +21,7 @@ Thumbs.db
 
 # Swarm runtime (never commit actual swarm state)
 /swarm-data/
+config/swarm.yaml
 data/health-events.db
 data/health-monitor.log
 *.tmp
