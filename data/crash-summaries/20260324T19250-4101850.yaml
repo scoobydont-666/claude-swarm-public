@@ -1,4 +1,4 @@
-hostname: orchestration-node
+hostname: miniboss
 pid: 4101850
 exit_time: '2026-03-24T19:25:07Z'
 exit_signal: null

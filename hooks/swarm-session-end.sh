@@ -5,7 +5,7 @@ set -euo pipefail
 # Marks this instance as idle, warns about uncompleted claimed tasks,
 # and generates a session summary for cross-instance context sharing.
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 HOSTNAME=$(hostname)
 
 # Ensure swarm root exists

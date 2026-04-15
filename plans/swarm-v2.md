@@ -68,7 +68,7 @@ tasks:
     title: Event emission and consumption
     requires: []
     host: any
-    acceptance: events written to /var/lib/swarm/events/, queryable by time range
+    acceptance: events written to /opt/swarm/events/, queryable by time range
     files:
       - src/events.py
       - tests/test_events.py
@@ -107,7 +107,7 @@ tasks:
   - id: s4-gpu-slots
     title: GPU resource arbitration
     requires: [gpu]
-    host: gpu-server-1
+    host: GIGA
     depends_on: [s1-registry]
     acceptance: GPU slot claiming prevents two agents loading models simultaneously
 ```

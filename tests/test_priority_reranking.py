@@ -30,7 +30,7 @@ def config_with_auto_dispatch():
             "require_approval_for": ["opus"],
             "max_concurrent_dispatches": 5,
         },
-        "swarm_root": "/var/lib/swarm",
+        "swarm_root": "/opt/swarm",
     }
 
 

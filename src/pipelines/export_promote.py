@@ -19,8 +19,8 @@ EXPORT_PROMOTE = Pipeline(
             depends_on=[],
             prompt_template="""Export the trained model to GGUF.
 Run: cd /opt/ntnx-codeforge && python3 scripts/export.py \
-  --checkpoint /var/lib/swarm/training/checkpoints/{input.run_id} \
-  --output-dir /var/lib/swarm/training/exports/{input.run_id} \
+  --checkpoint /opt/swarm/training/checkpoints/{input.run_id} \
+  --output-dir /opt/swarm/training/exports/{input.run_id} \
   --quant {input.quant_method} \
   --model-size {input.model_size}
 Report: GGUF file size, quantization method, output path.""",
@@ -36,7 +36,7 @@ Report: GGUF file size, quantization method, output path.""",
             prompt_template="""Verify benchmark gates for promotion eligibility.
 Run: cd /opt/ntnx-codeforge && python3 -c "
 from ntnx_codeforge.manifest import RunManifest
-m = RunManifest.from_yaml('/var/lib/swarm/training/runs/{input.run_id}/manifest.yaml')
+m = RunManifest.from_yaml('/opt/swarm/training/runs/{input.run_id}/manifest.yaml')
 if not m.benchmark_passed:
     print(f'GATE FAILED: scores={{m.benchmark_scores}}')
     exit(1)
@@ -53,7 +53,7 @@ Report: pass/fail with scores.""",
             depends_on=["gate_check"],
             prompt_template="""Deploy the exported model to Ollama on {input.target_host}.
 Run:
-  cd /var/lib/swarm/training/exports/{input.run_id}
+  cd /opt/swarm/training/exports/{input.run_id}
   ollama create {input.model_name}:{input.version} -f Modelfile
   # Verify model loads and generates
   curl -sf http://127.0.0.1:11434/api/generate \
@@ -76,16 +76,16 @@ Report: deployment status, model tag, response test.""",
 Run: cd /opt/ntnx-codeforge && python3 -c "
 from ntnx_codeforge.manifest import RunManifest
 from datetime import datetime, UTC
-m = RunManifest.from_yaml('/var/lib/swarm/training/runs/{input.run_id}/manifest.yaml')
+m = RunManifest.from_yaml('/opt/swarm/training/runs/{input.run_id}/manifest.yaml')
 m.promoted = True
 m.promoted_at = datetime.now(UTC).isoformat()
 m.promotion_targets = ['{input.target_host}']
-m.to_yaml('/var/lib/swarm/training/runs/{input.run_id}/manifest.yaml')
+m.to_yaml('/opt/swarm/training/runs/{input.run_id}/manifest.yaml')
 # Append to promotion log
 import yaml
 log_entry = dict(run_id='{input.run_id}', model=m.model_name, version='{input.version}',
     target='{input.target_host}', promoted_at=m.promoted_at, scores=m.benchmark_scores)
-with open('/var/lib/swarm/training/promotions/log.yaml', 'a') as f:
+with open('/opt/swarm/training/promotions/log.yaml', 'a') as f:
     f.write('---\\n')
     yaml.dump(log_entry, f, default_flow_style=False)
 print(f'Promoted: {input.model_name}:{input.version} → {input.target_host}')"

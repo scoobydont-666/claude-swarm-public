@@ -12,7 +12,7 @@ RestartSec=30
 
 # Hardening
 ProtectSystem=strict
-ReadWritePaths=/var/lib/swarm /opt/claude-swarm/data
+ReadWritePaths=/opt/swarm /opt/claude-swarm/data
 PrivateTmp=true
 NoNewPrivileges=true
 

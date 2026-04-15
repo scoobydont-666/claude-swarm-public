@@ -20,7 +20,7 @@ import yaml
 
 def _pipelines_root() -> Path:
     """Return NFS-shared pipeline state root."""
-    p = Path("/var/lib/swarm/pipelines")
+    p = Path("/opt/swarm/pipelines")
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -352,7 +352,7 @@ class PipelineExecutor:
 
     Stages without dependencies run in parallel (separate threads).
     Each stage dispatches via hydra_dispatch and waits for completion.
-    All state is persisted to /var/lib/swarm/pipelines/pipeline-{id}/.
+    All state is persisted to /opt/swarm/pipelines/pipeline-{id}/.
     """
 
     def __init__(self):
@@ -584,7 +584,7 @@ class PipelineExecutor:
 
 
 def list_pipeline_runs() -> list[dict]:
-    """List all pipeline runs from /var/lib/swarm/pipelines/."""
+    """List all pipeline runs from /opt/swarm/pipelines/."""
     root = _pipelines_root()
     results = []
     for d in sorted(root.iterdir()):

@@ -12,8 +12,8 @@ The infosec-architect SKILL.md edit is being blocked by a permission gate — it
 **Blocked — needs your approval:**
 - **A5**: `infosec-architect/SKILL.md` Infrastructure Context needs:
   - `Docker Engine 29.x with NVIDIA Container Toolkit` → `K3s v1.34.6+k3s1 with NVIDIA device plugin`
-  - `Docker Swarm (v6.0.3 GOLD, v7 planned)` → `K3s (3-node: gpu-server-1, gpu-server-2, gpu-server-3)`
-  - `2× Zotac RTX 5080 OC 16GB` → `gpu-server-1 — RTX PRO 6000 Blackwell 96GB | gpu-server-2 — RTX 5060 Ti 16GB | gpu-server-3 — 2× RTX 5080 16GB`
+  - `Docker Swarm (v6.0.3 GOLD, v7 planned)` → `K3s (3-node: GIGA, MECHA, MEGA)`
+  - `2× Zotac RTX 5080 OC 16GB` → `GIGA — RTX PRO 6000 Blackwell 96GB | MECHA — RTX 5060 Ti 16GB | MEGA — 2× RTX 5080 16GB`
   - `590.x` → `570.x+`
 
 The edit targets `~/.claude/skills/infosec-architect/SKILL.md` lines 97-100. Please approve the permission prompt or grant access so I can complete A5.

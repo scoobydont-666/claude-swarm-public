@@ -3,7 +3,7 @@
 # Called on PostToolUse. Must be <20ms. No Python, prefers pure-bash Redis ping.
 # Uses jq for safe JSON update, falls back to sed.
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 STATUS_FILE="${SWARM_ROOT}/status/$(hostname).json"
 
 [ -f "$STATUS_FILE" ] || exit 0

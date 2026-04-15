@@ -1,7 +1,7 @@
 """Redis client for claude-swarm task orchestration.
 
 Replaces NFS + fcntl locks with atomic Redis operations.
-Redis runs on orchestration-node (10.0.0.5:6379).
+Redis runs on miniboss (<orchestration-node-ip>:6379).
 
 Data model:
   tasks:pending     — Sorted set (score = priority×1000 + timestamp)
@@ -23,9 +23,9 @@ import time
 import redis
 
 # Default connection config — override via environment
-REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "10.0.0.5")
+REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")
 REDIS_PORT = int(os.environ.get("SWARM_REDIS_PORT", "6379"))
-REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "your-redis-password")
+REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "0e9c8d78efbc573a74e75636783dc9b6")
 REDIS_DB = int(os.environ.get("SWARM_REDIS_DB", "0"))
 
 # TTLs

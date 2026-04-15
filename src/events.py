@@ -1,6 +1,6 @@
 """Event Bus — lightweight event system for cross-agent coordination.
 
-Events are JSON files in /var/lib/swarm/events/ with timestamp-based names.
+Events are JSON files in /opt/swarm/events/ with timestamp-based names.
 Any agent can emit events. Any agent can query the stream by time range.
 Sequence numbers enable dedup during crash recovery.
 """
@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 
 from util import now_iso as _now_iso
 
-SWARM_ROOT = Path("/var/lib/swarm")
+SWARM_ROOT = Path("/opt/swarm")
 EVENTS_DIR = SWARM_ROOT / "events"
 
 # Per-agent monotonic sequence counter for dedup

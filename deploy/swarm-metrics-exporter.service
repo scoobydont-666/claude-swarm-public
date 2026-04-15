@@ -1,7 +1,7 @@
 [Unit]
 Description=claude-swarm Prometheus Metrics Exporter (port 9191)
 After=network.target
-Documentation=https://github.com/your-github-user/claude-swarm
+Documentation=https://github.com/scoobydont-666/claude-swarm
 
 [Service]
 Type=simple
@@ -15,7 +15,7 @@ RestartSec=10
 
 # Security hardening
 ProtectSystem=strict
-ReadWritePaths=/var/lib/swarm /opt/claude-swarm/data
+ReadWritePaths=/opt/swarm /opt/claude-swarm/data
 PrivateTmp=true
 NoNewPrivileges=true
 

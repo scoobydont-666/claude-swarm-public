@@ -2,15 +2,15 @@
 """
 Hydra Dispatch — Orchestrate Claude Code sessions across the fleet.
 
-The main head (orchestration-node) dispatches tasks to fleet members by starting
+The main head (miniboss) dispatches tasks to fleet members by starting
 Claude Code sessions via SSH. Each dispatch is a full autonomous session
 with all skills, hooks, and context.
 
 Usage:
-    python3 hydra_dispatch.py dispatch --host gpu-server-1 --task "Kin index /opt/christi-project"
+    python3 hydra_dispatch.py dispatch --host GIGA --task "Kin index /opt/christi-project"
     python3 hydra_dispatch.py dispatch --task-id task-001  # auto-routes by capabilities
     python3 hydra_dispatch.py status                        # show all running dispatches
-    python3 hydra_dispatch.py recall --host gpu-server-1             # get output from last dispatch
+    python3 hydra_dispatch.py recall --host GIGA             # get output from last dispatch
 """
 
 import logging
@@ -150,7 +150,7 @@ def _get_fleet() -> dict:
         for name, info in fleet.items():
             result[name] = {
                 "ip": info["ip"],
-                "ssh_user": info.get("user", "user"),
+                "ssh_user": info.get("user", "josh"),
                 "claude_path": "claude",  # Resolved via PATH on remote host
                 "capabilities": info.get("capabilities", []),
                 "default_model": "sonnet",
@@ -158,17 +158,17 @@ def _get_fleet() -> dict:
         return result
     # Fallback: env vars with hardcoded defaults
     return {
-        "orchestration-node": {
-            "ip": os.environ.get("MINIBOSS_HOST", "10.0.0.5"),
-            "ssh_user": "user",
-            "claude_path": "/home/user/.local/bin/claude",
+        "miniboss": {
+            "ip": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
+            "ssh_user": "josh",
+            "claude_path": "/home/josh/.local/bin/claude",
             "capabilities": ["docker", "tailscale", "nfs_replica"],
             "default_model": "sonnet",
         },
-        "gpu-server-1": {
-            "ip": os.environ.get("gpu-server-1-host", "10.0.0.1"),
-            "ssh_user": "user",
-            "claude_path": "/home/user/.npm-global/bin/claude",
+        "GIGA": {
+            "ip": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
+            "ssh_user": "josh",
+            "claude_path": "/home/josh/.npm-global/bin/claude",
             "capabilities": ["gpu", "docker", "ollama", "nfs_primary"],
             "default_model": "sonnet",
         },
@@ -177,7 +177,7 @@ def _get_fleet() -> dict:
 
 FLEET = _get_fleet()
 
-DISPATCH_DIR = Path("/var/lib/swarm/artifacts/dispatches")
+DISPATCH_DIR = Path("/opt/swarm/artifacts/dispatches")
 DISPATCH_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -321,7 +321,7 @@ def dispatch(
     """Dispatch a Claude Code session to a fleet member.
 
     Args:
-        host: Fleet member hostname (e.g., "gpu-server-1")
+        host: Fleet member hostname (e.g., "GIGA")
         task: Natural language task description / prompt
         model: Override model (sonnet/opus/haiku). Auto-selects if None.
         project_dir: Working directory on the remote host
@@ -633,7 +633,7 @@ def dispatch_from_spec(spec: DispatchSpec) -> DispatchResult:
 def dispatch_swarm_task(task_id: str, model: Optional[str] = None) -> DispatchResult:
     """Dispatch a swarm task to the best-matching host."""
     # Read the task
-    pending_path = Path("/var/lib/swarm/tasks/pending") / f"{task_id}.yaml"
+    pending_path = Path("/opt/swarm/tasks/pending") / f"{task_id}.yaml"
     if not pending_path.exists():
         raise FileNotFoundError(f"Task {task_id} not found in pending/")
 

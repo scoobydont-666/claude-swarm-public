@@ -22,23 +22,23 @@ class TestDispatchSpec:
     def test_full_spec(self):
         spec = DispatchSpec(
             task="generate questions",
-            host="gpu-server-1",
+            host="GIGA",
             model="opus",
             project_dir="/opt/examforge",
             timeout_minutes=60,
             requires=["gpu", "ollama"],
             task_id="task-001",
         )
-        assert spec.host == "gpu-server-1"
+        assert spec.host == "GIGA"
         assert spec.model == "opus"
         assert spec.requires == ["gpu", "ollama"]
         assert spec.task_id == "task-001"
 
     def test_serializable(self):
-        spec = DispatchSpec(task="test", host="gpu-server-1")
+        spec = DispatchSpec(task="test", host="GIGA")
         d = asdict(spec)
         assert d["task"] == "test"
-        assert d["host"] == "gpu-server-1"
+        assert d["host"] == "GIGA"
         assert isinstance(d["requires"], list)
 
 
@@ -46,10 +46,10 @@ class TestDispatchFromSpec:
     @patch("hydra_dispatch.dispatch")
     @patch("hydra_dispatch._find_best_host")
     def test_auto_routes_when_no_host(self, mock_find, mock_dispatch):
-        mock_find.return_value = "gpu-server-1"
+        mock_find.return_value = "GIGA"
         mock_dispatch.return_value = DispatchResult(
             dispatch_id="d-1",
-            host="gpu-server-1",
+            host="GIGA",
             task="test",
             model="sonnet",
             status="running",
@@ -57,23 +57,23 @@ class TestDispatchFromSpec:
         spec = DispatchSpec(task="test", requires=["gpu"])
         result = dispatch_from_spec(spec)
         mock_find.assert_called_once_with(["gpu"], "test")
-        assert result.host == "gpu-server-1"
+        assert result.host == "GIGA"
 
     @patch("hydra_dispatch.dispatch")
     def test_uses_explicit_host(self, mock_dispatch):
         mock_dispatch.return_value = DispatchResult(
             dispatch_id="d-1",
-            host="gpu-server-2",
+            host="MECHA",
             task="test",
             model="sonnet",
             status="running",
         )
-        spec = DispatchSpec(task="test", host="gpu-server-2")
+        spec = DispatchSpec(task="test", host="MECHA")
         result = dispatch_from_spec(spec)
         mock_dispatch.assert_called_once()
         assert (
-            mock_dispatch.call_args[1]["host"] == "gpu-server-2"
-            or mock_dispatch.call_args[0][0] == "gpu-server-2"
+            mock_dispatch.call_args[1]["host"] == "MECHA"
+            or mock_dispatch.call_args[0][0] == "MECHA"
         )
 
     @patch("hydra_dispatch.dispatch")
@@ -88,14 +88,14 @@ class TestDispatchFromSpec:
     def test_passes_all_params(self, mock_dispatch):
         mock_dispatch.return_value = DispatchResult(
             dispatch_id="d-1",
-            host="gpu-server-1",
+            host="GIGA",
             task="test",
             model="opus",
             status="running",
         )
         spec = DispatchSpec(
             task="generate",
-            host="gpu-server-1",
+            host="GIGA",
             model="opus",
             project_dir="/opt/examforge",
             timeout_minutes=60,

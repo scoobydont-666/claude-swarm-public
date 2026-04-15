@@ -1,12 +1,12 @@
 completed_at: ''
-dispatch_id: dispatch-1775110635-gpu-server-1
+dispatch_id: dispatch-1775110635-GIGA
 error: ''
 exit_code: -1
-host: gpu-server-1
+host: GIGA
 model: haiku
-output_file: /var/lib/swarm/artifacts/dispatches/dispatch-1775110635-gpu-server-1.output
+output_file: /opt/swarm/artifacts/dispatches/dispatch-1775110635-GIGA.output
 started_at: '2026-04-02T06:17:15Z'
 status: running
-task: "You have a swarm task to complete:\n\nTitle: Check for package updates on orchestration-node\
-  \ and gpu-server-1\nDescription: Daily: apt/pip update check across fleet\nProject: \n\n\
+task: "You have a swarm task to complete:\n\nTitle: Check for package updates on miniboss\
+  \ and GIGA\nDescription: Daily: apt/pip update check across fleet\nProject: \n\n\
   Complete this task. When done, report what you did."

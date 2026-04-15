@@ -62,18 +62,18 @@ class TestFindBestHost:
         from hydra_dispatch import _find_best_host
 
         fleet = {
-            "orchestration-node": {"capabilities": ["docker", "tailscale"]},
-            "gpu-server-1": {"capabilities": ["gpu", "docker", "ollama"]},
+            "miniboss": {"capabilities": ["docker", "tailscale"]},
+            "GIGA": {"capabilities": ["gpu", "docker", "ollama"]},
         }
         with patch("hydra_dispatch.FLEET", fleet):
             result = _find_best_host(["gpu"])
-        assert result == "gpu-server-1"
+        assert result == "GIGA"
 
     def test_no_match_returns_none(self):
         from hydra_dispatch import _find_best_host
 
         fleet = {
-            "orchestration-node": {"capabilities": ["docker"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         with patch("hydra_dispatch.FLEET", fleet):
             result = _find_best_host(["gpu", "tpu"])
@@ -83,28 +83,28 @@ class TestFindBestHost:
         from hydra_dispatch import _find_best_host
 
         fleet = {
-            "orchestration-node": {"capabilities": ["docker"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         with patch("hydra_dispatch.FLEET", fleet):
             result = _find_best_host([])
-        assert result == "orchestration-node"
+        assert result == "miniboss"
 
     def test_subset_matching(self):
         from hydra_dispatch import _find_best_host
 
         fleet = {
-            "gpu-server-1": {"capabilities": ["gpu", "docker", "ollama", "nfs_primary"]},
+            "GIGA": {"capabilities": ["gpu", "docker", "ollama", "nfs_primary"]},
         }
         with patch("hydra_dispatch.FLEET", fleet):
             result = _find_best_host(["gpu", "docker"])
-        assert result == "gpu-server-1"
+        assert result == "GIGA"
 
 
 class TestDispatch:
     def test_unknown_host_raises(self, tmp_path):
         from hydra_dispatch import dispatch
 
-        with patch("hydra_dispatch.FLEET", {"gpu-server-1": {}}):
+        with patch("hydra_dispatch.FLEET", {"GIGA": {}}):
             with pytest.raises(ValueError, match="Unknown host"):
                 dispatch(host="UNKNOWN", task="test")
 
@@ -114,9 +114,9 @@ class TestDispatch:
         dispatch_dir = tmp_path / "dispatches"
         dispatch_dir.mkdir()
         fleet = {
-            "gpu-server-1": {
-                "ip": "10.0.0.1",
-                "ssh_user": "user",
+            "GIGA": {
+                "ip": "<primary-node-ip>",
+                "ssh_user": "josh",
                 "claude_path": "/usr/bin/claude",
                 "capabilities": ["gpu"],
                 "default_model": "sonnet",
@@ -129,9 +129,9 @@ class TestDispatch:
             patch("hydra_dispatch.swarm") as mock_swarm,
         ):
             mock_popen.return_value = MagicMock(pid=12345)
-            result = dispatch(host="gpu-server-1", task="run tests", background=True)
+            result = dispatch(host="GIGA", task="run tests", background=True)
 
-        assert result.host == "gpu-server-1"
+        assert result.host == "GIGA"
         assert result.status == "running"
         assert result.model == "sonnet"
         # Check YAML record was written
@@ -144,9 +144,9 @@ class TestDispatch:
         dispatch_dir = tmp_path / "dispatches"
         dispatch_dir.mkdir()
         fleet = {
-            "gpu-server-1": {
-                "ip": "10.0.0.1",
-                "ssh_user": "user",
+            "GIGA": {
+                "ip": "<primary-node-ip>",
+                "ssh_user": "josh",
                 "claude_path": "/usr/bin/claude",
                 "capabilities": ["gpu"],
                 "default_model": "sonnet",
@@ -159,7 +159,7 @@ class TestDispatch:
             patch("hydra_dispatch.swarm") as mock_swarm,
         ):
             mock_popen.return_value = MagicMock(pid=12345)
-            result = dispatch(host="gpu-server-1", task="security audit of codebase")
+            result = dispatch(host="GIGA", task="security audit of codebase")
         assert result.model == "opus"
 
 
@@ -170,16 +170,16 @@ class TestListDispatches:
         dispatch_dir = tmp_path / "dispatches"
         dispatch_dir.mkdir()
         record = {
-            "dispatch_id": "dispatch-123-gpu-server-1",
-            "host": "gpu-server-1",
+            "dispatch_id": "dispatch-123-GIGA",
+            "host": "GIGA",
             "status": "completed",
             "started_at": "2026-03-25T10:00:00Z",
         }
-        (dispatch_dir / "dispatch-123-gpu-server-1.yaml").write_text(yaml.dump(record))
+        (dispatch_dir / "dispatch-123-GIGA.yaml").write_text(yaml.dump(record))
         with patch("hydra_dispatch.DISPATCH_DIR", dispatch_dir):
             results = list_dispatches()
         assert len(results) == 1
-        assert results[0]["dispatch_id"] == "dispatch-123-gpu-server-1"
+        assert results[0]["dispatch_id"] == "dispatch-123-GIGA"
 
     def test_active_only_filter(self, tmp_path):
         from hydra_dispatch import list_dispatches

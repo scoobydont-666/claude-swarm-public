@@ -3,7 +3,7 @@ set -euo pipefail
 
 # health-check.sh — Check swarm health across all nodes
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 STALE_THRESHOLD=300  # seconds
 
 echo "=== claude-swarm Health Check ==="
@@ -61,16 +61,16 @@ echo "Pending: ${PENDING}, Claimed: ${CLAIMED}, Completed: ${COMPLETED}"
 # Check NFS connectivity to both servers
 echo ""
 echo "--- NFS Connectivity ---"
-if ping -c 1 -W 2 10.0.0.1 &>/dev/null; then
-    echo "[OK] gpu-server-1 (10.0.0.1) reachable"
+if ping -c 1 -W 2 <primary-node-ip> &>/dev/null; then
+    echo "[OK] GIGA (<primary-node-ip>) reachable"
 else
-    echo "[FAIL] gpu-server-1 (10.0.0.1) unreachable"
+    echo "[FAIL] GIGA (<primary-node-ip>) unreachable"
 fi
 
-if ping -c 1 -W 2 10.0.0.5 &>/dev/null; then
-    echo "[OK] orchestration-node (10.0.0.5) reachable"
+if ping -c 1 -W 2 <orchestration-node-ip> &>/dev/null; then
+    echo "[OK] miniboss (<orchestration-node-ip>) reachable"
 else
-    echo "[FAIL] orchestration-node (10.0.0.5) unreachable"
+    echo "[FAIL] miniboss (<orchestration-node-ip>) unreachable"
 fi
 
 # Summary

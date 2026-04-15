@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """GPU Slot Manager — atomic slot claiming via lockfiles.
 
-Manages GPU slot allocation across the swarm using lockfiles at /var/lib/swarm/gpu/slot-{N}.lock.
+Manages GPU slot allocation across the swarm using lockfiles at /opt/swarm/gpu/slot-{N}.lock.
 Each slot can be claimed by a single hostname:pid:timestamp tuple.
 
-gpu-server-1 has 2 GPUs:
+GIGA has 2 GPUs:
   - GPU 0: Reserved for Ollama (permanently claimed)
   - GPU 1: Workload allocation
 
@@ -37,7 +37,7 @@ DEFAULT_STALE_THRESHOLD_SECONDS = 300  # 5 minutes
 
 def _gpu_dir() -> Path:
     """Return GPU slot directory, creating it if needed."""
-    d = Path("/var/lib/swarm/gpu")
+    d = Path("/opt/swarm/gpu")
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -199,7 +199,7 @@ def get_slot_status() -> list[dict]:
             except (IndexError, ValueError):
                 continue
 
-    # Include gpu-server-1's 2 GPUs explicitly
+    # Include GIGA's 2 GPUs explicitly
     for gpu_id in {0, 1} | existing_ids:
         available = is_slot_available(gpu_id)
         holder = ""
@@ -302,7 +302,7 @@ def wait_for_slot(
     Returns:
         True if the slot was successfully claimed, False on timeout.
 
-    Entries in /var/lib/swarm/gpu/queue-{N}.json:
+    Entries in /opt/swarm/gpu/queue-{N}.json:
         [{hostname, pid, priority, requested_at}, ...]
     Sorted by (priority asc, requested_at asc) — head of queue gets to claim.
     """

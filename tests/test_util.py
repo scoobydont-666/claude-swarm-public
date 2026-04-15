@@ -146,7 +146,7 @@ class TestSwarmRoot:
     def test_fallback_to_home(self, tmp_path):
         with patch("util.Path") as MockPath:
             nfs = tmp_path / "nfs_swarm"
-            # Simulate /var/lib/swarm not existing
+            # Simulate /opt/swarm not existing
             mock_nfs = type(nfs)
             MockPath.side_effect = lambda x: Path(x)
             # Just verify the function doesn't crash
@@ -182,19 +182,19 @@ class TestFleetFromConfig:
         config_dir.mkdir()
         config = {
             "nodes": {
-                "gpu-server-1": {"ip": "10.0.0.1", "capabilities": ["gpu", "docker"]},
-                "orchestration-node": {"ip": "10.0.0.5", "capabilities": ["docker"]},
+                "GIGA": {"ip": "<primary-node-ip>", "capabilities": ["gpu", "docker"]},
+                "miniboss": {"ip": "<orchestration-node-ip>", "capabilities": ["docker"]},
                 "future": {"ip": "TBD"},
             }
         }
         (config_dir / "swarm.yaml").write_text(yaml.dump(config))
         with patch("util.swarm_root", return_value=tmp_path):
             fleet = fleet_from_config()
-        assert "gpu-server-1" in fleet
-        assert "orchestration-node" in fleet
+        assert "GIGA" in fleet
+        assert "miniboss" in fleet
         assert "future" not in fleet  # TBD should be excluded
-        assert fleet["gpu-server-1"]["ip"] == "10.0.0.1"
-        assert "gpu" in fleet["gpu-server-1"]["capabilities"]
+        assert fleet["GIGA"]["ip"] == "<primary-node-ip>"
+        assert "gpu" in fleet["GIGA"]["capabilities"]
 
     def test_empty_config_returns_empty(self):
         with patch("util.load_swarm_config", return_value={}):

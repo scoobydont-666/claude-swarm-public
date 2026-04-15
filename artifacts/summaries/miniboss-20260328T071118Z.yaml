@@ -1,0 +1,57 @@
+hostname: miniboss
+session_id: project-management-session12-final
+timestamp: "2026-03-28T07:15:00Z"
+project: Multi-project — Hydra Forge, ExamForge, fleet security, infra
+duration_minutes: 180
+key_decisions:
+  - "2026-03-28T00:00Z — hydra-pulse committed (reset timers, model breakdown)"
+  - "2026-03-28T00:15Z — HYDRA FORGE PHASE 3 COMPLETE: LOCAL tier in agent_bridge (91 tests)"
+  - "2026-03-28T00:30Z — EXAMFORGE PHASE 4 COMPLETE: all CPA hardcodes removed (30 tests)"
+  - "2026-03-28T01:00Z — ExamForge Phase 5: AWS CLF-C02 onboarded, dual-GPU generation launched"
+  - "2026-03-28T02:57Z — MECHA generation done: 345 questions (D3+D4)"
+  - "2026-03-28T03:30Z — AWS CLF-C02 landing page + certifications index"
+  - "2026-03-28T04:10Z — MECHA QA validation launched on 453 questions"
+  - "2026-03-28T04:30Z — Tailscale KILLED on miniboss+GIGA — unnecessary attack surface"
+  - "2026-03-28T05:10Z — Frontend TypeScript build fixed (2 prop mismatches)"
+  - "2026-03-28T06:50Z — GIGA D1 complete (180q), D2 started"
+  - "2026-03-28T07:06Z — FOUND: GIGA Ollama running on CPU not GPU! NVML failed in container. Restarted → 9x speedup (90s→10s/q)"
+  - "2026-03-28T07:10Z — Memory saved: always check nvidia-smi inside container before batch work"
+files_changed:
+  - "hydra-project: libs/agent_bridge/ (LOCAL tier), scripts/clone-repos.sh, docs/ (web guide, port registry, model eval)"
+  - "examforge: Phase 4 (6 files), Phase 5 (landing pages, QA runner, 527 draft questions)"
+  - "hydra-forge: scripts/quality-check.py, CLAUDE.md"
+  - "hydra-pulse: src/db.rs, src/main.rs"
+  - "skills: project-management registry, ansible-hardening (tailscale removed), openclaw-ops deleted"
+  - "memory: feedback_repos_on_swarm.md, feedback_check_gpu_usage.md, project_new_heads.md"
+artifacts_produced:
+  - "agent_bridge LOCAL tier: 91 tests, hydra-coder:v1 at $0.00"
+  - "ExamForge Phase 4 complete: 30 tests"
+  - "AWS CLF-C02: 527/750 questions generated, ~190 more in progress (GPU, ~30min)"
+  - "AWS QA: 184/453 validated on MECHA (ongoing)"
+  - "Web interfaces guide: all 14 services documented"
+  - "Tailscale removed from fleet"
+  - "clone-repos.sh for fleet provisioning"
+context_for_next: >
+  BACKGROUND PROCESSES STILL RUNNING (detached, survive session exit):
+  1. GIGA D2 generation: ~37/225 Security questions, NOW ON GPU (~10s/q, ETA ~30min)
+     Output: /tmp/claude-1000/-opt-hydra-project/.../tasks/bcmegyle8.output
+     Result: writes to /opt/examforge/backend/seed/aws-clf-c02-drafts/
+  2. MECHA QA: ~184/453, ~50s/q, ETA ~3.5h
+     Output: /tmp/claude-1000/-opt-hydra-project/.../tasks/bqk4fchcm.output
+     Result: writes to /opt/examforge/backend/seed/aws-clf-c02-qa/
+  
+  WHEN THEY FINISH:
+  - Commit D2 batch: cd /opt/examforge && git add backend/seed/aws-clf-c02-drafts/ && git commit
+  - Commit QA results: git add backend/seed/aws-clf-c02-qa/ && git commit
+  - Run QA on GIGA-generated questions (D1+D2): python3 scripts/run-aws-qa.py --endpoint giga
+  - Total target: 750 AWS questions generated + fully QA validated
+  
+  BLOCKED ON JOSH:
+  - Repo cloning on GIGA+MECHA: sudo <hydra-project-path>/scripts/clone-repos.sh + gh auth login
+  - ExamForge 3a.7: CPA review of TCP+REG + 48 cross-validation disagreements
+  - Solar Sentinel: Enphase JWT
+  - Hydra Media: ElevenLabs + Google OAuth
+  
+  GIGA OLLAMA GPU FIX: Container was restarted this session. If it happens again,
+  check with: docker exec ollama-gpu nvidia-smi
+  Fix: sudo systemctl restart ollama-container

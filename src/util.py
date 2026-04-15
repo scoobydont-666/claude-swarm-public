@@ -68,7 +68,7 @@ def atomic_write_yaml(path: Path, data: dict) -> None:
 
 def swarm_root() -> Path:
     """Return the swarm root directory. Checks NFS mount first, falls back to local."""
-    nfs_path = Path("/var/lib/swarm")
+    nfs_path = Path("/opt/swarm")
     if nfs_path.is_dir():
         return nfs_path
     local_path = Path.home() / ".swarm"
@@ -122,7 +122,7 @@ def fleet_from_config() -> dict[str, dict[str, Any]]:
         if ip and ip != "TBD":
             fleet[name] = {
                 "ip": ip,
-                "user": "user",
+                "user": "josh",
                 "capabilities": info.get("capabilities", []),
                 "projects": info.get("projects", []),
                 "role": info.get("role", "client"),

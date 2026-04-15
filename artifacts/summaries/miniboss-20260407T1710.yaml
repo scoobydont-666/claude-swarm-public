@@ -1,0 +1,43 @@
+hostname: miniboss
+session_id: task-master-execution-2026-04-07f
+timestamp: "2026-04-07T17:10:00Z"
+project: "comfyforge + hydra-project + infra"
+duration_minutes: 50
+
+key_decisions:
+  - "K3s-only mandate enforced: Docker Ollama killed on GIGA, host Ollama killed on MEGA"
+  - "GNOME Remote Desktop replaces xrdp for primary desktop (xrdp kept on 3390 as fallback)"
+  - "MEGA gpu1 exit-code-0 restarts: documented, not fully resolved, rate reduced"
+  - "TaxPrep M4 was already complete — master plan was stale"
+  - "Hydra Media M3-M6: M3+M4 already done, M5+M6 blocked (Google creds)"
+
+files_changed:
+  - "comfyforge: 4 commits (577b65f→f4c4bff) — workflow.py, media_client.py, models.py, api.py, jobs.py, 2 presets"
+  - "hydra-project: 2 commits (a1301a3, e22d9bf) — daily report + master plan"
+
+test_delta:
+  - "ComfyForge: 45→113 tests (+68, Phase 3 complete)"
+  - "TaxPrep: 593 tests verified (was 430 in stale master plan)"
+
+artifacts_produced:
+  - "ComfyForge Workflow Builder DSL (workflow.py, 594 lines)"
+  - "ComfyForge MediaClient (media_client.py, 115 lines)"
+  - "YouTube thumbnail + intro card presets"
+  - "GNOME Remote Desktop config on miniboss (TLS cert, credentials)"
+
+context_for_next: |
+  See checkpoint: /opt/swarm/artifacts/checkpoints/miniboss-current.yaml
+
+  ComfyForge Phase 3 is DONE. 113 tests, 8 presets (6 original + 2 YouTube).
+  New workflow DSL supports: txt2img, img2img, inpaint, controlnet, lora, custom.
+  
+  Infra: Docker/host Ollama killed on GIGA+MEGA. K3s-only mandate enforced.
+  MEGA gpu1 still has intermittent exit-code-0 restarts (~1/10min). Not urgent.
+  GNOME Remote Desktop on miniboss:3389 (xrdp on 3390 as fallback).
+  Credentials: josh / miniboss-rdp (self-signed TLS cert).
+  
+  Next session priorities:
+  1. Code quality audit (docstrings + type hints) — maintenance
+  2. Code RAG Phase 1.2 (port 8523) — in progress from prior session
+  3. MEGA Ollama investigation (exit-code-0, low priority)
+  4. Any unblocked Nutanix work

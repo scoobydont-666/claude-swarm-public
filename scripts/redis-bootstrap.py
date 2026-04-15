@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bootstrap Redis from NFS state.
 
-Reads all tasks, status files, and events from /var/lib/swarm/ (NFS)
+Reads all tasks, status files, and events from /opt/swarm/ (NFS)
 and populates Redis so both backends have identical state.
 
 Safe to re-run — uses idempotent writes (HSET, ZADD).
@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import redis_client as rc
 
-SWARM_ROOT = Path("/var/lib/swarm")
+SWARM_ROOT = Path("/opt/swarm")
 
 PRIORITY_MAP = {
     "critical": 0,

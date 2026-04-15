@@ -1,0 +1,38 @@
+hostname: miniboss
+session_id: session-2026-03-23-skill-audit-and-work
+timestamp: '2026-03-23T07:15:00Z'
+project: <hydra-project-path>
+duration_minutes: 55
+key_decisions:
+- "Skill audit: 38 skills audited, all current except OBBBA markers"
+- "ai-cluster-knowledge: fixed NVIDIA driver 590.x → 580.x in description"
+- "cpa-tax-specialist: all 12 TODO:OBBBA markers resolved with verified OBBBA provisions"
+- "ExamForge: 609 questions loaded into DB (414 AICPA + 45 seed + 160 draft + domain remapping)"
+- "Prompt Forge: 2 test failures fixed (template inheritance + CLI exit code)"
+- "DocuMint: 165 tests confirmed green (stale install was the issue, not code)"
+- "Memory: saved git-push-without-asking feedback"
+files_changed:
+- "ai-cluster-knowledge/SKILL.md: driver version fix"
+- "cpa-tax-specialist/references/tcp-blueprint-federal.md: 10 OBBBA TODOs resolved"
+- "cpa-tax-specialist/references/california-tax.md: 7 OBBBA TODOs resolved"
+- "~/.claude/CLAUDE.md: OBBBA status updated"
+- "examforge: load_aicpa.py, load_drafts.py (new scripts)"
+- "prompt-forge: templates.py + test_cli.py fixes"
+issues_found:
+- "ChromaDB not available on miniboss — blocks Audit Sentinel M3 and ClauseHound C3 ingestion"
+- "ExamForge load_all.py crashes on 3rd cert iteration (session state bug) — low priority, direct loaders work fine"
+- "ExamForge draft questions have stale OBBBA CTC amounts ($2,200 for 2023 tax year) — need review"
+artifacts_produced:
+- "609 questions in ExamForge DB"
+- "Updated CPA tax references with verified OBBBA provisions"
+- "claude-config synced and pushed"
+context_for_next: >
+  ExamForge P0: 414 AICPA questions need explanations (Ollama on GIGA).
+  72 AI-generated drafts need Josh CPA review.
+  Audit Sentinel M3: 1,273 IRS chunks need ChromaDB ingestion (GIGA).
+  ClauseHound C3: regulation data needs ChromaDB ingestion (GIGA).
+  GIGA GitHub push auth still BLOCKED (Josh needs gh auth login with repo write scope).
+  Solar Sentinel: Firewalla rule + JWT token BLOCKED.
+  Rainbow: physical access BLOCKED.
+  All test suites green: ExamForge 220, Prompt Forge 96, DocuMint 165,
+  Audit Sentinel 93, ClauseHound 91, Hashrate Hedger 44.

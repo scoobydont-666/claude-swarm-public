@@ -1,0 +1,38 @@
+hostname: miniboss
+session_id: examforge-marathon
+timestamp: "2026-03-26T04:30:00Z"
+project: hydra-project (ExamForge primary, fleet skills)
+duration_minutes: 100
+key_decisions:
+  - Fixed 1-based AICPA domain numbering in load_drafts.py (off-by-one bug)
+  - Loaded 698 new draft questions into ExamForge DB (was 414, now 1,112)
+  - Generated explanations for 1,061/1,112 questions via qwen3:14b on GIGA GPU
+  - QA reviewed 675 AI-generated questions via phi4:14b on MECHA (625 pass, 50 fixed)
+  - Added MECHA to 4 skills (ai-cluster-knowledge, project-management, fleet-manager, docker-swarm-ops)
+  - Updated GIGA hardware profile to reflect half-capacity reality (1 CPU, 1 GPU, 125GB)
+  - Updated Christi finetune memory with v3 failure analysis
+files_changed:
+  - examforge: load_drafts.py domain fix, CLAUDE.md, plans/examforge-plan.md, plans/examforge-roadmap.md
+  - skills: ai-cluster-knowledge, project-management, fleet-manager, docker-swarm-ops, fleet-ports
+  - hydra-project: inbound sync doc committed
+  - memory: project_christi_finetune.md updated
+  - claude-config: 4 skill files updated and pushed
+issues_found:
+  - 51 AICPA questions persistently fail explanation generation (qwen3:14b returns empty — 4.6% failure rate)
+  - AWS CLF-C02 content from previous session not found anywhere — needs regeneration
+  - ExamForge ISC (131) and TCP (145) below 200-question targets
+artifacts_produced:
+  - ExamForge DB: 1,112 CPA questions, 1,061 with explanations, 675 QA reviewed (all pass/fixed)
+  - 4 skills updated with MECHA hardware profile
+  - MECHA SSH working from miniboss (host key added)
+context_for_next: >
+  EXAMFORGE (P0): 1,112 questions across all 6 CPA sections. 95.4% have explanations.
+  QA complete — 625 passed, 50 auto-fixed. Next priorities:
+  (1) Generate more ISC+TCP questions to reach 200 target each (need ~70 ISC + ~55 TCP).
+  (2) Regenerate AWS CLF-C02 content from scratch (lost from previous session).
+  (3) Josh CPA review of TCP+REG sections (72 questions flagged, BLOCKED on Josh).
+  (4) Build review-drafts.md for Josh spot-check (run build_review_doc.py).
+  CHRISTI: v3 degenerate. RAG+v1 is production path. No action needed unless Josh wants another training run.
+  FLEET: GIGA + MECHA (GPU) + miniboss (CPU). MECHA SSH working from all hosts.
+  GIGA at half capacity (1 CPU, 1 GPU, 125GB) awaiting replacement CPU.
+  BLOCKED: Solar Sentinel (JWT), Hydra Media (OAuth2), Rainbow (physical access).

@@ -70,7 +70,7 @@ def create_worktree(
             )
         else:
             result = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", f"admin@example.com full_cmd],
+                ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
                 capture_output=True, text=True, timeout=30,
             )
 
@@ -135,7 +135,7 @@ def merge_worktree(
             )
         else:
             result = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", f"admin@example.com full_cmd],
+                ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
                 capture_output=True, text=True, timeout=60,
             )
 
@@ -171,7 +171,7 @@ def cleanup_worktree(
             subprocess.run(["bash", "-c", full_cmd], capture_output=True, timeout=15)
         else:
             subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", f"admin@example.com full_cmd],
+                ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
                 capture_output=True, timeout=15,
             )
         logger.info(f"Worktree cleaned: {worktree.path}")
@@ -189,7 +189,7 @@ def list_worktrees(repo_path: str, host: str = "localhost") -> list[str]:
             result = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True, timeout=10)
         else:
             result = subprocess.run(
-                ["ssh", "-o", "ConnectTimeout=5", f"admin@example.com cmd],
+                ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", cmd],
                 capture_output=True, text=True, timeout=10,
             )
         if result.returncode == 0:

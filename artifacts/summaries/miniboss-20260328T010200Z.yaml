@@ -1,0 +1,36 @@
+hostname: miniboss
+session_id: project-management-session12
+timestamp: "2026-03-28T00:15:00Z"
+project: Hydra Forge Phase 3 + ExamForge Phase 4 + hydra-pulse
+duration_minutes: 45
+key_decisions:
+  - "2026-03-28T00:00Z — hydra-pulse: committed reset timers, model breakdown, refactored window_tokens_with_live()"
+  - "2026-03-28T00:05Z — Hydra Forge Phase 3 COMPLETE: LOCAL tier in agent_bridge — hydra-coder:v1 routes haiku tasks via Ollama"
+  - "2026-03-28T00:05Z — Design: LOCAL is runtime optimization below HAIKU, not new TASK_ROUTING entry. Quality upgrades fire before LOCAL check."
+  - "2026-03-28T00:05Z — Uses /api/generate with raw=true + explicit ChatML (proven Ollama workaround)"
+  - "2026-03-28T00:10Z — ExamForge Phase 4 COMPLETE: all CPA hardcodes removed from backend prompts + frontend"
+  - "2026-03-28T00:10Z — Discovery: most of Phase 4 (4.1-4.6, 4.10-4.12) was already done. Only 4 items remained."
+files_changed:
+  - "hydra-pulse: src/db.rs, src/main.rs (reset timers, model breakdown, refactored windows)"
+  - "hydra-project: libs/agent_bridge/bridge.py, __init__.py, tests/test_bridge.py (LOCAL tier, 91 tests)"
+  - "examforge: qa/factual.py, generator/variations.py, Disclaimer.tsx, page.tsx, pricing/page.tsx, test_phase4_multi_cert.py (30 tests)"
+artifacts_produced:
+  - "agent_bridge LOCAL tier: 91 tests pass, zero-cost local inference with fallback"
+  - "ExamForge Phase 4: 30 tests pass, zero CPA hardcodes remain"
+  - "hydra-pulse: reset timers and model breakdown in stats view"
+context_for_next: >
+  HYDRA FORGE PHASE 3 DONE. Next: Phase 4 (monitoring + quarterly retrain schedule).
+  Optional: run HydraBench A/B test (30 tasks) to validate hydra-coder:v1 vs base Qwen.
+  
+  EXAMFORGE PHASE 4 DONE. All multi-cert foundation work complete.
+  Next actionable: Phase 5 (AWS CLF-C02 content generation).
+  Phase 5 steps: 1) Verify AWS CLF-C02 seed dir exists (it does)
+  2) Run onboard CLI for AWS cert: examforge onboard seed/aws-clf-c02/
+  3) Generate 750 AWS questions using the parameterized pipeline
+  4) QA validation pass on AWS questions
+  
+  STILL BLOCKED:
+  - ExamForge 3a.7: Josh CPA review of TCP+REG + 48 cross-validation disagreements
+  - Solar Sentinel: Enphase JWT
+  - Hydra Media M2/M5: ElevenLabs key + Google OAuth
+  - CostGuard LICENSE: Josh decision on name

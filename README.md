@@ -7,7 +7,7 @@ sharing, worktree management, GPU slot allocation, and auto-dispatch across the 
 
 ```
                     ┌─────────────────────────────────────┐
-                    │         /var/lib/swarm/  (NFS share)     │
+                    │         /opt/swarm/  (NFS share)     │
                     │                                       │
                     │  status/      per-node heartbeat JSON │
                     │  tasks/       pending/claimed/done    │
@@ -18,16 +18,16 @@ sharing, worktree management, GPU slot allocation, and auto-dispatch across the 
                                 │             │
               ┌─────────────────┘             └──────────────────┐
               │                                                    │
-   gpu-server-1 (10.0.0.1)                        orchestration-node (10.0.0.5)
+   GIGA (<primary-node-ip>)                        miniboss (<orchestration-node-ip>)
    NFS primary                                   NFS replica
-   /var/lib/swarm/ (export)                          /var/lib/swarm-replica/ (rsync)
+   /opt/swarm/ (export)                          /opt/swarm-replica/ (rsync)
    primary inference + swarm mgr                 monitoring + git sync
               │                                    │
               └──────────── git sync ───────────────┘
-                          your-github-user/claude-config
+                          scoobydont-666/claude-config
                           (remote durability, 60s interval)
 
-   gpu-server-2 (10.0.0.2) ──── NFS client ──── mounts /var/lib/swarm/
+   MECHA (<gpu-worker-ip>) ──── NFS client ──── mounts /opt/swarm/
    (worker node, ComfyUI, inference)
 
 Claude Code instances on any host:
@@ -43,18 +43,18 @@ Claude Code instances on any host:
 
 - Python 3.10+
 - `typer`, `pyyaml`, `rich` Python packages
-- NFS mount at `/var/lib/swarm/` (setup scripts provided — requires sudo)
-- `git` with access to `your-github-user/claude-config`
+- NFS mount at `/opt/swarm/` (setup scripts provided — requires sudo)
+- `git` with access to `scoobydont-666/claude-config`
 
 ## Quick Start
 
 ### 1. Set Up NFS
 
 ```bash
-# On gpu-server-1 (NFS primary):
+# On GIGA (NFS primary):
 sudo bash scripts/setup-primary.sh
 
-# On orchestration-node (NFS replica):
+# On miniboss (NFS replica):
 sudo bash scripts/setup-replica.sh
 
 # On any other cluster host:
@@ -96,9 +96,9 @@ Then add hook entries to Claude Code `settings.json`. Do not auto-install — in
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | CLI | Python 3.10+ | Task dispatch, heartbeat polling, status queries |
-| Coordination | NFS (primary) | Sub-second atomic file operations on gpu-server-1 |
-| Durability | Git + rsync | Replica on orchestration-node, remote sync to claude-config |
-| Task Queue | YAML files | Structured state in `/var/lib/swarm/tasks/` |
+| Coordination | NFS (primary) | Sub-second atomic file operations on GIGA |
+| Durability | Git + rsync | Replica on miniboss, remote sync to claude-config |
+| Task Queue | YAML files | Structured state in `/opt/swarm/tasks/` |
 | Registry | JSON (fcntl) | Per-node heartbeat with file locking |
 | Database | SQLite | Agent tracking, session state |
 | Scheduler | APScheduler | Health monitor daemon, sync cadence |
@@ -108,7 +108,7 @@ Then add hook entries to Claude Code `settings.json`. Do not auto-install — in
 ## NFS Share Structure
 
 ```
-/var/lib/swarm/
+/opt/swarm/
 ├── status/                  # Per-node JSON heartbeat files
 │   └── <hostname>.json
 ├── tasks/
@@ -133,11 +133,11 @@ Key settings:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `swarm.name` | `hydra-swarm` | Swarm identifier |
-| `nfs.primary` | `10.0.0.1:/var/lib/swarm` | NFS primary export |
-| `nfs.replica` | `10.0.0.5:/var/lib/swarm-replica` | Replica for HA |
-| `nfs.mount_point` | `/var/lib/swarm` | Local mount path |
+| `nfs.primary` | `<primary-node-ip>:/opt/swarm` | NFS primary export |
+| `nfs.replica` | `<orchestration-node-ip>:/opt/swarm-replica` | Replica for HA |
+| `nfs.mount_point` | `/opt/swarm` | Local mount path |
 | `nfs.sync_interval_seconds` | `30` | NFS→replica rsync interval |
-| `git.repo` | `your-github-user/claude-config` | Remote durability repo |
+| `git.repo` | `scoobydont-666/claude-config` | Remote durability repo |
 | `git.sync_interval_seconds` | `60` | Git sync cadence |
 | `git.sync_on_task_complete` | `true` | Sync immediately on task done |
 | `heartbeat.interval_seconds` | `60` | Node heartbeat cadence |
@@ -300,7 +300,7 @@ Test files mirror source modules (e.g., `test_gpu_slots.py` → `gpu_slots.py`).
 - Atomic writes — write to `.tmp`, rename (prevents partial reads)
 - File locking — `fcntl.flock()` on task files (prevents race conditions)
 - Git safety — never force-push, always pull-rebase first
-- Belt and suspenders — NFS primary on gpu-server-1, replica on orchestration-node, git for durability
+- Belt and suspenders — NFS primary on GIGA, replica on miniboss, git for durability
 
 ## Deployment
 
@@ -353,8 +353,8 @@ GPU slot utilization, rate-limit events.
 
 | Project | Location | Relationship |
 |---------|----------|-------------|
-| Project Hydra | /opt/hydra-project/ | Umbrella — swarm coordinates all Hydra heads |
-| hydra-pulse | /var/lib/hydra-pulse/ | Consumes SWARM_TASK_ID for cost-per-task analytics |
+| Project Hydra | <hydra-project-path>/ | Umbrella — swarm coordinates all Hydra heads |
+| hydra-pulse | /opt/hydra-pulse/ | Consumes SWARM_TASK_ID for cost-per-task analytics |
 | claude-config | /opt/claude-configs/claude-config/ | Hook scripts + swarm config synced here |
 | Christi | /opt/christi-project/ | Primary beneficiary of multi-agent dispatch |
 | ExamForge | /opt/examforge/ | question_generation pipeline runs via swarm |

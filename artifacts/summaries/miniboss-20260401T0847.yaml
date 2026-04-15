@@ -1,0 +1,55 @@
+hostname: miniboss
+session_id: infra-health-overhaul
+timestamp: "2026-04-01T08:20:00-07:00"
+project: hydra-platform (cross-project infra)
+duration_minutes: 75
+key_decisions:
+  - "K3s NodePort range extended to 10000-32767 (Ollama on 11434)"
+  - "ComfyUI migrated Docker→K3s on MECHA (NodePort 30188)"
+  - "Ollama consolidated to K3s-only on GIGA (v0.19.0)"
+  - "Context Bridge MCP moved to miniboss (always-on orchestrator)"
+  - "hydra-report.sh replaces status-report.sh (2h cron, email+HTML)"
+  - "miniboss is canonical orchestrator for all persistent services"
+files_changed:
+  - <hydra-project-path>/docs/port-registry.md (K3s NodePort overhaul)
+  - <hydra-project-path>/scripts/hydra-report.sh (NEW — comprehensive report)
+  - <hydra-project-path>/docs/ccunpacked-knowledge.md (committed from last session)
+  - <hydra-project-path>/reports/* (committed from last session)
+  - <hydra-project-path>/scripts/gpu-watchdog.sh (committed from last session)
+  - <ai-project-path>/k8s/gpu/comfyui.yaml (NEW — K3s deployment)
+  - <ai-project-path>/k8s/gpu/ollama.yaml (NodePort 31434→11434)
+  - /etc/rancher/k3s/config.yaml (NEW on GIGA — extended port range)
+  - /opt/project-hydra/.mcp.json (NEW — Context Bridge MCP)
+  - /home/josh/.kube/config (NEW — K3s kubeconfig on miniboss)
+  - /usr/local/bin/kubectl (NEW on miniboss)
+issues_found:
+  - "Context Bridge Prometheus metrics are dead code (counters never wired)"
+  - "CB at 3/10 utilization — token-miser integration missing"
+  - "ExamForge QA job had to be restarted after Ollama port change"
+artifacts_produced:
+  - "3 git commits (hydra-project, ai-project)"
+  - "Context Bridge analysis report emailed"
+  - "hydra-report.sh comprehensive fleet report"
+  - "5 memory entries saved"
+  - "2 plugins installed (pyright-lsp, gopls-lsp)"
+  - "3 MCP servers configured (context-bridge, kubernetes, grafana)"
+  - "kubectl installed on miniboss with K3s kubeconfig"
+context_for_next: |
+  INFRA IS SOLID — all health checks pass, all fixes committed.
+  
+  RESTART SESSION FIRST to load:
+  - MCP: context-bridge (127.0.0.1:8520), kubernetes, grafana
+  - Plugins: pyright-lsp, gopls-lsp
+  
+  THEN EXECUTE (see memory: project_next_session_queue.md):
+  Phase 1: Context Bridge 5 priorities (metrics, checkpoints, compact hooks, skills cron, token-miser)
+  Phase 2: Project alignment plan (ExamForge GPU results, Christi, K3s, NutantForge)
+  
+  GPU JOBS STILL RUNNING:
+  - GIGA: ExamForge EA Part 1 QA validation (restarted with port 11434)
+  - MECHA: Security+ domain 3 generation
+  - MEGA: Nutanix NCA domain 3 generation + XMRig 42 kH/s
+  
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel

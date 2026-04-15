@@ -13,9 +13,9 @@ Five reliability features implemented to improve swarm resilience and task manag
 - `get_slot_status() -> list[dict]` — Returns status of all GPU slots
 - `setup_ollama_slot() -> bool` — Permanently claims GPU 0 for Ollama on startup
 
-**Storage:** `/var/lib/swarm/gpu/slot-{N}.lock` lockfiles
+**Storage:** `/opt/swarm/gpu/slot-{N}.lock` lockfiles
 
-**gpu-server-1 Configuration:**
+**GIGA Configuration:**
 - GPU 0: Reserved for Ollama (permanently claimed)
 - GPU 1: Workload allocation (dynamically allocated)
 
@@ -142,7 +142,7 @@ Total: 512 passing tests (up from 337)
 ## Deployment Checklist
 
 - [ ] Run full test suite: `pytest tests/ -x -q`
-- [ ] Verify GPU directory exists: `/var/lib/swarm/gpu/`
+- [ ] Verify GPU directory exists: `/opt/swarm/gpu/`
 - [ ] Check swarm.yaml has `max_pending_tasks` config
 - [ ] Initialize Ollama slot once at startup: call `setup_ollama_slot()`
 - [ ] Install crash handlers in agent init: call `install_crash_handlers()`

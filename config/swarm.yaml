@@ -2,8 +2,8 @@ swarm:
   name: hydra-swarm
   version: 1
 nodes:
-  orchestration-node:
-    ip: 10.0.0.1
+  miniboss:
+    ip: 192.168.200.170
     role: replica
     cpu: AMD Ryzen AI 9 HX 470 (12c/24t, 5.3GHz boost)
     ram: 48GB DDR5 (46Gi usable)
@@ -58,8 +58,8 @@ nodes:
     - monero-farm
     - hydra-project
     - examforge
-  gpu-server-1:
-    ip: 10.0.0.1
+  GIGA:
+    ip: <primary-node-ip>
     role: primary
     capabilities:
     - docker
@@ -88,8 +88,8 @@ nodes:
     - solar-sentinel
     - str-project
     - taxprep-project
-  gpu-server-3:
-    ip: 10.0.0.3
+  MEGA:
+    ip: <gpu-node-ip>
     role: worker
     capabilities:
     - cpu
@@ -119,8 +119,8 @@ nodes:
     - solar-sentinel
     - str-project
     - taxprep-project
-  gpu-server-4:
-    ip: 10.0.0.4
+  MONGO:
+    ip: 127.0.0.1
     role: worker
     capabilities:
     - gpu
@@ -133,8 +133,8 @@ nodes:
     - claude-swarm
     - examforge
     - nutantforge
-  gpu-server-2:
-    ip: 10.0.0.2
+  MECHA:
+    ip: <gpu-worker-ip>
     role: worker
     capabilities:
     - gpu
@@ -165,12 +165,12 @@ nodes:
     - str-project
     - taxprep-project
 nfs:
-  primary: 10.0.0.1:/var/lib/swarm
-  replica: 10.0.0.1:/var/lib/swarm-replica
-  mount_point: /var/lib/swarm
+  primary: <primary-node-ip>:/opt/swarm
+  replica: 192.168.200.170:/opt/swarm-replica
+  mount_point: /opt/swarm
   sync_interval_seconds: 30
 git:
-  repo: your-github-user/claude-config
+  repo: scoobydont-666/claude-config
   branch: main
   sync_interval_seconds: 60
   sync_on_task_complete: true
@@ -185,37 +185,37 @@ decomposition:
   auto_suggest: true
   capability_routing:
     ollama:
-    - gpu-server-1
-    - gpu-server-2
-    - gpu-server-3
-    - gpu-server-4
-    - orchestration-node
+    - GIGA
+    - MECHA
+    - MEGA
+    - MONGO
+    - miniboss
     gpu:
-    - gpu-server-1
-    - gpu-server-2
-    - gpu-server-3
-    - gpu-server-4
-    - orchestration-node
+    - GIGA
+    - MECHA
+    - MEGA
+    - MONGO
+    - miniboss
     mining:
-    - orchestration-node
-    - gpu-server-3
+    - miniboss
+    - MEGA
     cpu:
-    - gpu-server-3
-    - gpu-server-1
-    - gpu-server-2
-    - gpu-server-4
-    - orchestration-node
+    - MEGA
+    - GIGA
+    - MECHA
+    - MONGO
+    - miniboss
     cpu_heavy:
-    - gpu-server-3
-    - gpu-server-1
+    - MEGA
+    - GIGA
     docker:
-    - gpu-server-1
-    - gpu-server-2
-    - gpu-server-3
-    - gpu-server-4
-    - orchestration-node
+    - GIGA
+    - MECHA
+    - MEGA
+    - MONGO
+    - miniboss
     docker_swarm:
-    - gpu-server-1
+    - GIGA
 worktrees:
   enabled: true
   base_path: /tmp/swarm-worktrees
@@ -235,43 +235,43 @@ work_generator:
   projects:
     examforge:
       path: /opt/examforge
-      host: orchestration-node
+      host: miniboss
     audit-sentinel:
       path: /opt/audit-sentinel
-      host: orchestration-node
+      host: miniboss
     clausehound:
       path: /opt/clausehound
-      host: orchestration-node
+      host: miniboss
     prompt-forge:
       path: /opt/prompt-forge
-      host: orchestration-node
+      host: miniboss
     hashrate-hedger:
       path: /opt/hashrate-hedger
-      host: orchestration-node
+      host: miniboss
     documint:
       path: /opt/documint
-      host: orchestration-node
+      host: miniboss
     christi-project:
       path: /opt/christi-project
-      host: gpu-server-1
+      host: GIGA
     solar-sentinel:
       path: /opt/solar-sentinel
-      host: orchestration-node
+      host: miniboss
     comfyforge:
       path: /opt/comfyforge
-      host: gpu-server-2
+      host: MECHA
     hydra-forge:
       path: /opt/hydra-forge
-      host: gpu-server-1
+      host: GIGA
     hydra-media:
       path: /opt/hydra-media
-      host: orchestration-node
+      host: miniboss
     hydra-pulse:
-      path: /var/lib/hydra-pulse
-      host: orchestration-node
+      path: /opt/hydra-pulse
+      host: miniboss
     claude-code-costguard:
       path: /opt/claude-code-costguard
-      host: orchestration-node
+      host: miniboss
 auto_dispatch:
   enabled: true
   mode: full
@@ -283,10 +283,10 @@ health_monitor:
   enabled: true
   check_interval_seconds: 60
   prometheus_url: http://127.0.0.1:9090
-  email_alerts: admin@example.com
+  email_alerts: r.josh.jones@gmail.com
   hosts:
-    orchestration-node:
-      ip: 10.0.0.1
+    miniboss:
+      ip: 192.168.200.170
       services:
       - monerod
       - p2pool-main
@@ -295,25 +295,25 @@ health_monitor:
       - prometheus
       - grafana-server
       - crowdsec
-    gpu-server-1:
-      ip: 10.0.0.1
+    GIGA:
+      ip: <primary-node-ip>
       services:
       - docker
       - fail2ban
       - crowdsec
-    gpu-server-3:
-      ip: 10.0.0.3
+    MEGA:
+      ip: <gpu-node-ip>
       services:
       - fail2ban
       - crowdsec
       - prometheus-node-exporter
-    gpu-server-4:
-      ip: 10.0.0.4
+    MONGO:
+      ip: 127.0.0.1
       services:
       - ollama
       - prometheus-node-exporter
-    gpu-server-2:
-      ip: 10.0.0.2
+    MECHA:
+      ip: <gpu-worker-ip>
       services:
       - docker
   cooldowns:

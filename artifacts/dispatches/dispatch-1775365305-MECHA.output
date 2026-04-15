@@ -11,7 +11,7 @@ Three violation types, all escalating through NOTICE → WARNING → CRITICAL:
 
 **Resource Utilization Directive** (`~/.claude/hooks/preflight-check.sh` — SessionStart hook)
 
-The remote already had a more comprehensive version: parallel SSH to gpu-server-1/gpu-server-2/gpu-server-3, K3s cluster check, Ollama loaded models, service health. The GPU multi-idle directive fires when a host has 2+ GPUs with any GPU <500 MiB used. Current fleet: gpu-server-3 has 2× RTX 5080 at 60% each — no false positive.
+The remote already had a more comprehensive version: parallel SSH to GIGA/MECHA/MEGA, K3s cluster check, Ollama loaded models, service health. The GPU multi-idle directive fires when a host has 2+ GPUs with any GPU <500 MiB used. Current fleet: MEGA has 2× RTX 5080 at 60% each — no false positive.
 
 **Anti-Repeat State Tracker** (`~/.claude/hooks/state/instruction-log.jsonl`)
 
@@ -19,4 +19,4 @@ Populated on every Stop hook invocation. Capped at 500 entries with automatic tr
 
 **settings.json** — both hooks already registered by prior session; no settings change needed.
 
-**Pushed:** `5863138` to `your-github-user/claude-config`
+**Pushed:** `5863138` to `scoobydont-666/claude-config`

@@ -6,7 +6,7 @@ set -euo pipefail
 # and loads relevant session summaries for context continuity.
 # Output goes to systemMessage for Claude Code context.
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 HOSTNAME=$(hostname)
 
 # Ensure swarm root exists (NFS or local)
@@ -14,7 +14,7 @@ if [[ ! -d "${SWARM_ROOT}/status" ]]; then
     if [[ -d "${HOME}/.swarm/status" ]]; then
         SWARM_ROOT="${HOME}/.swarm"
     else
-        echo '{"systemMessage": "Swarm: not configured (no /var/lib/swarm or ~/.swarm)"}'
+        echo '{"systemMessage": "Swarm: not configured (no /opt/swarm or ~/.swarm)"}'
         exit 0
     fi
 fi

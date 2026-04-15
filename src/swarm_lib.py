@@ -99,7 +99,7 @@ def _locked_write_yaml(path: Path, data: dict) -> None:
 def _is_nfs_healthy() -> bool:
     """Check if NFS is responding. Fast health check."""
     try:
-        nfs_path = Path("/var/lib/swarm")
+        nfs_path = Path("/opt/swarm")
         if not nfs_path.is_dir():
             return False
 
@@ -139,8 +139,8 @@ def _status_dir() -> Path:
 def get_all_status() -> list[dict]:
     """Return status for all nodes.
 
-    Cross-references /var/lib/swarm/status/ (per-host status files) with
-    /var/lib/swarm/agents/ (per-agent heartbeat files) to fix stale displays.
+    Cross-references /opt/swarm/status/ (per-host status files) with
+    /opt/swarm/agents/ (per-agent heartbeat files) to fix stale displays.
     If an agent has a recent heartbeat on a host whose status file is stale,
     the status is updated from the agent's heartbeat timestamp.
     """
@@ -242,9 +242,9 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
                 "." not in target
                 and target
                 not in (
-                    "gpu-server-1",
-                    "gpu-server-2",
-                    "orchestration-node",
+                    "GIGA",
+                    "MECHA",
+                    "miniboss",
                     "rainbow",
                 )
             ):
@@ -932,7 +932,7 @@ def health_check() -> dict:
 
     result: dict[str, Any] = {
         "swarm_root": str(root),
-        "nfs_available": Path("/var/lib/swarm").is_dir(),
+        "nfs_available": Path("/opt/swarm").is_dir(),
         "config_loaded": True,
         "timestamp": _now_iso(),
         "nodes": {},

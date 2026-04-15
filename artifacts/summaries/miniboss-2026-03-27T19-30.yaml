@@ -1,0 +1,39 @@
+hostname: miniboss
+session_id: project-management-session9
+timestamp: "2026-03-27T19:30:00Z"
+project: multi-project phase execution (ComfyForge, Hydra Forge, skills)
+duration_minutes: 45
+key_decisions:
+  - "2026-03-27T19:00Z — ComfyForge Phase 2: deploy hardening complete (entrypoint-fixes.sh, systemd unit, OpenWebUI URL fix, 3 new presets)"
+  - "2026-03-27T19:05Z — Hydra Forge Phase 2: instruction synthesis pipeline complete (401 ChatML examples, 25 tests)"
+  - "2026-03-27T19:10Z — ai-cluster-knowledge: split 40KB monolith into 10KB SKILL.md + 13 reference files (74% reduction)"
+  - "2026-03-27T19:15Z — modern-python: 9 reference files created (pyproject, uv, ruff, testing, pep723, prek, security, dependabot, migration)"
+  - "2026-03-27T19:18Z — insecure-defaults: examples.md reference file created"
+  - "2026-03-27T19:20Z — project-management skill: registry updated with ComfyForge, Hydra Forge, Hydra Pulse, CostGuard, claude-swarm 750 tests"
+  - "2026-03-27T19:25Z — ComfyForge Phase 3 (Hydra Media integration) dispatched to background agent"
+files_changed:
+  - "comfyforge: 3 new presets, committed by agent"
+  - "ai-project: entrypoint-fixes.sh, comfyforge.service, stack.yml fix, prometheus.yml"
+  - "hydra-forge: generate_instructions.py, prepare_training.py, tests"
+  - "ai-cluster-knowledge: SKILL.md (74% smaller) + 13 references/"
+  - "modern-python: 9 references/ files"
+  - "insecure-defaults: references/examples.md"
+  - "project-management: SKILL.md registry update"
+  - "hydra-media: ComfyForge integration (in progress via background agent)"
+artifacts_produced:
+  - "ComfyForge Phase 2: deploy-ready with systemd, hotfixes, Prometheus"
+  - "Hydra Forge Phase 2: 401 ChatML training examples generated from 1,977 code records"
+  - "Skill maintenance: 10 new reference files, 1 monolith split, registry current"
+context_for_next: >
+  COMFYFORGE: Phase 2 COMPLETE (deploy hardening). Phase 3 IN PROGRESS (Hydra Media integration,
+  background agent). After Phase 3: only Phase 4 (DX polish) remains.
+  HYDRA FORGE: Phase 2 COMPLETE (401 ChatML examples). Phase 3 TODO: actual training run on GIGA.
+  Must stop Ollama, run finetune.py with Qwen2.5-Coder-7B, smoke test, GGUF export.
+  Needs finetune.py script (fork from /opt/christi-project/training/finetune.py).
+  SKILL MAINTENANCE: ALL DEFERRED ITEMS COMPLETE.
+  - ai-cluster-knowledge: split into 10KB + 13 refs (was 40KB monolith)
+  - modern-python: 9/9 reference files created
+  - insecure-defaults: 1/1 reference file created
+  BUDGET: MAX 200 plan, ~4% 5hr. Plenty of headroom.
+  BLOCKED: ExamForge 3a.7 (CPA review), Solar Sentinel (Enphase dev reg),
+  Hydra Media M2/M5 (API keys), Rainbow (physical access).

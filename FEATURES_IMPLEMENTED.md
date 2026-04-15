@@ -18,7 +18,7 @@ Three major architectural features have been implemented for the Claude Swarm pr
 
 ### Architecture
 
-- **Shared Context via NFS**: `/var/lib/swarm/collaborative/{session_id}/`
+- **Shared Context via NFS**: `/opt/swarm/collaborative/{session_id}/`
 - **Files**:
   - `context.yaml` — orchestrator writes initial context, worker reads
   - `progress.yaml` — worker writes periodical progress updates
@@ -30,8 +30,8 @@ Three major architectural features have been implemented for the Claude Swarm pr
 # Start a collaborative session
 session = start_collaborative(
     task="Implementation task",
-    worker_host="gpu-server-1",
-    orchestrator_host="orchestration-node",
+    worker_host="GIGA",
+    orchestrator_host="miniboss",
     project_dir="/opt/examforge",
     model="sonnet"
 )
@@ -143,8 +143,8 @@ db = AgentDB()
 
 # Upsert agent state
 db.upsert_agent(
-    hostname="gpu-server-1",
-    ip="10.0.0.1",
+    hostname="GIGA",
+    ip="<primary-node-ip>",
     pid=4567,
     state="working",
     current_task="task-042",
@@ -154,7 +154,7 @@ db.upsert_agent(
 )
 
 # Retrieve agent
-agent = db.get_agent("gpu-server-1")
+agent = db.get_agent("GIGA")
 
 # List all agents
 agents = db.list_agents()
@@ -162,9 +162,9 @@ agents = db.list_agents()
 # Record task action
 db.record_task_action(
     task_id="task-042",
-    hostname="gpu-server-1",
+    hostname="GIGA",
     action="completed",
-    details={"result_artifact": "/var/lib/swarm/artifacts/task-042.tar.gz"}
+    details={"result_artifact": "/opt/swarm/artifacts/task-042.tar.gz"}
 )
 
 # Get task history
@@ -172,7 +172,7 @@ history = db.task_history("task-042")
 # Returns: [{"action": "claimed", ...}, {"action": "completed", ...}]
 
 # Agent statistics
-stats = db.get_agent_stats("gpu-server-1")
+stats = db.get_agent_stats("GIGA")
 # stats.completion_rate, stats.total_tasks, stats.failed_tasks, stats.preempted_tasks
 
 # Fleet-wide statistics
@@ -238,7 +238,7 @@ pending = dispatcher.rerank_tasks()
 
 # Check if a new task should preempt claimed tasks
 preempted = dispatcher.interrupt_for_priority("task-p0")
-# If true, lower-priority claimed tasks were moved to /var/lib/swarm/tasks/preempted/
+# If true, lower-priority claimed tasks were moved to /opt/swarm/tasks/preempted/
 
 # Internal: Convert priority string to numeric value
 priority_val = dispatcher._priority_value("P2")  # Returns: 2
@@ -253,7 +253,7 @@ dispatcher._preempt_task("task-042", "claimed_by_host")
 2. **Check**: `interrupt_for_priority()` scans claimed tasks
 3. **Compare**: If claimed task is 2+ levels lower, preemption occurs
 4. **Action**:
-   - Move task from `/var/lib/swarm/tasks/claimed/` to `/var/lib/swarm/tasks/preempted/`
+   - Move task from `/opt/swarm/tasks/claimed/` to `/opt/swarm/tasks/preempted/`
    - Send message to claiming agent: "Task {id} has been preempted..."
 5. **Recovery**: Operator can re-queue preempted tasks manually or via remediation
 
@@ -362,7 +362,7 @@ No new configuration files required. Features are integrated into existing:
 ### Environment Requirements
 
 - **SQLite**: Built-in with Python 3.10+
-- **NFS**: Required for collaborative mode (/var/lib/swarm/ must be mounted)
+- **NFS**: Required for collaborative mode (/opt/swarm/ must be mounted)
 - **Disk Space**: ~100MB for agent.db with 10K+ task records
 
 ---

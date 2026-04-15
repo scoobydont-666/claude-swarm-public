@@ -286,8 +286,8 @@ def health_check() -> dict:
     completed = list_tasks("completed")
 
     return {
-        "swarm_root": "/var/lib/swarm",
-        "nfs_available": __import__("pathlib").Path("/var/lib/swarm").is_dir(),
+        "swarm_root": "/opt/swarm",
+        "nfs_available": __import__("pathlib").Path("/opt/swarm").is_dir(),
         "config_loaded": True,
         "timestamp": now.isoformat(),
         "nodes": nodes,
@@ -337,7 +337,7 @@ def share_artifact(source_path: str, name: str = "") -> Path:
     if not src.exists():
         raise FileNotFoundError(f"Artifact source not found: {source_path}")
     artifact_name = name or src.name
-    dst_dir = Path("/var/lib/swarm/artifacts")
+    dst_dir = Path("/opt/swarm/artifacts")
     dst_dir.mkdir(parents=True, exist_ok=True)
     dst = dst_dir / artifact_name
     shutil.copy2(src, dst)
@@ -366,7 +366,7 @@ def list_artifacts() -> list[dict]:
             pipe.hgetall(k)
         return [a for a in pipe.execute() if a]
     # Fallback: scan filesystem
-    artifacts_dir = Path("/var/lib/swarm/artifacts")
+    artifacts_dir = Path("/opt/swarm/artifacts")
     if not artifacts_dir.exists():
         return []
     return [
@@ -387,7 +387,7 @@ def share_session_summary(summary: dict) -> Path:
     """Write session summary. Keeps filesystem + indexes in Redis."""
     from util import atomic_write_yaml
 
-    summaries_dir = Path("/var/lib/swarm/artifacts/summaries")
+    summaries_dir = Path("/opt/swarm/artifacts/summaries")
     summaries_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d-%H%M%S")
     host = hostname()
@@ -414,7 +414,7 @@ def get_relevant_summaries(project: str = "", limit: int = 5) -> list[dict]:
     """Get recent session summaries for a project."""
     import yaml as _yaml
 
-    summaries_dir = Path("/var/lib/swarm/artifacts/summaries")
+    summaries_dir = Path("/opt/swarm/artifacts/summaries")
     if not summaries_dir.exists():
         return []
     files = sorted(
@@ -597,7 +597,7 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
         else:
             ip = node.get("ip", "")
             target = ip or node_host
-            if not target or ("." not in target and target not in ("gpu-server-1", "gpu-server-2", "orchestration-node", "rainbow", "mega")):
+            if not target or ("." not in target and target not in ("GIGA", "MECHA", "miniboss", "rainbow", "mega")):
                 continue
             try:
                 result = subprocess.run(

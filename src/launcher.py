@@ -76,7 +76,7 @@ class AutoScaler:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def get_pending_count(swarm_root: Path = Path("/var/lib/swarm")) -> int:
+    def get_pending_count(swarm_root: Path = Path("/opt/swarm")) -> int:
         """Count pending tasks in the swarm task queue."""
         pending_dir = swarm_root / "tasks" / "pending"
         if not pending_dir.exists():
@@ -84,7 +84,7 @@ class AutoScaler:
         return len(list(pending_dir.glob("*.yaml")))
 
     @staticmethod
-    def get_active_agent_count(swarm_root: Path = Path("/var/lib/swarm")) -> int:
+    def get_active_agent_count(swarm_root: Path = Path("/opt/swarm")) -> int:
         """Count currently live agents from the registry."""
         agents_dir = swarm_root / "agents"
         if not agents_dir.exists():
@@ -156,7 +156,7 @@ class AutoScaler:
 
     def spawn_instance(
         self,
-        project_dir: str = "/opt/hydra-project",
+        project_dir: str = "<hydra-project-path>",
         profile: str = "default",
         task_hint: str = "",
     ) -> SpawnResult:
@@ -170,7 +170,7 @@ class AutoScaler:
             return SpawnResult(success=False, reason="claude CLI not found in PATH")
 
         prompt = (
-            "You are a swarm agent. Check /var/lib/swarm/tasks/pending/ for work. "
+            "You are a swarm agent. Check /opt/swarm/tasks/pending/ for work. "
             "Claim the highest-priority task and execute it. "
             "Commit after each unit of work. Run tests before moving on."
         )
@@ -219,7 +219,7 @@ class AutoScaler:
     def check_and_scale(
         self,
         rate_tracker: Any = None,
-        swarm_root: Path = Path("/var/lib/swarm"),
+        swarm_root: Path = Path("/opt/swarm"),
     ) -> SpawnResult | None:
         """Check queue depth and spawn if needed. Returns SpawnResult or None."""
         pending = self.get_pending_count(swarm_root)

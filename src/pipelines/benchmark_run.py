@@ -17,10 +17,10 @@ BENCHMARK_RUN = Pipeline(
             host="mongo",  # Evaluation node
             requires=["gpu"],
             depends_on=[],
-            prompt_template="""Deploy the candidate model for benchmarking on gpu-server-4.
+            prompt_template="""Deploy the candidate model for benchmarking on MONGO.
 Run:
   # Create Ollama model from GGUF
-  ollama create {input.model_name} -f /var/lib/swarm/training/exports/{input.run_id}/Modelfile
+  ollama create {input.model_name} -f /opt/swarm/training/exports/{input.run_id}/Modelfile
   # Verify model loads
   curl -s http://127.0.0.1:11434/api/generate -d '{{"model": "{input.model_name}", "prompt": "hello", "stream": false}}' | head -1
 Report: model loaded, VRAM used.""",
@@ -37,7 +37,7 @@ Report: model loaded, VRAM used.""",
 Run: cd /opt/ntnx-codeforge && python3 scripts/benchmark_suite.py \
   --model {input.model_name} \
   --suite opencode \
-  --output /var/lib/swarm/training/runs/{input.run_id}/benchmark-opencode.json \
+  --output /opt/swarm/training/runs/{input.run_id}/benchmark-opencode.json \
   --endpoint http://127.0.0.1:11434
 Report: per-task scores, average, pass/fail.""",
             timeout_minutes=30,
@@ -53,7 +53,7 @@ Report: per-task scores, average, pass/fail.""",
 Run: cd /opt/ntnx-codeforge && python3 scripts/benchmark_suite.py \
   --model {input.model_name} \
   --suite convention \
-  --output /var/lib/swarm/training/runs/{input.run_id}/benchmark-convention.json \
+  --output /opt/swarm/training/runs/{input.run_id}/benchmark-convention.json \
   --endpoint http://127.0.0.1:11434
 Report: convention pass rate, failures.""",
             timeout_minutes=20,
@@ -69,7 +69,7 @@ Report: convention pass rate, failures.""",
 Run: cd /opt/ntnx-codeforge && python3 scripts/benchmark_suite.py \
   --model {input.model_name} \
   --suite degeneration \
-  --output /var/lib/swarm/training/runs/{input.run_id}/benchmark-degen.json \
+  --output /opt/swarm/training/runs/{input.run_id}/benchmark-degen.json \
   --endpoint http://127.0.0.1:11434
 Report: repetition ratio, coherence score, pass/fail.""",
             timeout_minutes=15,
@@ -85,10 +85,10 @@ Report: repetition ratio, coherence score, pass/fail.""",
 Run: cd /opt/ntnx-codeforge && python3 -c "
 import json, yaml
 from ntnx_codeforge.manifest import RunManifest
-manifest = RunManifest.from_yaml('/var/lib/swarm/training/runs/{input.run_id}/manifest.yaml')
-opencode = json.load(open('/var/lib/swarm/training/runs/{input.run_id}/benchmark-opencode.json'))
-convention = json.load(open('/var/lib/swarm/training/runs/{input.run_id}/benchmark-convention.json'))
-degen = json.load(open('/var/lib/swarm/training/runs/{input.run_id}/benchmark-degen.json'))
+manifest = RunManifest.from_yaml('/opt/swarm/training/runs/{input.run_id}/manifest.yaml')
+opencode = json.load(open('/opt/swarm/training/runs/{input.run_id}/benchmark-opencode.json'))
+convention = json.load(open('/opt/swarm/training/runs/{input.run_id}/benchmark-convention.json'))
+degen = json.load(open('/opt/swarm/training/runs/{input.run_id}/benchmark-degen.json'))
 manifest.benchmark_scores = dict(
     opencode=opencode.get('average_score', 0),
     convention=convention.get('pass_rate', 0),
@@ -98,7 +98,7 @@ gates_passed = (manifest.benchmark_scores['opencode'] >= 80
     and manifest.benchmark_scores['convention'] >= 95
     and manifest.benchmark_scores['degeneration'] < 0.05)
 manifest.benchmark_passed = gates_passed
-manifest.to_yaml('/var/lib/swarm/training/runs/{input.run_id}/manifest.yaml')
+manifest.to_yaml('/opt/swarm/training/runs/{input.run_id}/manifest.yaml')
 print(f'Benchmark: opencode={{manifest.benchmark_scores[\"opencode\"]}}% convention={{manifest.benchmark_scores[\"convention\"]}}% degen={{manifest.benchmark_scores[\"degeneration\"]}}'  )
 print(f'Gates: {{\"PASSED\" if gates_passed else \"FAILED\"}}')"
 Report: all scores, gate verdict.""",

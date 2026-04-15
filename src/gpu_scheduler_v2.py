@@ -6,7 +6,7 @@ Replaces the lockfile-based gpu_slots.py with a proper scheduler that:
 - Allocates GPUs based on available VRAM
 - Supports multi-GPU allocation for large models (70B+)
 - Tracks allocations in SQLite (not lockfiles)
-- Supports host exclusion (e.g., gpu-server-1 training)
+- Supports host exclusion (e.g., GIGA training)
 """
 
 import logging

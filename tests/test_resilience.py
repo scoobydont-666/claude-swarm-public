@@ -312,7 +312,7 @@ class TestCrashHandlerRobustness:
             real_path = Path
 
             def path_side_effect(arg):
-                if str(arg) == "/var/lib/swarm/tasks/claimed":
+                if str(arg) == "/opt/swarm/tasks/claimed":
                     return claimed_dir
                 return real_path(arg)
 
@@ -338,7 +338,7 @@ class TestCrashHandlerRobustness:
         task = {
             "id": "task-requeue-test",
             "type": "test",
-            "claimed_by": "orchestration-node-12345",
+            "claimed_by": "miniboss-12345",
             "claimed_at": "2026-01-01T00:00:00Z",
         }
         (claimed_dir / "task-requeue-test.yaml").write_text(
@@ -353,9 +353,9 @@ class TestCrashHandlerRobustness:
                 return obj
 
         def fake_path(arg):
-            if str(arg) == "/var/lib/swarm/tasks/claimed":
+            if str(arg) == "/opt/swarm/tasks/claimed":
                 return claimed_dir
-            if str(arg) == "/var/lib/swarm/tasks/pending":
+            if str(arg) == "/opt/swarm/tasks/pending":
                 return pending_dir
             return real_path(arg)
 
@@ -604,7 +604,7 @@ class TestEventLogConcurrency:
 
 
 # ---------------------------------------------------------------------------
-# sync_engine — edge cases in _run, pull_all_projects with gpu-server-1 hostname
+# sync_engine — edge cases in _run, pull_all_projects with GIGA hostname
 # ---------------------------------------------------------------------------
 
 

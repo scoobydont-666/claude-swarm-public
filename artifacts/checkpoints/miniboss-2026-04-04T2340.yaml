@@ -1,0 +1,64 @@
+hostname: miniboss
+session: gpu-scheduling-overhaul-complete-2026-04-04
+timestamp: "2026-04-04T23:35:00Z"
+
+objective: "GPU scheduling overhaul — all 3 phases complete"
+
+completed:
+  - "23:12 — Phase 1: Deleted DaemonSet, created 4 per-GPU Deployments"
+  - "23:12 — Model-placement ConfigMap deployed (declarative model assignments)"
+  - "23:15 — Fixed probe keep_alive bug: string '-1' → int -1"
+  - "23:18 — Pulled qwen3:14b (was missing from model library)"
+  - "23:22 — All 4 GPUs loaded: deepseek-r1:32b, qwen3:8b, qwen3:14b x2"
+  - "23:25 — Phase 2: GPU Guardian reconciler — parse_model_placement(), reconcile(), 12 new tests (94 total)"
+  - "23:30 — Phase 3: NAI Swarm backport — per-GPU endpoints in routing.yaml, resolve_endpoint(), 1089 tests pass"
+  - "23:31 — Fixed triadic validation: qwen3:32b→qwen3:14b on MEGA (32b banned from 16GB GPUs)"
+  - "23:33 — All 4 GPUs verified loaded with correct models"
+
+discovered_issues:
+  - "LLM probe keep_alive sent as string '-1' → Ollama API 400 (fixed)"
+  - "qwen3:14b never pulled — needed explicit pull (fixed)"
+  - "Triadic validation routed qwen3:32b to MEGA 16GB GPUs — caused 500s and CPU fallback (fixed)"
+  - "mega-gpu1 had 2 restarts during initial stabilization (resolved)"
+
+artifacts:
+  - <ai-project-path>/k8s/apps/ollama/ (4 Deployments + ConfigMap)
+  - <ai-project-path>/k8s/monitoring/ollama-probe/llm-probe-exporter.py (keep_alive fix)
+  - <ai-project-path>/gpu-guardian/src/gpu_guardian/probe.py (reconciler)
+  - <ai-project-path>/gpu-guardian/src/gpu_guardian/config.py (model_placement config)
+  - <ai-project-path>/gpu-guardian/tests/test_reconcile.py (12 tests)
+  - /opt/nai-swarm/config/routing.yaml (per-GPU endpoints)
+  - /opt/nai-swarm/src/gpu_discovery.py (resolve_endpoint)
+  - /opt/nai-swarm/src/model_router.py (backward compat)
+
+running_background_jobs:
+  - host: GIGA
+    pid: 1116911
+    command: "validate_ncpdb_triadic.py (patched — qwen3:14b)"
+    output: "/opt/nutantforge/backend/seed/validated-ncpdb/progress-giga.jsonl"
+    status: "Running — uses qwen3:14b on MEGA now (was qwen3:32b → 500 errors)"
+
+board:
+  now: "Board complete — GPU scheduling overhaul done"
+  next:
+    - "Behavioral enforcement Phase 2-3 (Prompt Forge)"
+    - "RAG-first validation pipeline"
+    - "Collect triadic validation results"
+  blocked:
+    - "Solar Sentinel (Enphase JWT)"
+    - "Hydra Media (ElevenLabs key)"
+    - "NCCG Phase 4 (Slack webhook)"
+  done:
+    - "GPU scheduling Phase 1 (per-GPU Deployments)"
+    - "GPU scheduling Phase 2 (Guardian reconciler)"
+    - "GPU scheduling Phase 3 (NAI Swarm backport)"
+    - "Triadic validation fix (qwen3:32b→qwen3:14b)"
+    - "Dirty repos cleanup (already clean)"
+
+fleet_state:
+  giga: "RTX PRO 6000 96GB — deepseek-r1:32b (49.5GB), triadic running"
+  mecha: "RTX 5060 Ti 16GB — qwen3:8b (5.7GB)"
+  mega_gpu0: "RTX 5080 16GB — qwen3:14b (10.2GB)"
+  mega_gpu1: "RTX 5080 16GB — qwen3:14b (10.2GB)"
+
+overall_status: "Green — GPU scheduling overhaul complete, all 4 GPUs active and correct"

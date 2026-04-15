@@ -18,7 +18,7 @@ from typing import Any
 
 LOG = logging.getLogger(__name__)
 
-SWARM_ROOT = Path("/var/lib/swarm")
+SWARM_ROOT = Path("/opt/swarm")
 AGENTS_DIR = SWARM_ROOT / "agents"
 HEARTBEAT_INTERVAL = 60  # seconds
 STALE_THRESHOLD = 300  # 5 minutes

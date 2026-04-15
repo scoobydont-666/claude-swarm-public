@@ -1,0 +1,70 @@
+hostname: miniboss
+session_id: project-management-session15
+timestamp: "2026-03-29T09:50:00Z"
+project: ExamForge — Phase 6 CKA+CKAD build-out
+duration_minutes: 120
+key_decisions:
+  - "2026-03-29T08:30Z — Fixed MECHA Ollama: qwen3:14b had size_vram=0 (CPU fallback). Restarted Ollama, now 10.2GB GPU."
+  - "2026-03-29T08:50Z — Fixed QA pipeline: added vendor-aware routing (AICPA/CNCF/AWS). Questions lacked certification in dict — injected from batch metadata."
+  - "2026-03-29T09:00Z — CPA expert model (christi-14b-obbba) was flagging K8s questions as 'unrelated to CPA'. Fixed by routing non-CPA certs to qwen3:14b for expert review."
+  - "2026-03-29T09:10Z — Added vendor-specific factual prompts (K8s API accuracy vs CPA tax law checks) and CNCF known_facts/known_changes."
+  - "2026-03-29T09:25Z — Killed duplicate CKA D3 generation (previous session leftover) to free MECHA for QA."
+  - "2026-03-29T09:30Z — Added Kubernetes disclaimer (CNCF/Linux Foundation trademarks) to Footer/Disclaimer components."
+  - "2026-03-29T09:35Z — Rebuilt + deployed frontend Docker on GIGA with CKA/CKAD landing pages."
+  - "2026-03-29T09:45Z — Updated project-management skill with background job manifest + GPU pre-flight checks."
+files_changed:
+  - "examforge: qa/pipeline.py — vendor detection + expert model routing"
+  - "examforge: qa/factual.py — vendor-specific prompts + check items"
+  - "examforge: tests/qa/test_pipeline.py — mock kwargs for vendor"
+  - "examforge: scripts/run-k8s-qa.py — NEW: K8s QA runner with cert injection"
+  - "examforge: scripts/import-approved-k8s.py — NEW: K8s DB import script"
+  - "examforge: Disclaimer.tsx, Footer.tsx — kubernetes scope + CNCF disclaimer"
+  - "examforge: CLAUDE.md — Phase 6 status update"
+  - "examforge: backend/seed/k8s-ckad-drafts/ — 499 CKAD draft questions (5 domains)"
+  - "skills: project-management — background job manifest + GPU pre-flight"
+  - "skills: ai-cluster-knowledge — size_vram=0 error pattern"
+  - "memory: feedback_check_gpu_usage.md — MECHA Ollama CPU fallback incident"
+artifacts_produced:
+  - "CKA: 870 drafts across 5 domains, QA at 80% approve (16/20 validated)"
+  - "CKAD: 499 drafts across 5 domains, QA at 60% approve (6/10 validated)"
+  - "Frontend deployed on GIGA with CKA+CKAD landing pages"
+  - "394 backend tests passing (0 failures)"
+  - "Vendor-aware QA pipeline (routes models + prompts by cert type)"
+context_for_next: >
+  ACTIVE GPU JOBS (CRITICAL — DO NOT RESTART):
+  - MECHA PID ~1382010: CKA QA (870q) — at question ~22/870 at session end, ~80% approve
+  - GIGA PID ~1386604: CKAD QA (499q) — at question ~13/499, ~60% approve early
+  - Both processes: nohup python3 -u scripts/run-k8s-qa.py, logs at /tmp/{cka,ckad}-qa-run.log
+  - Checkpoints saved every 10q to backend/seed/k8s-{cka,ckad}-qa/
+  - CKA ETA: ~14 hours from session end. CKAD ETA: ~4-5 hours.
+
+  AFTER QA COMPLETES:
+  1. Run: python3 scripts/import-approved-k8s.py --cert cka
+  2. Run: python3 scripts/import-approved-k8s.py --cert ckad
+  3. Verify: curl http://<primary-node-ip>:8010/api/certifications/k8s-cka
+  4. Commit QA results + update CLAUDE.md with final counts
+
+  PHASE 6 STATUS:
+  - 6.1 DONE: Curricula downloaded (CNCF GitHub)
+  - 6.2 DONE: Certification YAMLs (CKA 5 domains, CKAD 5 domains)
+  - 6.3 SKIP: ChromaDB corpus (not needed for QA)
+  - 6.4 DONE: K8s known_facts (cncf.py — 80+ facts + 4 known_changes)
+  - 6.5 DONE: Topics YAML (CKA ~80, CKAD ~60 topics)
+  - 6.6 DONE: onboard command (both in DB)
+  - 6.7 DONE: Generation — CKA 870, CKAD 499 drafts
+  - 6.8 IN PROGRESS: QA validation (dual-GPU)
+  - 6.9 BLOCKED: Josh reviews 50 CKA + 30 CKAD
+  - 6.10 READY: Import script exists, landing pages deployed
+  - 6.11 NOT STARTED: Bundle pricing CKA+CKAD $49.99
+
+  DOCKER ON GIGA:
+  - Backend: <primary-node-ip>:8010 (healthy)
+  - Frontend: <primary-node-ip>:3100 (rebuilt with K8s pages)
+  - PostgreSQL: <primary-node-ip>:5432
+
+  BLOCKED ON JOSH:
+  - Phase 3a.7: CPA TCP+REG review (48 Christi-flagged questions)
+  - Phase 6.9: Josh spot-check 50 CKA + 30 CKAD questions
+  - Cloud deploy: AWS console access
+  - Solar Sentinel: Enphase JWT
+  - Hydra Media: ElevenLabs key + Google OAuth

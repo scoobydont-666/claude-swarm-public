@@ -75,18 +75,18 @@ class ExecutionPlan:
 # ── Fleet Knowledge ─────────────────────────────────────────────────────────
 
 FLEET: dict[str, dict[str, Any]] = {
-    "orchestration-node": {
-        "ip": os.environ.get("MINIBOSS_HOST", "10.0.0.5"),
-        "ssh_user": "user",
-        "claude_path": "/home/user/.local/bin/claude",
+    "miniboss": {
+        "ip": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
+        "ssh_user": "josh",
+        "claude_path": "/home/josh/.local/bin/claude",
         "capabilities": {"docker", "tailscale", "nfs_replica", "monero"},
         "strengths": "Fullnode relay, lightweight services, orchestration, CPU-only tasks",
         "is_primary": True,  # Usually the swarm controller
     },
-    "gpu-server-1": {
-        "ip": os.environ.get("gpu-server-1-host", "10.0.0.1"),
-        "ssh_user": "user",
-        "claude_path": "/home/user/.local/bin/claude",
+    "GIGA": {
+        "ip": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
+        "ssh_user": "josh",
+        "claude_path": "/home/josh/.local/bin/claude",
         "capabilities": {
             "gpu",
             "docker",
@@ -102,11 +102,11 @@ FLEET: dict[str, dict[str, Any]] = {
 
 # Resource → required host mapping
 RESOURCE_HOST_MAP = {
-    "gpu": "gpu-server-1",
-    "ollama": "gpu-server-1",
-    "chromadb": "gpu-server-1",
-    "swarm_manager": "gpu-server-1",
-    "monero": "orchestration-node",
+    "gpu": "GIGA",
+    "ollama": "GIGA",
+    "chromadb": "GIGA",
+    "swarm_manager": "GIGA",
+    "monero": "miniboss",
 }
 
 
@@ -215,9 +215,9 @@ def _needs_remote_resources(task: str) -> tuple[bool, str]:
     lower = task.lower()
 
     if any(kw in lower for kw in _GPU_KEYWORDS):
-        return True, "gpu-server-1"
+        return True, "GIGA"
     if any(kw in lower for kw in _DOCKER_KEYWORDS):
-        return True, "gpu-server-1"
+        return True, "GIGA"
 
     return False, ""
 
@@ -290,10 +290,10 @@ def plan_execution(
     elif needs_remote and preferred_host:
         target_host = preferred_host
     elif project_dir:
-        # Project affinity: GPU projects → gpu-server-1, others → current host
-        gpu_projects = {"/opt/christi-project", "/opt/ai-project"}
+        # Project affinity: GPU projects → GIGA, others → current host
+        gpu_projects = {"/opt/christi-project", "<ai-project-path>"}
         if project_dir in gpu_projects:
-            target_host = "gpu-server-1"
+            target_host = "GIGA"
         else:
             target_host = current_host
     else:
@@ -395,7 +395,7 @@ class SessionResult:
     estimated_cost_usd: float = 0.0
 
 
-DISPATCH_DIR = Path("/var/lib/swarm/artifacts/dispatches")
+DISPATCH_DIR = Path("/opt/swarm/artifacts/dispatches")
 
 # Model pricing per 1M tokens (input/output average) — from Claude API
 MODEL_COSTS = {
@@ -442,7 +442,7 @@ def _auto_requeue_task(dispatch_id: str, task_id: str = "") -> bool:
         return False
 
     try:
-        claimed_dir = Path("/var/lib/swarm/tasks/claimed")
+        claimed_dir = Path("/opt/swarm/tasks/claimed")
         task_file = claimed_dir / f"{task_id}.yaml"
 
         if not task_file.exists():
@@ -461,7 +461,7 @@ def _auto_requeue_task(dispatch_id: str, task_id: str = "") -> bool:
         task.pop("claimed_by", None)
         task.pop("claimed_at", None)
 
-        pending_dir = Path("/var/lib/swarm/tasks/pending")
+        pending_dir = Path("/opt/swarm/tasks/pending")
         pending_dir.mkdir(parents=True, exist_ok=True)
         pending_file = pending_dir / f"{task_id}.yaml"
 
@@ -770,7 +770,7 @@ def get_dispatch_output(dispatch_id: str, tail_lines: int = 50) -> str:
     """Retrieve the output from a dispatch, optionally tailing the last N lines.
 
     Args:
-        dispatch_id: The dispatch ID (e.g., 'session-1774378670-gpu-server-1')
+        dispatch_id: The dispatch ID (e.g., 'session-1774378670-GIGA')
         tail_lines: Number of lines to return from the end. If 0, return all.
 
     Returns:

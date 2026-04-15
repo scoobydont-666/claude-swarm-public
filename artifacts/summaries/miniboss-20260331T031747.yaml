@@ -1,0 +1,42 @@
+hostname: miniboss
+session_id: cb8a57a1-8c10-43f1-9485-691c048df9e2
+timestamp: "2026-03-31T03:15:00Z"
+project: hydra (cross-project)
+duration_minutes: 45
+key_decisions:
+  - MEGA deployed as XMRig miner via Ansible (42 kH/s, MSR enabled)
+  - CCO Phase 1 completed with 45 tests (API, scheduler, Alembic)
+  - ExamForge explanation sync SQLite→PostgreSQL (2,358 options, 99% coverage)
+  - Token burn PDF report generated (9 pages, 3-tier comparison)
+  - qwen3:14b needs num_predict=2048 (thinking tokens consume 200+ tokens)
+files_changed:
+  - /opt/monero-farm — MEGA in inventory, XMRig service MSR fix
+  - /opt/examforge — QA results, distractor gen fix, sync script
+  - /opt/cco — Phase 1 complete (API, scheduler, Alembic, 45 tests)
+  - <hydra-project-path> — registries (MEGA, CCO, port-registry), token burn PDF
+issues_found:
+  - XMRig systemd sandboxing (PrivateDevices, ProtectKernelModules) blocks MSR access
+  - qwen3:14b generate API returns empty when num_predict too low (thinking consumes tokens)
+  - Ansible SSH to self (miniboss→miniboss via IP) fails pubkey auth
+artifacts_produced:
+  - <hydra-project-path>/docs/claude-code-token-burn-report-2026-03-30.pdf
+context_for_next: |
+  GPU JOBS STILL RUNNING:
+  - GIGA: distractor explanation gen (85/140 at last check)
+    Log: /tmp/distractor-gen-session2.log
+    After completion: re-sync explanations to PG via sync-explanations-to-pg.py
+  - MECHA: CKAD QA validation (264/540, ~3hr remaining)
+    Log: /tmp/ckad-qa-new.log
+    After completion: import with import-approved-k8s.py --cert ckad
+  - MEGA: XMRig mining 42 kH/s on P2Pool (continuous, 62 shares)
+
+  IMMEDIATE NEXT:
+  1. Import final CKAD QA results when MECHA finishes
+  2. Re-sync explanations after distractor gen completes
+  3. CKA gap: need 94 more to hit 750 target (208 review questions available for re-QA)
+  4. CCO Phase 2: zombie hunter graph, Slack, provider scanning
+  5. Email token burn report to Josh (Gmail MCP needs auth)
+
+  DB STATUS: 3,558 questions (CKA 656, CKAD 503, AWS 831, CPA 1568)
+  EXPLANATION COVERAGE: 99.0% in production PostgreSQL
+  ALL REPOS CLEAN — no uncommitted work

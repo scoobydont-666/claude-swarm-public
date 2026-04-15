@@ -4,7 +4,7 @@ set -euo pipefail
 # sync-to-git.sh — Push swarm state to claude-config git repo
 # Run via cron or on-demand. Never force-push.
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 CLAUDE_CONFIG="/opt/claude-configs/claude-config"
 
 # Verify paths exist

@@ -8,7 +8,7 @@ Opt-in via config: set task_backend: sqlite in swarm.yaml.
 Usage:
     from sqlite_backend import SQLiteTaskBackend
 
-    backend = SQLiteTaskBackend("/var/lib/swarm/tasks/tasks.db")
+    backend = SQLiteTaskBackend("/opt/swarm/tasks/tasks.db")
     task = backend.create("Fix auth bug", priority=1)
     claimed = backend.claim("agent-1")
     backend.complete(claimed.id, result="Fixed in auth.py:42")
@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_state_priority ON tasks(state, priority, cr
 class SQLiteTaskBackend:
     """SQLite-backed task queue with atomic claiming via BEGIN IMMEDIATE."""
 
-    def __init__(self, db_path: str = "/var/lib/swarm/tasks/tasks.db") -> None:
+    def __init__(self, db_path: str = "/opt/swarm/tasks/tasks.db") -> None:
         """Initialize SQLite backend.
 
         Args:

@@ -1,0 +1,75 @@
+---
+timestamp: "2026-04-11T08:27:00Z"
+host: miniboss
+session_id: "gpu-power-tuning-undervolt"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: gpu-power-limit-fleet
+    description: "Set GPU power limits: RTX 5080s from 380-396W to 280W, RTX 5060 Ti from 180W to 150W"
+    repo: hydra-project
+    timestamp: "2026-04-11T07:50:00Z"
+
+  - id: gpu-clock-lock-undervolt
+    description: "Clock lock (undervolt equivalent) — RTX 5080s at 2800MHz, RTX 5060 Ti at 2500MHz. Benchmarked zero inference throughput loss."
+    repo: hydra-project
+    timestamp: "2026-04-11T08:15:00Z"
+
+  - id: undervolt-sweep-benchmarks
+    description: "Full undervolt sweep on MEGA (2900-1500MHz) and MECHA (2600-2000MHz) with 3-run averages to find zero-loss floor"
+    repo: hydra-project
+    timestamp: "2026-04-11T08:10:00Z"
+
+  - id: ansible-gpu-tuning-role
+    description: "Added GPU power limit + clock lock tasks to nvidia Ansible role, systemd boot persistence template, per-host vars"
+    repo: hydra-project
+    timestamp: "2026-04-11T08:00:00Z"
+
+  - id: os-power-hardening-fleet
+    description: "All fleet hosts: CPU governor→performance, masked sleep/suspend/hibernate, killed power-profiles-daemon"
+    timestamp: "2026-04-11T08:05:00Z"
+
+  - id: mega-gui-disabled
+    description: "MEGA switched to multi-user.target (CLI only), lightdm disabled, auto-suspend masked. Was suspending due to lightdm power management."
+    timestamp: "2026-04-11T07:55:00Z"
+
+  - id: mega-wol-recovery
+    description: "Installed wakeonlan on miniboss, woke MEGA from suspend via WoL (MAC 9c:6b:00:78:14:f2)"
+    timestamp: "2026-04-11T07:52:00Z"
+
+  - id: mega-gpu-count-fix
+    description: "Fixed mega.yml gpu_count: 1→2 (MEGA has 2x RTX 5080)"
+    repo: hydra-project
+    timestamp: "2026-04-11T07:55:00Z"
+
+  - id: mongo-host-vars
+    description: "Created mongo.yml host_vars (didn't exist)"
+    repo: hydra-project
+    timestamp: "2026-04-11T08:00:00Z"
+
+  - id: mecha-reboot
+    description: "Rebooted MECHA to apply multi-user.target + performance governor. Confirmed settings survived."
+    timestamp: "2026-04-11T08:08:00Z"
+
+blocked:
+  - id: giga-tuning
+    description: "GIGA RTX PRO 6000 power tuning"
+    blocker: "GIGA unreachable via SSH all session"
+
+decisions:
+  - "RTX 5080 clock lock at 2800MHz (not 2900) — sweep showed 85.1 tok/s vs 85.4 baseline (-0.4%), sweet spot of power vs performance"
+  - "RTX 5060 Ti clock lock at 2500MHz — 45.32 vs 45.65 tok/s (-0.7%), draws only 110W vs 150W"
+  - "Linux undervolt = nvidia-smi -lgc (clock lock), not direct voltage control — V/F curve is firmware-fixed, capping clocks caps voltage"
+  - "NVML workload power profiles (LLM_INFERENCE) segfault on consumer Blackwell — not usable yet"
+  - "miniboss keeps GUI (graphical.target) per user request, all other hosts CLI-only"
+
+state_changes:
+  - "MEGA: graphical→multi-user target, lightdm disabled, sleep masked, governor→performance"
+  - "MONGO: graphical→multi-user target, sleep masked, governor→performance"
+  - "MECHA: graphical→multi-user target, lightdm+gdm disabled, power-profiles-daemon masked, sleep masked, governor→performance, rebooted"
+  - "miniboss: sleep masked, power-profiles-daemon masked, governor→performance (GUI kept)"
+  - "All RTX 5080s: power limit 280W, clock lock 210-2800MHz"
+  - "RTX 5060 Ti: power limit 150W, clock lock 300-2500MHz"
+  - "wakeonlan package installed on miniboss"
+  - "nvidia-persistenced enabled on MONGO and MECHA"

@@ -1,0 +1,60 @@
+hostname: miniboss
+session_id: project-management-session2
+timestamp: "2026-03-27T01:00:00Z"
+project: hydra-project (claude-swarm, hydra-pulse, examforge, fleet-wide docs)
+duration_minutes: 300
+key_decisions:
+  - "claude-swarm S5c auto-scale launcher built — v2 S1-S5 COMPLETE (691 tests)"
+  - "Aperant patterns adapted: rate-limit detector, event sequence dedup, worktree path guard (41 tests)"
+  - "claude-swarm stale status fix: cross-ref agent heartbeats + remote SSH PID verification"
+  - "hydra-pulse Phase 3: project-costs, task-costs, anomalies commands, SWARM_TASK_ID capture"
+  - "hydra-pulse statusline: now shows session tokens + weekly token count"
+  - "hydra-pulse deployed to GIGA + MECHA, calibrated to actuals (wk 49%, 5h 5%)"
+  - "ExamForge: ISC +69, TCP +56, FAR +56, BAR +18, REG +4 = 203 new questions loaded (1,315 DB total)"
+  - "12 comprehensive READMEs written and pushed across all repos"
+  - "GPU cluster executive report PDF emailed to Josh"
+  - "Grafana Node Exporter Full dashboard imported — all 3 hosts with nodename labels"
+  - "MECHA added to Prometheus scrape config, duplicate giga_node job cleaned up"
+  - "Token-miser routing: planning phase = Opus, execution phase = token-miser routed (ExitPlanMode = switch)"
+  - "project-management skill: max parallelism directive + planning/execution effort split"
+  - "Solar Sentinel JWT configured — unblocked for next session"
+  - "DocuMint D7 batch bundle push (session 1 carryover)"
+  - "settings.json effortLevel reset to default (token-miser controls routing)"
+files_changed:
+  - "claude-swarm: launcher.py, rate_limiter.py, events.py, swarm_lib.py, swarm_cli.py, CLAUDE.md, plans/swarm-v2.md + 4 test files"
+  - "hydra-pulse: main.rs, db.rs, hook.rs, CLAUDE.md, README.md (NEW)"
+  - "examforge: 8 batch YAML files (ISC/TCP/FAR/BAR/REG), review-drafts.md, roadmap, cli_onboard.py, qa/ollama_client.py, 3 scripts, README.md"
+  - "documint: models.py, api.py, api_schemas.py, test_bundle_push.py, CLAUDE.md, README.md"
+  - "All 12 repos: README.md (comprehensive rewrite)"
+  - "skills: project-management, token-miser, session-miser (effort routing)"
+  - "memory: feedback_max_parallelism.md, project_repo_status.md"
+  - "settings.json: effortLevel default"
+  - "prometheus.yml: MECHA added, giga_node deduped"
+  - "solar-sentinel/.env: JWT configured"
+issues_found:
+  - "MECHA showed active (STALE) — PID in status file was dead, heartbeat hook only fires on tool use"
+  - "hydra-pulse not deployed on GIGA/MECHA — sessions on those hosts weren't tracked"
+  - "Token-miser routing negated by /effort max — fixed with planning/execution phase split"
+  - "ExamForge onboard dry-run test broken by existing AWS cert in prod DB (session 1 fix)"
+artifacts_produced:
+  - "claude-swarm v2 S1-S5: COMPLETE (15/15 tasks, 691 tests)"
+  - "hydra-pulse Phase 3: COMPLETE (3 new commands, 20 tests)"
+  - "ExamForge: 1,315 CPA questions in DB, 901 drafts in review-drafts.md, all 6 sections at target"
+  - "12 comprehensive READMEs (avg 275 lines each)"
+  - "Grafana Node Exporter Full dashboard for fleet"
+  - "GPU cluster executive report PDF"
+  - "Fleet test total: 2,314 tests, all green"
+context_for_next: >
+  BACKGROUND TASKS STILL RUNNING: ISC QA on MECHA (~125/200, ~37 min remaining)
+  and TCP QA on GIGA (~23/201, ~2 hours remaining). Output files:
+  ISC: /tmp/claude-1000/-opt-hydra-project/8c79622d-e716-43bb-af7d-bda44e62b929/tasks/brxbyib0s.output
+  TCP: /tmp/claude-1000/-opt-hydra-project/8c79622d-e716-43bb-af7d-bda44e62b929/tasks/bp939uru7.output
+  Check completion and commit results.
+  SOLAR SENTINEL UNBLOCKED: JWT configured in /opt/solar-sentinel/.env. Test Enphase API connection,
+  start polling, verify Prometheus metrics export.
+  EXAMFORGE: All 6 CPA sections at target (1,315 in DB). Next: run full CPA QA on all DB questions,
+  Josh CPA review of TCP+REG flagged questions.
+  TOKEN ROUTING: settings.json effortLevel=default. Planning phase uses Opus (before ExitPlanMode),
+  execution phase uses token-miser routing. Verify in next session.
+  STILL BLOCKED: Hydra Media M2/M5 (ElevenLabs + Google OAuth), Rainbow (physical access),
+  GIGA 2nd CPU (hardware).

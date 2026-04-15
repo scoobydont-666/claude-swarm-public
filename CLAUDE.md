@@ -8,10 +8,10 @@ Multi-instance Claude Code awareness and task sharing via NFS + git.
 Advisory coordination system — never forces action, human in the loop.
 
 ## Architecture
-- NFS primary: gpu-server-1 (10.0.0.1) exports /var/lib/swarm/
-- NFS replica: orchestration-node (10.0.0.5) mirrors to /var/lib/swarm-replica/ and re-exports
-- Git: claude-config repo (your-github-user/claude-config) for remote sync + durability
-- Local instances: instant coordination via NFS mount at /var/lib/swarm/
+- NFS primary: GIGA (<primary-node-ip>) exports /opt/swarm/
+- NFS replica: miniboss (<orchestration-node-ip>) mirrors to /opt/swarm-replica/ and re-exports
+- Git: claude-config repo (scoobydont-666/claude-config) for remote sync + durability
+- Local instances: instant coordination via NFS mount at /opt/swarm/
 - Remote instances: git sync every 60s or on-demand
 
 ## Key Rules
@@ -40,7 +40,7 @@ swarm sync                        # Force git sync
 ## Dependencies
 - Python 3.10+
 - typer, pyyaml, rich (pip install)
-- NFS mount at /var/lib/swarm/ (setup scripts provided)
+- NFS mount at /opt/swarm/ (setup scripts provided)
 
 ## Phases
 | Phase | Scope |

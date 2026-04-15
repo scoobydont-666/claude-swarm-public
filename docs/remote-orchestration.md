@@ -2,13 +2,13 @@
 
 ## The Problem
 
-A single Claude Code session on orchestration-node can SSH to gpu-server-1 and run bash commands, but it can't **think** on gpu-server-1. When a task requires:
+A single Claude Code session on miniboss can SSH to GIGA and run bash commands, but it can't **think** on GIGA. When a task requires:
 - GPU resources (Ollama, ChromaDB, CUDA)
 - Docker Swarm context (services, stacks, Traefik)
 - Project-local CLAUDE.md and .kin/ context
 - Multi-turn debugging with tool use
 
-...the current approach of `ssh gpu-server-1 "some command"` is insufficient. You need a full Claude Code brain on the remote host.
+...the current approach of `ssh GIGA "some command"` is insufficient. You need a full Claude Code brain on the remote host.
 
 ## The Solution: `smart-dispatch`
 
@@ -27,9 +27,9 @@ The swarm now has an intelligent dispatch engine that decides **how** to execute
 
 ```
 1. Does it need remote resources?
-   ├─ GPU/Ollama/ChromaDB → gpu-server-1
-   ├─ Docker Swarm management → gpu-server-1
-   ├─ Monero/P2Pool → orchestration-node
+   ├─ GPU/Ollama/ChromaDB → GIGA
+   ├─ Docker Swarm management → GIGA
+   ├─ Monero/P2Pool → miniboss
    └─ None → stay local
 
 2. How complex is it?
@@ -49,9 +49,9 @@ The swarm now has an intelligent dispatch engine that decides **how** to execute
 ### Project Affinity
 
 Some projects have inherent host affinity:
-- `/opt/christi-project` → gpu-server-1 (needs Ollama GPU)
-- `/opt/ai-project` → gpu-server-1 (Docker Swarm manager)
-- `/opt/monero-farm` → orchestration-node (fullnode)
+- `/opt/christi-project` → GIGA (needs Ollama GPU)
+- `<ai-project-path>` → GIGA (Docker Swarm manager)
+- `/opt/monero-farm` → miniboss (fullnode)
 - Everything else → current host (avoid unnecessary remote)
 
 ## Usage
@@ -73,7 +73,7 @@ swarm smart-dispatch "run full test suite on ExamForge backend" --sync
 
 ### Force host
 ```bash
-swarm smart-dispatch "check disk usage" --host gpu-server-1
+swarm smart-dispatch "check disk usage" --host GIGA
 ```
 
 ## Architecture
@@ -89,7 +89,7 @@ swarm smart-dispatch "check disk usage" --host gpu-server-1
 │          Strategy Decision Engine                 │
 │                                                   │
 │  1. Classify complexity    → COMPLEX              │
-│  2. Check resources needed → GPU/ChromaDB → gpu-server-1  │
+│  2. Check resources needed → GPU/ChromaDB → GIGA  │
 │  3. Needs interactive?     → "debug" → YES        │
 │  4. Select model           → COMPLEX+interactive   │
 │                               → opus               │
@@ -97,17 +97,17 @@ swarm smart-dispatch "check disk usage" --host gpu-server-1
 │                                                   │
 │  ExecutionPlan:                                    │
 │    strategy=REMOTE_SESSION                         │
-│    host=gpu-server-1, model=opus, turns=unlimited          │
+│    host=GIGA, model=opus, turns=unlimited          │
 └────────────────────┬────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────┐
-│          SSH to gpu-server-1                              │
+│          SSH to GIGA                              │
 │  claude --permission-mode bypassPermissions       │
 │    --model opus                                   │
 │    -p "debug why Christi RAG returns stale..."    │
 │                                                   │
-│  Claude Code on gpu-server-1:                             │
+│  Claude Code on GIGA:                             │
 │  - Loads /opt/christi-project/CLAUDE.md            │
 │  - Has access to ChromaDB at 127.0.0.1:8100       │
 │  - Can query Ollama at 127.0.0.1:11434            │
@@ -126,7 +126,7 @@ The next evolution is **COLLABORATIVE** — where the orchestrating session and 
 4. Orchestrator sends updated context to the remote session via swarm message
 5. Remote session continues with new context
 
-This enables **distributed debugging**: orchestration-node can reason about the architecture while gpu-server-1 investigates the running system, and they converge on a solution.
+This enables **distributed debugging**: miniboss can reason about the architecture while GIGA investigates the running system, and they converge on a solution.
 
 ## Cost Implications
 

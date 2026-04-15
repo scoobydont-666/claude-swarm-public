@@ -1244,7 +1244,7 @@ def smart_dispatch_cmd(
     Examples:
         swarm smart-dispatch "check ollama model list"
         swarm smart-dispatch "debug why Christi RAG returns stale results" -p /opt/christi-project
-        swarm smart-dispatch "implement ExamForge Stripe integration" -p /opt/examforge --host gpu-server-1
+        swarm smart-dispatch "implement ExamForge Stripe integration" -p /opt/examforge --host GIGA
     """
     from remote_session import plan_execution, execute_plan, ExecutionStrategy
 
@@ -1322,7 +1322,7 @@ def dispatches_list(ctx: typer.Context) -> None:
     from datetime import datetime, timezone
     from pathlib import Path
 
-    dispatches_dir = Path("/var/lib/swarm/artifacts/dispatches")
+    dispatches_dir = Path("/opt/swarm/artifacts/dispatches")
     if not dispatches_dir.exists():
         console.print("[dim]No dispatches yet.[/dim]")
         return
@@ -1431,7 +1431,7 @@ def dispatches_show(
     """Show full details of a dispatch + last 50 lines of output."""
     from pathlib import Path
 
-    dispatches_dir = Path("/var/lib/swarm/artifacts/dispatches")
+    dispatches_dir = Path("/opt/swarm/artifacts/dispatches")
 
     # Read plan
     plan_file = dispatches_dir / f"{dispatch_id}.plan.yaml"
@@ -1469,7 +1469,7 @@ def dispatches_tail(
     from pathlib import Path
     import subprocess
 
-    dispatches_dir = Path("/var/lib/swarm/artifacts/dispatches")
+    dispatches_dir = Path("/opt/swarm/artifacts/dispatches")
     output_file = dispatches_dir / f"{dispatch_id}.output"
 
     if not output_file.exists():
@@ -1495,7 +1495,7 @@ app.add_typer(collab_app, name="collab")
 @collab_app.command("start")
 def collab_start(
     task: str = typer.Argument(..., help="Task description for the worker"),
-    worker: str = typer.Option(..., "--worker", "-w", help="Worker host (e.g. gpu-server-1)"),
+    worker: str = typer.Option(..., "--worker", "-w", help="Worker host (e.g. GIGA)"),
     project: str = typer.Option("", "--project", "-p", help="Project directory"),
     model: str = typer.Option("sonnet", "--model", "-m", help="Model tier"),
 ) -> None:
@@ -1640,7 +1640,7 @@ def ratings_benchmark(
 
     config = fleet[host]
     ip = config.get("ip", "")
-    user = config.get("user", "user")
+    user = config.get("user", "josh")
 
     console.print(f"[cyan]Benchmarking {host} ({ip})...[/cyan]")
     result = benchmark_host(host, ip, user)

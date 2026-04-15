@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# sync-claude-env.sh — Push orchestration-node Claude Code environment to all fleet hosts
+# sync-claude-env.sh — Push miniboss Claude Code environment to all fleet hosts
 # Run before dispatching work, or on cron for continuous sync.
-# Source of truth: orchestration-node ~/.claude/
+# Source of truth: miniboss ~/.claude/
 
 HOSTS=(giga mecha mega mongo)
 TIMEOUT=10

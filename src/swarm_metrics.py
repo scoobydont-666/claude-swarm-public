@@ -12,7 +12,7 @@ Run:
     python3 /opt/claude-swarm/src/swarm_metrics.py
 
 The server listens on 0.0.0.0:9191. Prometheus should scrape
-http://<orchestration-node>:9191/metrics.
+http://<miniboss>:9191/metrics.
 """
 
 import json
@@ -36,8 +36,8 @@ from prometheus_client import Gauge, Counter, start_http_server
 PORT = 9191
 POLL_INTERVAL_SECONDS = 30
 
-STATUS_DIR = Path("/var/lib/swarm/status")
-TASKS_DIR = Path("/var/lib/swarm/tasks")
+STATUS_DIR = Path("/opt/swarm/status")
+TASKS_DIR = Path("/opt/swarm/tasks")
 DB_PATH = Path("/opt/claude-swarm/data/health-events.db")
 
 # Node states tracked in status JSON files
@@ -223,7 +223,7 @@ def _collect_dispatch_costs() -> tuple[float, dict[str, float]]:
     ):
         return _dispatch_cost_cache
 
-    dispatches_dir = Path("/var/lib/swarm/artifacts/dispatches")
+    dispatches_dir = Path("/opt/swarm/artifacts/dispatches")
     if not dispatches_dir.exists():
         result: tuple[float, dict[str, float]] = (0.0, {})
         _dispatch_cost_cache = result

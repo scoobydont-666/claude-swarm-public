@@ -164,5 +164,5 @@ Adopt NAI Swarm's `swarm_base/` package layout: shared modules in `src/swarm_bas
 - `/opt/nai-swarm/src/task_queue.py` — PostgreSQL queue to backport
 - `/opt/nai-swarm/src/model_router.py` — model routing to backport
 - `/opt/nai-swarm/src/gpu_scheduler.py` — GPU scheduler to adapt
-- `/var/lib/hydra-pulse/src/main.rs` — cost query API
+- `/opt/hydra-pulse/src/main.rs` — cost query API
 - `/opt/context-bridge-v2/src/tools/` — MCP tools for living spec

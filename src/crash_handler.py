@@ -72,7 +72,7 @@ def _release_claimed_tasks() -> list[str]:
         import yaml
         from pathlib import Path
 
-        claimed_dir = Path("/var/lib/swarm/tasks/claimed")
+        claimed_dir = Path("/opt/swarm/tasks/claimed")
         if not claimed_dir.is_dir():
             return requeued
 
@@ -87,7 +87,7 @@ def _release_claimed_tasks() -> list[str]:
                 retries = task.get("_retries", 0) + 1
                 task["_retries"] = retries
 
-                pending_dir = Path("/var/lib/swarm/tasks/pending")
+                pending_dir = Path("/opt/swarm/tasks/pending")
                 pending_dir.mkdir(parents=True, exist_ok=True)
                 pending_file = pending_dir / f"{task_id}.yaml"
 

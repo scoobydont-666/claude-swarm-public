@@ -1,0 +1,57 @@
+hostname: miniboss
+session: task-master-2026-04-05-c
+timestamp: "2026-04-05T03:00:00Z"
+
+objective: "Code RAG MCP + triadic import + Christi 70B A/B + model routing"
+
+completed:
+  - "01:55 — Triadic QA verdicts imported: 210 approved, 85 rejected (NutantForge)"
+  - "02:10 — Code RAG MCP server LIVE: port 8523 on GIGA, 3 tools, systemd, GitHub repo"
+  - "02:15 — Port registry + blocker registry updated (2 blockers resolved)"
+  - "02:45 — GIGA GPU scheduling fixed: NUM_PARALLEL=1, keep_alive=5m, probe→christi-14b"
+  - "02:55 — Model routing Phase 2 DONE: graduated levels (off/haiku_only/haiku_sonnet/full), 96 tests"
+  - "03:00 — Christi 70B A/B test COMPLETE: 80% agreement, 14B higher confidence (0.78 vs 0.20), 2x faster"
+
+artifacts:
+  - /opt/code-rag-mcp-server/server.py (GIGA, systemd, port 8523)
+  - <hydra-project-path>/libs/agent_bridge/bridge.py (graduated routing, 96 tests)
+  - /opt/christi-project/scripts/ab_test_70b.py
+  - /opt/christi-project/data/ab_test_tcp_5q.json (A/B results)
+  - /opt/nutantforge/backend/scripts/apply_qa_verdicts.py
+  - /opt/nutantforge/backend/seed/validated-ncpdb/nutanix-ncp-db-validated.yaml
+
+decisions:
+  - what: "14B wins over 70B for CPA question review"
+    why: "Higher confidence (0.78 vs 0.20), 2x faster (51s vs 110s), 80% agreement. 70B only passed 1/5 vs 2/5. Fine-tuned domain model > generic large model."
+    rollback: "Re-evaluate if 70B with domain-specific system prompt improves"
+
+running_background_jobs: []
+
+board:
+  now: "Session paused — resume with Hydra Forge or tomorrow's audit"
+  next:
+    - "Hydra Forge Phase 1: coding LLM on 96GB GIGA"
+    - "TaxPrep M3 / DocuMint D3"
+  later:
+    - "Hydra Media: Nutanix demo video plan (tomorrow)"
+    - "Deep memory/project audit (tomorrow)"
+    - "Run A/B on larger sample (20+ questions) with tuned 70B prompt"
+  blocked:
+    - "Solar Sentinel (Enphase JWT)"
+    - "NCCG Phase 4 (Slack webhook)"
+  done:
+    - "Triadic QA verdicts imported (210 approved, 85 rejected)"
+    - "Code RAG MCP server live (port 8523, 3 tools, systemd, pushed)"
+    - "Christi 70B A/B test: 80% agreement, 14B wins on confidence + speed"
+    - "GIGA GPU scheduling patched (probe fix, NUM_PARALLEL=1)"
+    - "Model routing Phase 2 COMPLETE (graduated levels, fleet-aware, 96 tests)"
+    - "ElevenLabs blocker RESOLVED"
+    - "Christi GPU blocker RESOLVED"
+
+fleet_state:
+  giga: "RTX PRO 6000 96GB — christi-14b (11GB) + deepseek-r1:32b (47.6GB) loaded"
+  mecha: "RTX 5060 Ti 16GB — qwen3:8b, idle"
+  mega_gpu0: "RTX 5080 16GB — Ollama running, idle"
+  mega_gpu1: "RTX 5080 16GB — Ollama running, idle"
+
+overall_status: "Green — 5 deliverables complete, all repos pushed"

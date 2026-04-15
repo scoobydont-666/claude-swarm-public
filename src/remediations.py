@@ -26,8 +26,8 @@ class RemediationEngine:
 
     def __init__(
         self,
-        ssh_user: str = "user",
-        email_to: str = "admin@example.com",
+        ssh_user: str = "josh",
+        email_to: str = "r.josh.jones@gmail.com",
         replica_sync_script: str = "/usr/local/bin/swarm-replica-sync.sh",
     ) -> None:
         self.ssh_user = ssh_user
@@ -88,8 +88,8 @@ class RemediationEngine:
         except ImportError:
             # Fallback table — env vars override hardcoded defaults
             _FALLBACK = {
-                "orchestration-node": os.environ.get("MINIBOSS_HOST", "10.0.0.5"),
-                "gpu-server-1": os.environ.get("gpu-server-1-host", "10.0.0.1"),
+                "miniboss": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
+                "GIGA": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
             }
             return _FALLBACK.get(host)
 
@@ -271,7 +271,7 @@ class RemediationEngine:
             import yaml
             from pathlib import Path
 
-            claimed_dir = Path("/var/lib/swarm/tasks/claimed")
+            claimed_dir = Path("/opt/swarm/tasks/claimed")
             task_file = claimed_dir / f"{actual_task_id}.yaml"
 
             if not task_file.exists():
@@ -308,7 +308,7 @@ class RemediationEngine:
             task.pop("claimed_by", None)
             task.pop("claimed_at", None)
 
-            pending_dir = Path("/var/lib/swarm/tasks/pending")
+            pending_dir = Path("/opt/swarm/tasks/pending")
             pending_dir.mkdir(parents=True, exist_ok=True)
             pending_file = pending_dir / f"{actual_task_id}.yaml"
 

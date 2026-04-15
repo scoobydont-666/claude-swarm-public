@@ -1,0 +1,73 @@
+hostname: miniboss
+session_id: task-master-2026-04-05-i
+timestamp: "2026-04-05T13:30:00Z"
+project: hydra-project (multi-project — 15 repos touched)
+duration_minutes: 330
+
+key_decisions:
+  - "NTNX CodeForge: keep as POC, build Nutanix ingestion pipeline (grill session)"
+  - "NTNX PromptForge: keep, build prompt fixer divergence (grill session)"
+  - "NAI Agent: keep both, Rust sidecar architecture (benchmark-driven)"
+  - "Auth: dual-path DemoAuth + OktaAuth scaffold in ntnx-common"
+  - "Nutanix work takes top priority (memory saved)"
+
+files_changed:
+  - "hydra-project: portfolio assessment, refined plan, master plan updates, benchmark"
+  - "ntnx-sentinel: escalation module, Grafana dashboard, systemd, README, CLAUDE.md"
+  - "nai-reserve: WS integration tests, ntnx-common auth wired"
+  - "examforge: SM-2 intelligence layer, batch review verdicts"
+  - "nutantforge: Nutanix branding, FULL_ACCESS tier, SM-2 cherry-pick, 210 questions released"
+  - "ntnx-common: NEW REPO — auth, Ollama client, health checks (29 tests)"
+  - "ntnx-codeforge: Nutanix code ingestion pipeline (31 tests)"
+  - "ntnx-promptforge: prompt fixer mode + 5 Nutanix templates (98 tests)"
+  - "nai-agent: README + CLAUDE.md, benchmark script"
+  - "nai-swarm: ntnx-common auth wired"
+  - "cco: ntnx-common auth wired"
+  - "prism-mcp-server: ntnx-common auth wired"
+  - "taxprep: TX franchise tax + HI N-11 (57 tests)"
+  - "hashrate-hedger: H1 profitability engine (96 tests)"
+  - "ntnx-cursor-env: 30 Cursor rules"
+
+artifacts_produced:
+  - "NEW: /opt/ntnx-common/ (shared auth library, GitHub repo created)"
+  - "<hydra-project-path>/docs/ntnx-portfolio-assessment-2026-04-05.md"
+  - "<hydra-project-path>/docs/nai-scheduler-benchmark-2026-04-05.md"
+  - "<hydra-project-path>/plans/ntnx-refined-action-plan-2026-04-05.md"
+  - "/opt/ntnx-sentinel/src/escalation/mod.rs + grafana/ + deploy/"
+  - "/opt/ntnx-codeforge/data/nutanix/ (scanner, sanitizer, training_pairs)"
+  - "/opt/ntnx-promptforge/src/ntnx_promptforge/fixer.py + prompts/nutanix/"
+  - "/opt/christi-project/data/ab_test_20q_20260405.json"
+  - "/opt/christi-project/data/cpa-tcp-review-verdicts-20260405.json"
+  - "/opt/christi-project/data/cpa-far-review-verdicts-20260405.json"
+
+test_delta:
+  - "ntnx-sentinel: 13→22 (+9 escalation/SLA)"
+  - "examforge: 14→34 engine (+20 intelligence layer)"
+  - "nai-reserve: 122→136 (+14 WS integration)"
+  - "taxprep: 373→430 (+57 TX+HI)"
+  - "ntnx-common: 0→29 (NEW)"
+  - "ntnx-codeforge: 25→56 (+31 ingestion)"
+  - "ntnx-promptforge: 163→261 (+98 prompt fixer)"
+  - "hashrate-hedger: 186→282 (+96 H1)"
+  - "Total new tests this session: ~355"
+
+context_for_next: >
+  See checkpoint: /opt/swarm/artifacts/checkpoints/miniboss-current.yaml
+
+  REMAINING NTNX WORK (from refined plan):
+    P2: Helm chart for NAI suite (4h)
+    P3: Rust sidecar integration (3h)
+    P4: Integration tests across services (3h)
+    P5: Shared health + Ollama consolidation (1h)
+
+  BLOCKED:
+    Prism MCP real API (needs Prism Central access)
+    NCCG P4-5 (needs Slack/Prism creds)
+    NutantForge P4+ (needs NAI hardware)
+
+  GRILL SESSION DECISIONS (memory: project_ntnx_portfolio_decisions.md):
+    Keep CodeForge + PromptForge (now with real value)
+    Keep Agent + Swarm (Rust sidecar architecture)
+    Dual-path auth (demo now, Okta when tenant available)
+
+  ALL REPOS CLEAN AND PUSHED.

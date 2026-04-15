@@ -1,0 +1,131 @@
+---
+timestamp: "2026-04-11T01:32:00Z"
+host: miniboss
+session_id: "session-snitch-v4-reporting-consolidation"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: session-snitch-v4-plan
+    description: "Planned and approved Session Snitch v4 'Fleet Intelligence' — SQL hardening, auto-calibration, forecast, skills"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:30:00Z"
+
+  - id: sql-injection-hardening
+    description: "Eliminated all SQL string interpolation in main.rs and otel.rs — parameterized queries throughout"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:45:00Z"
+
+  - id: skills-cli-command
+    description: "Added 'skills' CLI command + GET /api/skills web endpoint — skill activation frequency with bar chart"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:50:00Z"
+
+  - id: auto-calibration
+    description: "Added auto_calibrate_from_snapshot() — statusline snapshots auto-set calibration keys, no more manual calibrate"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:00:00Z"
+
+  - id: predictive-forecast
+    description: "Added 'forecast' CLI + GET /api/forecast — token velocity extrapolation, 80%/100% threshold ETAs"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:05:00Z"
+
+  - id: dod-completion
+    description: "Full DoD pass: 87 tests (39 unit + 36 integration + 12 web API), e2e verification, durability checks, README + skill updated"
+    commit: "0e109bd"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:25:00Z"
+
+  - id: dod-skill-created
+    description: "Created definition-of-done skill at ~/.claude/skills/definition-of-done/SKILL.md — 10-point mandatory checklist"
+    commit: "n/a"
+    repo: claude-config
+    timestamp: "2026-04-11T00:30:00Z"
+
+  - id: fleet-install-mecha
+    description: "Updated session-snitch v4 binaries on MECHA — all 5 hooks, timer active, doctor green, 17 sessions"
+    commit: "n/a"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:39:00Z"
+
+  - id: fleet-install-mongo
+    description: "Fresh session-snitch v4 install on MONGO — binaries, hooks, timer, fixed root-owned dirs"
+    commit: "n/a"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:40:00Z"
+
+  - id: config-sync-drift-fix
+    description: "Fixed fleet config drift: MECHA 54→62 skills + CLAUDE.md restored, MONGO fully bootstrapped (0→61 skills, all hooks, agents)"
+    commit: "36aa185"
+    repo: claude-config
+    timestamp: "2026-04-11T01:00:00Z"
+
+  - id: mongo-env-template
+    description: "Created MONGO.env fleet environment template for fleet-deploy.sh"
+    commit: "n/a"
+    repo: claude-config
+    timestamp: "2026-04-11T01:00:00Z"
+
+  - id: reporting-inventory
+    description: "Comprehensive audit of all 22+ scheduled jobs, crons, timers, hooks, email reports across fleet"
+    commit: "n/a"
+    repo: hydra-project
+    timestamp: "2026-04-11T01:10:00Z"
+
+  - id: consolidated-reporting-plan
+    description: "Designed 3-report consolidation: Morning Brief (daily), Weekly Discipline (Sun), Monthly Executive (1st). Cut 480→38 emails/month"
+    commit: "n/a"
+    repo: hydra-project
+    timestamp: "2026-04-11T01:15:00Z"
+
+  - id: morning-brief-script
+    description: "Built and tested morning-brief.sh — 482 lines, 7 sections, parallel SSH collection, email sent successfully"
+    commit: "51a582b"
+    repo: hydra-project
+    timestamp: "2026-04-11T01:30:00Z"
+
+in_progress:
+  - id: weekly-discipline-report
+    description: "Weekly Discipline Report (Sunday 8am) — plan written, script not yet built"
+    state: "Plan approved, implementation next session"
+
+  - id: monthly-executive-summary
+    description: "Monthly Executive Summary (1st at 9am) — plan written, script not yet built"
+    state: "Plan approved, implementation next session"
+
+  - id: crontab-cutover
+    description: "Replace 7 old cron entries with 3 new consolidated report entries"
+    state: "Waiting until all 3 reports tested"
+
+blocked:
+  - id: fleet-install-giga
+    description: "Session Snitch v4 + config sync on GIGA"
+    blocker: "GIGA unreachable"
+
+  - id: fleet-install-mega
+    description: "Session Snitch v4 + config sync on MEGA"
+    blocker: "MEGA unreachable"
+
+decisions:
+  - "Consolidated 22+ scheduled jobs into 3 reports + 11 infrastructure jobs (unchanged)"
+  - "Morning Brief replaces 4 scripts: hydra-report (2h), PM poll (2h), daily-optimization (6am), daily-worklog (8pm)"
+  - "Config parity is a first-class section in both daily (compact table) and weekly (file-by-file diff) reports"
+  - "CLAUDE.md DRIFT across hosts is expected/acceptable — template renders host-specific persona text"
+  - "Did NOT apply crontab changes yet — waiting until all 3 reports are built and tested"
+  - "Deferred full rename (hydra-pulse → session-snitch binaries) — high churn, separate session"
+  - "Used reqwest blocking client for web tests over axum test utilities — tests real HTTP stack"
+
+state_changes:
+  - "Session Snitch v4 deployed: miniboss + MECHA (updated) + MONGO (fresh install)"
+  - "Test count: 66 → 87 (39 unit + 36 integration + 12 web API)"
+  - "Config sync drift fixed: MECHA (54→62 skills, CLAUDE.md restored), MONGO (fully bootstrapped)"
+  - "MONGO.env fleet template created at claude-config/fleet-env/MONGO.env"
+  - "New skill: definition-of-done (10-point DoD checklist)"
+  - "New script: morning-brief.sh (482 lines, 7-section daily report)"
+  - "settings.json now identical (md5 match) across miniboss, MECHA, MONGO"

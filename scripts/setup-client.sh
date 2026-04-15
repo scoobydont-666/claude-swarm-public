@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # setup-client.sh — Run on any host joining the swarm
-# Mounts NFS (gpu-server-1 primary, orchestration-node fallback) and installs hooks
+# Mounts NFS (GIGA primary, miniboss fallback) and installs hooks
 # Requires: sudo for NFS mount
 
 # Load config from environment or defaults
-gpu-server-1-ip="${gpu-server-1-ip:-10.0.0.1}"
-MINIBOSS_IP="${MINIBOSS_IP:-10.0.0.5}"
-SWARM_MOUNT="${SWARM_MOUNT:-/var/lib/swarm}"
+GIGA_IP="${GIGA_IP:-<primary-node-ip>}"
+MINIBOSS_IP="${MINIBOSS_IP:-<orchestration-node-ip>}"
+SWARM_MOUNT="${SWARM_MOUNT:-/opt/swarm}"
 ALLOW_LOCAL="${ALLOW_LOCAL:-0}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
@@ -24,21 +24,21 @@ fi
 # Create mount point
 sudo mkdir -p "${SWARM_MOUNT}"
 
-# Try gpu-server-1 first, fall back to orchestration-node replica
+# Try GIGA first, fall back to miniboss replica
 if mountpoint -q "${SWARM_MOUNT}" 2>/dev/null; then
     echo "NFS already mounted at ${SWARM_MOUNT}."
 else
-    echo "Attempting NFS mount from gpu-server-1 (${gpu-server-1-ip})..."
-    if sudo mount -t nfs -o soft,timeo=10 "${gpu-server-1-ip}:/var/lib/swarm" "${SWARM_MOUNT}" 2>/dev/null; then
-        echo "Mounted from gpu-server-1."
-        FSTAB_SRC="${gpu-server-1-ip}:/var/lib/swarm"
+    echo "Attempting NFS mount from GIGA (${GIGA_IP})..."
+    if sudo mount -t nfs -o soft,timeo=10 "${GIGA_IP}:/opt/swarm" "${SWARM_MOUNT}" 2>/dev/null; then
+        echo "Mounted from GIGA."
+        FSTAB_SRC="${GIGA_IP}:/opt/swarm"
     else
-        echo "gpu-server-1 unavailable. Trying orchestration-node replica (${MINIBOSS_IP})..."
-        if sudo mount -t nfs -o soft,timeo=10 "${MINIBOSS_IP}:/var/lib/swarm-replica" "${SWARM_MOUNT}" 2>/dev/null; then
-            echo "Mounted from orchestration-node replica."
-            FSTAB_SRC="${MINIBOSS_IP}:/var/lib/swarm-replica"
+        echo "GIGA unavailable. Trying miniboss replica (${MINIBOSS_IP})..."
+        if sudo mount -t nfs -o soft,timeo=10 "${MINIBOSS_IP}:/opt/swarm-replica" "${SWARM_MOUNT}" 2>/dev/null; then
+            echo "Mounted from miniboss replica."
+            FSTAB_SRC="${MINIBOSS_IP}:/opt/swarm-replica"
         else
-            echo "[ERROR] Could not mount NFS from gpu-server-1 or orchestration-node."
+            echo "[ERROR] Could not mount NFS from GIGA or miniboss."
             if [[ "${ALLOW_LOCAL}" == "1" ]]; then
                 echo "Local fallback enabled. Creating ~/.swarm/ directory."
                 mkdir -p "${HOME}/.swarm"/{status,tasks/{pending,claimed,completed},artifacts,messages/{inbox,archive},config}
@@ -52,7 +52,7 @@ else
     fi
 
     # Add to fstab (idempotent)
-    if ! grep -qF "/var/lib/swarm" /etc/fstab 2>/dev/null; then
+    if ! grep -qF "/opt/swarm" /etc/fstab 2>/dev/null; then
         echo "${FSTAB_SRC} ${SWARM_MOUNT} nfs defaults,_netdev,soft,timeo=30 0 0" | sudo tee -a /etc/fstab
     fi
 fi

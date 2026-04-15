@@ -42,7 +42,7 @@ PORT = 9192
 HOST = "127.0.0.1"
 
 DB_PATH = Path("/opt/claude-swarm/data/health-events.db")
-DISPATCHES_DIR = Path("/var/lib/swarm/artifacts/dispatches")
+DISPATCHES_DIR = Path("/opt/swarm/artifacts/dispatches")
 
 # ---------------------------------------------------------------------------
 # Logging

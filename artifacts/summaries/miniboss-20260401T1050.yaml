@@ -1,0 +1,55 @@
+hostname: miniboss
+session_id: examforge-pipeline-sync
+timestamp: "2026-04-01T10:50:00-07:00"
+project: ExamForge + NutantForge question pipeline
+duration_minutes: 55
+key_decisions:
+  - "Fixed /api/embeddings -> /api/embed bug across GIGA, MECHA, MEGA (old/new API format mismatch)"
+  - "Seeded 4 new certs into ExamForge DB: EA part 1/2/3 + Security+ (now 13 certs total)"
+  - "Imported 2,987 draft questions into ExamForge SQLite (7,648 total)"
+  - "Synced Security+ drafts MECHA->GIGA, imported into Docker PostgreSQL (7,546 total)"
+  - "Seeded NCA + NCP-MCI into NutantForge DB, imported 302 NCA questions"
+  - "Created batch generation queue on MEGA (NCA D4 + NCP-MCI D1-D4 = 500 questions)"
+  - "MEGA firewall fix: systemd service for iptables rules (loopback, 11435, 22, 9100)"
+  - "tmux scrollback: 100K lines, mouse scroll, vi keys"
+  - "bash history: 100K lines"
+  - "Killed duplicate SecPlus D5 on MECHA, started D1 (correct domain)"
+files_changed:
+  - /opt/examforge/backend/src/examforge/cli.py (embed endpoint fix)
+  - /opt/examforge/backend/seed/certifications/ea-see-part1.yaml (NEW)
+  - /opt/examforge/backend/seed/certifications/ea-see-part2.yaml (NEW)
+  - /opt/examforge/backend/seed/certifications/ea-see-part3.yaml (NEW)
+  - /opt/examforge/backend/seed/certifications/comptia-secplus.yaml (NEW)
+  - /opt/nutantforge/backend/src/examforge/cli.py (embed endpoint fix)
+  - /opt/nutantforge/backend/seed/certifications/nutanix-nca.yaml (NEW)
+  - /opt/nutantforge/backend/seed/certifications/nutanix-ncp-mci.yaml (NEW)
+  - /opt/nutantforge/backend/scripts/batch-gen.sh (NEW)
+  - <hydra-project-path>/CLAUDE.md (MEGA GPU, ExamForge description)
+  - /home/josh/.tmux.conf (NEW)
+  - /home/josh/.bashrc (history bump)
+  - /etc/systemd/system/fix-kube-firewall.service (NEW on MEGA)
+issues_found:
+  - "ExamForge CLI used /api/embeddings (old Ollama API) but get_embedding() sends new-style payload"
+  - "Docker exec can't resolve Docker DNS (db hostname) - need container IP workaround"
+  - "NutantForge CLI binary is 'nutantforge' not 'examforge' (caused initial gen restart failure)"
+artifacts_produced:
+  - "6 git commits (examforge, nutantforge, hydra-project, examforge-mecha)"
+  - "ExamForge PostgreSQL synced to 7,546 questions"
+  - "NutantForge SQLite seeded with 302 NCA questions"
+  - "MEGA firewall systemd service enabled"
+context_for_next: |
+  GPU JOBS RUNNING:
+  - GIGA: EA Part 1 QA validation (embeddings now fixed, running clean)
+  - MECHA: Security+ domain 1 gen at 61/100, QA validation queued after
+  - MEGA: NCA D1 gen at 20/100, batch queue: NCA D4 → NCP-MCI D1-D4
+  
+  NEXT ACTIONS:
+  - When MECHA D1 finishes: sync new batch to GIGA, import into SQLite + Docker PostgreSQL
+  - When MEGA batch completes: import all NCA/NCP-MCI drafts into DB
+  - EA QA results: review and apply verdicts (approve/review/reject)
+  - Run Security+ QA validation on all 500 questions
+  - NutantForge Docker deployment (compose file exists, no containers running)
+  
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged questions)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel
