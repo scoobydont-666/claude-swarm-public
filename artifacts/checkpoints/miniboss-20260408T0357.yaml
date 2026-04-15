@@ -1,0 +1,90 @@
+hostname: miniboss
+session: nai-exec-2026-04-08
+timestamp: "2026-04-08T04:10:00Z"
+elapsed_minutes: 75
+
+objective: "NAI suite launch + NCCG marathon + Hydra CC"
+headline: "NAI suite DONE, NCCG A-D+F DONE, Hydra CC agent DONE — 14 commits across 6 repos"
+
+completed:
+  - "03:00 — Housekeeping: 5 plans + port registry + master plan (87b0b3d)"
+  - "03:05 — All 5 NAI services verified healthy"
+  - "03:15 — Shared mock data seed script across 4 services (1d1f657)"
+  - "03:22 — NAI CC health panel: 5/6 healthy, auto-refresh 15s (fa5ea0d)"
+  - "03:24 — Sentinel mock event generator w/ 1x/10x speed (4dc51e5)"
+  - "03:27 — Sentinel home lab fork config + systemd + DB (cf51080)"
+  - "03:35 — NCCG Phase A: 8 new tables + migration + batch upsert (18778f2)"
+  - "03:40 — NCCG Phase B: 3 streaming ingesters + 7 tests (c816d32)"
+  - "03:45 — NCCG Phase C: config extensions + pluggable LLM (4be791c)"
+  - "03:50 — NCCG Phase D: pipeline orchestrator + CLI + API (c3e6ad9)"
+  - "03:55 — NCCG Phase F: org hierarchy API endpoints (0e14b6d)"
+  - "04:00 — Hydra CC: fleet agent built + tested on miniboss (0be6255)"
+
+artifacts:
+  - /opt/nai-swarm/scripts/seed-demo-data.py
+  - /opt/nai-control-center/src/app/api/health/route.ts
+  - /opt/nai-control-center/src/components/service-health-panel.tsx
+  - /opt/ntnx-sentinel/tools/mock-events.py
+  - /opt/ntnx-sentinel/config/homelab.yaml
+  - /opt/ntnx-sentinel/deploy/ntnx-sentinel-homelab.service
+  - /opt/cco/src/cco/models/org_hierarchy.py
+  - /opt/cco/src/cco/models/resource_usage.py
+  - /opt/cco/src/cco/models/watermarks.py
+  - /opt/cco/src/cco/models/remediation.py
+  - /opt/cco/src/cco/ingestion/stream_base.py
+  - /opt/cco/src/cco/ingestion/aws_s3_stream.py
+  - /opt/cco/src/cco/ingestion/azure_blob_stream.py
+  - /opt/cco/src/cco/ingestion/gcp_bq_stream.py
+  - /opt/cco/src/cco/ingestion/pipeline.py
+  - /opt/cco/src/cco/ingestion/upsert.py
+  - /opt/cco/src/cco/cli.py
+  - /opt/cco/src/cco/api/ingestion.py
+  - /opt/cco/src/cco/api/org.py
+  - /opt/cco/src/cco/recommendations/llm_interface.py
+  - /opt/hydra-control-center/agent/fleet_agent.py
+  - /opt/hydra-control-center/deploy/fleet-agent.service
+
+verification:
+  - "234 tests passing in CCO (219 existing + 15 new)"
+  - "All 5 NAI services healthy on miniboss"
+  - "NAI CC health panel: 5/6 services live at giga:30000"
+  - "Fleet agent: 4 managed services detected on miniboss"
+  - "Sentinel: 8 tickets in DB via API"
+
+board:
+  now: "Session complete"
+  next_session:
+    - "NCCG Phase E: Milvus vector strategy (needs Milvus infra)"
+    - "NCCG Phase G: PostgreSQL logical replication setup"
+    - "NCCG Phase H: additional streaming + pipeline tests"
+    - "Hydra CC: Next.js dashboard build (fleet agent provides data)"
+    - "ComfyConfig (Head #19) — full plan at <hydra-project-path>/plans/comfyconfig-plan.md"
+    - "DRAFT items: CB statusline (30m), portable env (2-3h), Ansible update"
+    - "MEGA ComfyUI DNS fix (CrashLoopBackOff)"
+    - "NAI suite launch: send links to both emails"
+  blocked:
+    - "NutantForge P4-8 (NAI hardware)"
+    - "Solar Sentinel P2 (Enphase JWT)"
+    - "RAINBOW (physical access)"
+    - "Google Drive MCP (OAuth)"
+  done:
+    - "Housekeeping (87b0b3d, 6ef5a08)"
+    - "NAI Suite Launch — all 5 tasks complete"
+    - "NCCG Phases A-D+F (18778f2 → 0e14b6d)"
+    - "Hydra CC fleet agent (0be6255)"
+
+running_services:
+  miniboss:
+    - "NAI Reserve (port 8530, pid 1396457)"
+    - "CCO/NCCM (port 8510, pid 1359531)"
+    - "NAI Swarm dashboard (port 9192, pid 1359910)"
+    - "NTNX Sentinel (port 8580, pid 3309128)"
+    - "PostgreSQL: nai-reserve-db-1 (port 5432), cco-db (port 5434)"
+    - "Redis (port 6379)"
+  giga:
+    - "NutantForge backend (port 8012, Docker)"
+    - "NutantForge frontend (port 3102, Docker)"
+    - "NAI Control Center (port 30000, Docker)"
+    - "NutantForge DB (port 5433, Docker)"
+
+overall_status: "Green — massive output session, 14 commits across 6 repos"

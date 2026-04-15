@@ -60,7 +60,7 @@ class TestTeacherGenerate:
         assert "collect_filter" in names
 
     def test_parallel_generation(self):
-        """gpu-server-1 and gpu-server-3 generation should run in parallel."""
+        """GIGA and MEGA generation should run in parallel."""
         batches = TEACHER_GENERATE.topological_order()
         # Batch 0: shard_prompts
         # Batch 1: generate_giga + generate_mega (parallel)

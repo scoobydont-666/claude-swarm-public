@@ -1,0 +1,49 @@
+hostname: miniboss
+session_id: project-management-session17-checkpoint
+timestamp: "2026-03-29T20:15:00Z"
+project: Security fixes + ExamForge deploy + DocuMint D8 + GPU research
+duration_minutes: 210
+key_decisions:
+  - "Fixed all 13 critical/high security issues from platform evaluation report"
+  - "Rebuilt + redeployed ExamForge on GIGA with all fixes (3,254 questions)"
+  - "DocuMint D8: added W-9, 1098-T, 1098 schemas + auto-detection classifier"
+  - "Converted float→Decimal for financial data in Audit Sentinel + Hashrate Hedger"
+  - "Replaced hardcoded IPs with env vars across 4 projects"
+  - "CKA QA: 710/870 validated, 533 approved, imported to production DB"
+  - "GPU research: RTX PRO 6000 Blackwell (96GB, $8K) recommended for MEGA"
+files_changed:
+  - "12 repos modified with security fixes, financial accuracy, config improvements"
+  - "documint: 3 new form schemas + classifier (555 tests)"
+  - "examforge: payment, tier, disclaimers, API contract, frontend rebuild"
+artifacts_produced:
+  - "Updated evaluation report — all 13 issues marked FIXED"
+  - "ExamForge production deployment with 3,254 questions"
+  - "DocuMint D8: W-9 + 1098-T + 1098 + auto-detection"
+  - "GPU purchase analysis: RTX PRO 6000 vs 5000 for MEGA"
+context_for_next: >
+  ACTIVE GPU JOBS (DO NOT RESTART):
+  - MECHA: CKA QA at ~566/870, PID 1382011, log /tmp/cka-qa-run.log
+  - GIGA: CKA QA at ~290/500, PID 1469496, log /tmp/cka-qa-giga-run.log
+  - ETA completion: ~2-3 hours
+
+  DB STATUS (3,254 total):
+  - AWS CLF-C02: 831 | CKA: 533 | CKAD: 322
+  - CPA AUD: 297 | FAR: 292 | ISC: 258 | TCP: 253 | REG: 234 | BAR: 234
+
+  EXAMFORGE: fully deployed, all fixes live, backend :8010, frontend :3100
+
+  ALL 13 CRITICAL/HIGH SECURITY FIXES APPLIED across 8 repos
+
+  DOCUINT: 555 tests, D8.1-D8.3+D8.5 done, D8.4 (state forms) remaining
+
+  GPU DECISION PENDING:
+  - Josh considering RTX PRO 6000 Blackwell (96GB, 600W, ~$8K) for MEGA
+  - MEGA build: EPYC 7B12, 128GB RAM, 2TB, AsRock board
+  - Needs 1200W PSU for 600W GPU headroom
+
+  BLOCKED ON JOSH:
+  - GPU purchase decision (RTX PRO 6000 vs 5000)
+  - CPA TCP+REG review (48 Christi-flagged)
+  - K8s + AWS spot-check
+  - API keys: STR Intel, Hydra Media, Solar Sentinel
+  - Grafana password rotation

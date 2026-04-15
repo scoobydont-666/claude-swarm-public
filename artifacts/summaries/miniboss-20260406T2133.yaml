@@ -1,0 +1,51 @@
+hostname: miniboss
+session_id: task-master-execution-2026-04-06e
+timestamp: "2026-04-06T21:34:18Z"
+project: hydra-project (multi-project — 4 repos touched)
+duration_minutes: 40
+
+key_decisions:
+  - "Ollama probe interval 30s→120s: reduces inference contention during batch work"
+  - "MONGO excluded from GPU operator DaemonSets: Docker runtime incompatible with containerd toolkit"
+  - "NutantForge QA: deactivate factual errors rather than attempt patching wrong correct answers"
+  - "NCCM dashboard: single-page HTML (not React) for simplicity and zero-dep serving"
+  - "Question generation: fresh batch rather than patching deactivated questions"
+
+files_changed:
+  - "cco: static/index.html (dashboard), main.py (static serving)"
+  - "nai-control-center: globals.css (blue theme), layout.tsx (light default)"
+  - "hydra-project: master plan, blocker registry"
+  - "ai-project (GIGA): k8s/apps/ollama/*.yaml (probe config)"
+
+test_delta:
+  - "CCO: 219 tests passing (no change, dashboard is frontend-only)"
+  - "NAI Control Center: build verified (14 pages compiled)"
+
+artifacts_produced:
+  - "NCCM Dashboard with Nutanix DS theming + demo data"
+  - "66 new NutantForge questions (phi4:14b generation)"
+  - "Ollama probe manifests persisted"
+
+context_for_next: |
+  See checkpoint: /opt/swarm/artifacts/checkpoints/miniboss-current.yaml
+
+  NEXT SESSION PRIORITIES:
+  1. Update both Nutanix presentations (UI changed, fix image stretching)
+  2. New personal portfolio/journey presentation (all repos, sanitized, "if I can do it")
+  3. QA the 66 new generated questions (qa_status=pending in nutantforge DB)
+  4. ComfyForge /plan + /grill-me
+  5. RDP setup for fleet (xrdp from Windows)
+
+  KEY STATE:
+  - NutantForge: 2,119 questions (2,025 QA'd + 94 pending QA). docker-compose on GIGA.
+  - NCCM Dashboard: live at /opt/cco/src/cco/static/index.html, served via FastAPI
+  - K3s: 4 nodes clean, all ollama pods stable (probe interval 120s, keep_alive 24h)
+  - NAI Control Center: Nutanix blue theme, light default, 12 pages across 6 modules
+  - Ollama GIGA: pod still has occasional restarts (exit code 0, not OOM). Investigate deeper if pattern continues.
+  - NCCG: Slack webhook NOT a blocker per Josh. All phases complete.
+
+  NEW MEMORIES:
+  - project_presentations_next.md — 3 presentations for next session
+  - project_rdp_fleet.md — RDP setup side quest (updated)
+
+  ALL REPOS CLEAN AND PUSHED.

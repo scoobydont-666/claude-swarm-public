@@ -17,19 +17,19 @@ class TestCollectNodeMetrics:
         status_dir = tmp_path / "status"
         status_dir.mkdir()
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        (status_dir / "orchestration-node.json").write_text(
+        (status_dir / "miniboss.json").write_text(
             json.dumps(
                 {
-                    "hostname": "orchestration-node",
+                    "hostname": "miniboss",
                     "state": "idle",
                     "updated_at": now,
                 }
             )
         )
-        (status_dir / "gpu-server-1.json").write_text(
+        (status_dir / "GIGA.json").write_text(
             json.dumps(
                 {
-                    "hostname": "gpu-server-1",
+                    "hostname": "GIGA",
                     "state": "active",
                     "session_id": "sess-1",
                     "updated_at": now,
@@ -160,7 +160,7 @@ class TestCollectDispatchCosts:
         dispatches_dir = tmp_path / "dispatches"
         dispatches_dir.mkdir()
         for i, (host, cost) in enumerate(
-            [("gpu-server-1", 0.50), ("orchestration-node", 0.25), ("gpu-server-1", 0.75)]
+            [("GIGA", 0.50), ("miniboss", 0.25), ("GIGA", 0.75)]
         ):
             (dispatches_dir / f"d{i}.plan.yaml").write_text(
                 yaml.dump(
@@ -188,8 +188,8 @@ class TestCollectDispatchCosts:
 
         total, host_costs = patched()
         assert abs(total - 1.50) < 0.01
-        assert abs(host_costs["gpu-server-1"] - 1.25) < 0.01
-        assert abs(host_costs["orchestration-node"] - 0.25) < 0.01
+        assert abs(host_costs["GIGA"] - 1.25) < 0.01
+        assert abs(host_costs["miniboss"] - 0.25) < 0.01
 
     def test_no_crash_on_real_dir(self):
         """Verify the real function doesn't crash regardless of disk state."""

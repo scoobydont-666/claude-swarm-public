@@ -58,7 +58,7 @@ class TestInferModel:
 
     def test_haiku_keywords(self):
         assert infer_model("Run tests on monero-farm") == "haiku"
-        assert infer_model("Check service status on gpu-server-1") == "haiku"
+        assert infer_model("Check service status on GIGA") == "haiku"
         assert infer_model("Verify backup integrity") == "haiku"
         assert infer_model("Scan for vulnerabilities") == "haiku"
 
@@ -92,7 +92,7 @@ class TestInferRequires:
 
 
 class TestIsHumanTask:
-    def test_human_keyword(self):
+    def test_josh_keyword(self):
         assert is_human_task("Josh reviews the output") is True
 
     def test_review_keyword(self):
@@ -103,7 +103,7 @@ class TestIsHumanTask:
 
     def test_machine_task(self):
         assert is_human_task("Run tests on all repos") is False
-        assert is_human_task("Deploy service to gpu-server-1") is False
+        assert is_human_task("Deploy service to GIGA") is False
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ class TestScanProjectPlans:
         )
         wg = _make_generator(
             swarm_tmpdir,
-            {"my-project": {"path": str(project_dir), "host": "orchestration-node"}},
+            {"my-project": {"path": str(project_dir), "host": "miniboss"}},
         )
         tasks = wg.scan_project_plans()
         assert len(tasks) == 1
@@ -135,7 +135,7 @@ class TestScanProjectPlans:
         )
         wg = _make_generator(
             swarm_tmpdir,
-            {"my-project": {"path": str(project_dir), "host": "orchestration-node"}},
+            {"my-project": {"path": str(project_dir), "host": "miniboss"}},
         )
         tasks = wg.scan_project_plans()
         # Josh review should be skipped; "Run automated tests" should be found
@@ -147,7 +147,7 @@ class TestScanProjectPlans:
         empty_proj.mkdir()
         wg = _make_generator(
             swarm_tmpdir,
-            {"empty-proj": {"path": str(empty_proj), "host": "orchestration-node"}},
+            {"empty-proj": {"path": str(empty_proj), "host": "miniboss"}},
         )
         tasks = wg.scan_project_plans()
         assert tasks == []
@@ -157,7 +157,7 @@ class TestScanProjectPlans:
         plan.write_text("# Phase 1\n- [x] Done\n- [x] Also done\n")
         wg = _make_generator(
             swarm_tmpdir,
-            {"my-project": {"path": str(project_dir), "host": "orchestration-node"}},
+            {"my-project": {"path": str(project_dir), "host": "miniboss"}},
         )
         tasks = wg.scan_project_plans()
         assert tasks == []
@@ -167,7 +167,7 @@ class TestScanProjectPlans:
         plan.write_text("# Phase 1\n- [ ] Implement inference pipeline\n")
         wg = _make_generator(
             swarm_tmpdir,
-            {"my-project": {"path": str(project_dir), "host": "gpu-server-1"}},
+            {"my-project": {"path": str(project_dir), "host": "GIGA"}},
         )
         tasks = wg.scan_project_plans()
         assert len(tasks) == 1
@@ -178,7 +178,7 @@ class TestScanProjectPlans:
         plan.write_text("# Phase 2 Data Pipeline\n- [ ] Build ETL job\n")
         wg = _make_generator(
             swarm_tmpdir,
-            {"my-project": {"path": str(project_dir), "host": "orchestration-node"}},
+            {"my-project": {"path": str(project_dir), "host": "miniboss"}},
         )
         tasks = wg.scan_project_plans()
         assert "Phase 2 Data Pipeline" in tasks[0]["description"]
@@ -212,7 +212,7 @@ class TestScanPrometheusAlerts:
                 "state": "firing",
                 "labels": {
                     "alertname": "HighDiskUsage",
-                    "instance": "orchestration-node:9100",
+                    "instance": "miniboss:9100",
                     "severity": "warning",
                 },
             }
@@ -230,7 +230,7 @@ class TestScanPrometheusAlerts:
                 "state": "firing",
                 "labels": {
                     "alertname": "NodeDown",
-                    "instance": "gpu-server-1:9100",
+                    "instance": "GIGA:9100",
                     "severity": "critical",
                 },
             }
@@ -270,7 +270,7 @@ class TestScanGitChanges:
 
         wg = _make_generator(
             swarm_tmpdir,
-            {"stable-proj": {"path": str(proj), "host": "orchestration-node"}},
+            {"stable-proj": {"path": str(proj), "host": "miniboss"}},
         )
 
         def fake_run(cmd, **kwargs):
@@ -299,7 +299,7 @@ class TestScanGitChanges:
 
         wg = _make_generator(
             swarm_tmpdir,
-            {"active-proj": {"path": str(proj), "host": "orchestration-node"}},
+            {"active-proj": {"path": str(proj), "host": "miniboss"}},
         )
 
         call_count = {"n": 0}
@@ -331,7 +331,7 @@ class TestScanGitChanges:
 
         wg = _make_generator(
             swarm_tmpdir,
-            {"doc-proj": {"path": str(proj), "host": "orchestration-node"}},
+            {"doc-proj": {"path": str(proj), "host": "miniboss"}},
         )
 
         def fake_run(cmd, **kwargs):
@@ -360,7 +360,7 @@ class TestScanGitChanges:
 
         wg = _make_generator(
             swarm_tmpdir,
-            {"dirty-proj": {"path": str(proj), "host": "orchestration-node"}},
+            {"dirty-proj": {"path": str(proj), "host": "miniboss"}},
         )
 
         def fake_run(cmd, **kwargs):
@@ -413,18 +413,18 @@ class TestDeduplicate:
     def test_removes_existing_claimed(self, swarm_tmpdir):
         claimed_dir = swarm_tmpdir / "tasks" / "claimed"
         claimed_dir.mkdir(parents=True, exist_ok=True)
-        existing = {"id": "task-002", "title": "Investigate alert: NodeDown on gpu-server-1"}
+        existing = {"id": "task-002", "title": "Investigate alert: NodeDown on GIGA"}
         with open(claimed_dir / "task-002.yaml", "w") as f:
             yaml.dump(existing, f)
 
         wg = _make_generator(swarm_tmpdir)
         proposed = [
-            {"title": "Investigate alert: NodeDown on gpu-server-1"},
+            {"title": "Investigate alert: NodeDown on GIGA"},
             {"title": "Another new task"},
         ]
         result = wg.deduplicate(proposed)
         titles = [t["title"] for t in result]
-        assert "Investigate alert: NodeDown on gpu-server-1" not in titles
+        assert "Investigate alert: NodeDown on GIGA" not in titles
         assert "Another new task" in titles
 
     def test_deduplicates_within_proposed(self, swarm_tmpdir):

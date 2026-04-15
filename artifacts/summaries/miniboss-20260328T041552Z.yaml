@@ -1,0 +1,56 @@
+hostname: miniboss
+session_id: project-management-session12-update
+timestamp: "2026-03-28T04:20:00Z"
+project: Multi-project — Hydra Forge, ExamForge, Hydra Master, fleet
+duration_minutes: 120
+key_decisions:
+  - "2026-03-28T00:00Z — hydra-pulse: committed reset timers, model breakdown, refactored window_tokens_with_live()"
+  - "2026-03-28T00:15Z — HYDRA FORGE PHASE 3 COMPLETE: LOCAL tier in agent_bridge (91 tests, zero-cost routing)"
+  - "2026-03-28T00:30Z — EXAMFORGE PHASE 4 COMPLETE: all CPA hardcodes removed (30 tests)"
+  - "2026-03-28T01:00Z — ExamForge Phase 5 started: AWS CLF-C02 onboarded (4 domains, 118 topics)"
+  - "2026-03-28T01:10Z — MECHA assigned: domains 3-4 generation (345q), GIGA: domains 1-2 (405q)"
+  - "2026-03-28T02:57Z — MECHA GENERATION COMPLETE: 345 questions (255 D3 + 90 D4), all 4-option/1-correct"
+  - "2026-03-28T03:00Z — Memory saved: swarm members must have repos cloned locally"
+  - "2026-03-28T03:10Z — clone-repos.sh created + fixed str-project→str-intel mapping"
+  - "2026-03-28T03:30Z — AWS CLF-C02 landing page + certifications index (/certifications/)"
+  - "2026-03-28T03:45Z — Hydra Forge Phase 4: quality-check.py + quarterly cron"
+  - "2026-03-28T04:10Z — MECHA QA validation launched: 345 questions (factual + quality stages)"
+files_changed:
+  - "hydra-pulse: src/db.rs, src/main.rs"
+  - "hydra-project: libs/agent_bridge/ (bridge.py, __init__.py, tests, README.md)"
+  - "hydra-project: scripts/clone-repos.sh, docs/port-registry.md"
+  - "examforge: qa/factual.py, generator/variations.py, Disclaimer.tsx, page.tsx, pricing/page.tsx"
+  - "examforge: frontend/src/app/certifications/ (index + aws-clf-c02 pages)"
+  - "examforge: scripts/run-aws-qa.py, plans/examforge-roadmap.md"
+  - "hydra-forge: scripts/quality-check.py, CLAUDE.md"
+  - "project-management skill: registry updated"
+  - "memory: feedback_repos_on_swarm.md, project_new_heads.md updated"
+artifacts_produced:
+  - "agent_bridge LOCAL tier: 91 tests, hydra-coder:v1 at $0.00"
+  - "ExamForge Phase 4 complete: 30 tests, zero CPA hardcodes"
+  - "AWS CLF-C02: 345/750 questions generated (MECHA done)"
+  - "AWS QA validation: running on MECHA (345q)"
+  - "clone-repos.sh: fleet repo provisioning script"
+  - "quality-check.py: quarterly hydra-coder regression battery"
+context_for_next: >
+  BACKGROUND JOBS STILL RUNNING:
+  1. GIGA generating AWS D1 Cloud Concepts (~111/180) + D2 Security (225 more) — ETA ~5hrs
+  2. MECHA running QA on 345 completed AWS questions — ETA ~4hrs
+  
+  WHEN GENERATION COMPLETES:
+  - Check /opt/examforge/backend/seed/aws-clf-c02-drafts/ for new batch files
+  - Run QA on GIGA-generated questions: python3 scripts/run-aws-qa.py --endpoint giga
+  - Total target: 750 AWS questions generated + QA validated
+  
+  BLOCKED ON JOSH:
+  - Repo cloning on GIGA+MECHA: run `sudo <hydra-project-path>/scripts/clone-repos.sh` on each host
+  - Need git credentials (gh auth login) on GIGA and MECHA for private repos
+  - ExamForge 3a.7: CPA review of TCP+REG + 48 cross-validation disagreements
+  - Solar Sentinel: Enphase JWT
+  - Hydra Media M2/M5: ElevenLabs + Google OAuth
+  
+  NEXT ACTIONABLE (after background jobs):
+  - Validate AWS question quality (run QA on GIGA batch when done)
+  - ExamForge Phase 5.10: Josh samples 50 AWS questions for human review
+  - Hydra Forge Phase 4: run quality-check.py against GIGA Ollama (confirm baseline)
+  - ExamForge Phase 6 prep: CompTIA Security+ seed data

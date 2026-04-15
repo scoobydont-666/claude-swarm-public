@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Swarm runtime (never commit actual swarm state)
+/swarm-data/
+data/health-events.db
+data/health-monitor.log
+*.tmp
+*.lock
+
+# Secrets
+.env
+*.pem
+*.key
+
+# Kin semantic VCS
+.kin/
+data/agents.db
+data/cooldowns.json
+data/crash-summaries/
+data/swarm-sync.log
+celerybeat-schedule
+
+# === Security: secrets & credentials (fleet standard) ===
+.env
+.env.*
+!.env.example
+!.env.template
+*.key
+*.pem
+*.p12
+*.pfx
+credentials*
+secrets/
+*.secrets
+.secrets.map
+*_rsa
+*_ed25519
+*.gpg

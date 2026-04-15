@@ -11,7 +11,7 @@ if [[ -f "/opt/claude-swarm/.venv/bin/activate" ]]; then
     source "/opt/claude-swarm/.venv/bin/activate"
 fi
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 
 if [[ ! -d "${SWARM_ROOT}/status" ]]; then
     if [[ -d "${HOME}/.swarm/status" ]]; then

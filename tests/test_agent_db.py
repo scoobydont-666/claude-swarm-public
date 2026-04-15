@@ -23,15 +23,15 @@ def tmp_db(tmp_path):
 class TestAgentUpsert:
     def test_upsert_new_agent(self, tmp_db):
         tmp_db.upsert_agent(
-            hostname="orchestration-node",
-            ip="10.0.0.5",
+            hostname="miniboss",
+            ip="<orchestration-node-ip>",
             pid=1234,
             state="idle",
         )
-        agent = tmp_db.get_agent("orchestration-node")
+        agent = tmp_db.get_agent("miniboss")
         assert agent is not None
-        assert agent["hostname"] == "orchestration-node"
-        assert agent["ip"] == "10.0.0.5"
+        assert agent["hostname"] == "miniboss"
+        assert agent["ip"] == "<orchestration-node-ip>"
         assert agent["pid"] == 1234
         assert agent["state"] == "idle"
 
@@ -45,9 +45,9 @@ class TestAgentUpsert:
 
     def test_upsert_with_capabilities(self, tmp_db):
         caps = {"gpu": True, "ollama": True, "docker": False}
-        tmp_db.upsert_agent("gpu-server-1", capabilities=caps)
+        tmp_db.upsert_agent("GIGA", capabilities=caps)
 
-        agent = tmp_db.get_agent("gpu-server-1")
+        agent = tmp_db.get_agent("GIGA")
         assert agent["capabilities"] == caps
 
 
@@ -75,7 +75,7 @@ class TestTaskHistory:
     def test_record_task_action(self, tmp_db):
         tmp_db.record_task_action(
             task_id="task-001",
-            hostname="orchestration-node",
+            hostname="miniboss",
             action="claimed",
             details={"priority": "P1"},
         )

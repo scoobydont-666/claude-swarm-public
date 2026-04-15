@@ -1,7 +1,7 @@
 """
 GPU Discovery — Dynamic fleet GPU inventory via SSH nvidia-smi probing.
 
-Replaces hardcoded 2-slot gpu-server-1 model with dynamic discovery across all fleet hosts.
+Replaces hardcoded 2-slot GIGA model with dynamic discovery across all fleet hosts.
 Stores inventory in SQLite for fast lookup by the GPU scheduler.
 """
 
@@ -24,10 +24,10 @@ NVIDIA_SMI_CMD = [
 ]
 
 # Default fleet hosts with GPUs
-DEFAULT_GPU_HOSTS = ["gpu-server-1", "gpu-server-3", "gpu-server-2", "gpu-server-4", "orchestration-node"]
+DEFAULT_GPU_HOSTS = ["GIGA", "MEGA", "MECHA", "MONGO", "miniboss"]
 
 # SQLite DB for GPU inventory
-DEFAULT_DB_PATH = "/var/lib/swarm/gpu/inventory.db"
+DEFAULT_DB_PATH = "/opt/swarm/gpu/inventory.db"
 
 
 @dataclass
@@ -86,7 +86,7 @@ def probe_host(host: str, timeout: int = 10) -> HostGpuInventory:
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=accept-new",
-                 f"admin@example.com + NVIDIA_SMI_CMD,
+                 f"josh@{host}"] + NVIDIA_SMI_CMD,
                 capture_output=True, text=True, timeout=timeout,
             )
 

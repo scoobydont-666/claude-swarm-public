@@ -12,7 +12,7 @@ Pattern from Cursor Background Agents test loop.
 from pipeline import Pipeline, PipelineStage
 
 
-def create(project_dir: str = "/opt/hydra-project", test_cmd: str = "pytest") -> Pipeline:
+def create(project_dir: str = "<hydra-project-path>", test_cmd: str = "pytest") -> Pipeline:
     """Create a self-correcting test-fix loop pipeline."""
     return Pipeline(
         name="test_fix_loop",

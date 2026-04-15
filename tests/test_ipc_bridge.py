@@ -57,21 +57,21 @@ class TestConvenienceEmitters:
 
     @patch("src.ipc_bridge.publish")
     def test_emit_gpu_allocated(self, mock_pub):
-        emit_gpu_allocated("gpu-server-3", 0, "t-1", model="qwen3:14b", vram_mb=10000)
+        emit_gpu_allocated("MEGA", 0, "t-1", model="qwen3:14b", vram_mb=10000)
         args = mock_pub.call_args
         assert args[0][0] == GPU_EVENTS
-        assert args[0][2]["host"] == "gpu-server-3"
+        assert args[0][2]["host"] == "MEGA"
 
     @patch("src.ipc_bridge.publish")
     def test_emit_dispatch_started(self, mock_pub):
-        emit_dispatch_started("d-1", "gpu-server-3", "sonnet", "Fix the bug")
+        emit_dispatch_started("d-1", "MEGA", "sonnet", "Fix the bug")
         args = mock_pub.call_args
         assert args[0][0] == DISPATCH_EVENTS
         assert args[0][2]["dispatch_id"] == "d-1"
 
     @patch("src.ipc_bridge.publish")
     def test_emit_node_health(self, mock_pub):
-        emit_node_health("gpu-server-3", "online", gpu_count=2)
+        emit_node_health("MEGA", "online", gpu_count=2)
         args = mock_pub.call_args
         assert args[0][0] == INFRA_EVENTS
 

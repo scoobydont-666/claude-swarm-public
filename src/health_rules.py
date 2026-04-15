@@ -80,7 +80,7 @@ RULES: list[dict[str, Any]] = [
         "action": "alert_swarm_broadcast",
         "cooldown_minutes": 15,
     },
-    # ── gpu-server-1 GPU VRAM full ──────────────────────────────────────────────────
+    # ── GIGA GPU VRAM full ──────────────────────────────────────────────────
     {
         "name": "gpu_vram_full",
         "check": "prometheus_query",
@@ -136,7 +136,7 @@ RULES: list[dict[str, Any]] = [
 # ---------------------------------------------------------------------------
 
 ALLOWED_SERVICES: dict[str, list[str]] = {
-    "orchestration-node": [
+    "miniboss": [
         "monerod",
         "p2pool-main",
         "p2pool-mini",
@@ -149,7 +149,7 @@ ALLOWED_SERVICES: dict[str, list[str]] = {
         "fail2ban",
         "semaphore",
     ],
-    "gpu-server-1": [
+    "GIGA": [
         "docker",
         "prometheus-node-exporter",
         "fail2ban",

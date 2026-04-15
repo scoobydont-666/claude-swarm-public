@@ -1,15 +1,15 @@
 completed_at: ''
-dispatch_id: dispatch-1774224302-gpu-server-1
+dispatch_id: dispatch-1774224302-GIGA
 error: ''
 exit_code: -1
-host: gpu-server-1
+host: GIGA
 model: haiku
-output_file: /var/lib/swarm/artifacts/dispatches/dispatch-1774224302-gpu-server-1.output
+output_file: /opt/swarm/artifacts/dispatches/dispatch-1774224302-GIGA.output
 started_at: '2026-03-23T00:05:02Z'
 status: running
-task: "Update the phase status in CLAUDE.md for these gpu-server-1 projects. For each, read\
+task: "Update the phase status in CLAUDE.md for these GIGA projects. For each, read\
   \ the current CLAUDE.md, update the phase/status to reflect current state, and commit:\
   \ 1) /opt/christi-project \u2014 Phase 3+, healthy, Kin being indexed. 2) /opt/str-project\
   \ \u2014 Phase 0, scaffolded, needs webhook receiver. 3) /opt/taxprep-project \u2014\
-  \ Phase 0, scaffolded, needs Milvus setup. 4) /opt/ai-project \u2014 Production,\
+  \ Phase 0, scaffolded, needs Milvus setup. 4) <ai-project-path> \u2014 Production,\
   \ v6.0.3 GOLD, hardened. Make minimal edits. Commit each change."

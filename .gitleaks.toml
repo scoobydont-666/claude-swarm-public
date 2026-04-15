@@ -1,0 +1,7 @@
+# Fleet IP allowlist for setup scripts
+# These are stable infrastructure IPs, not credentials
+[allowlist]
+regexes = [
+  "192\\.168\\.200\\.(163|213|87|141|13)",
+  "giga|miniboss|mecha|mega|rainbow"
+]

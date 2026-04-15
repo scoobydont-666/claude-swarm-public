@@ -43,7 +43,7 @@ def make_stage(name: str, depends_on=None, model="sonnet", host=None, requires=N
         name=name,
         role=f"Role: {name}",
         model=model,
-        host=host or "gpu-server-1",
+        host=host or "GIGA",
         requires=requires or [],
         depends_on=depends_on or [],
         prompt_template=f"Do {name}: {{input}}",
@@ -95,7 +95,7 @@ def make_executor(outputs: dict[str, str]) -> PipelineExecutor:
         return f"output-{n}"
 
     def fake_find_best_host(requires):
-        return "gpu-server-1"
+        return "GIGA"
 
     executor._dispatch = fake_dispatch
     executor._recall = fake_recall
@@ -183,14 +183,14 @@ class TestContextPassing:
         executor = PipelineExecutor.__new__(PipelineExecutor)
         executor._dispatch = fake_dispatch
         executor._recall = fake_recall
-        executor._find_best_host = lambda r: "gpu-server-1"
+        executor._find_best_host = lambda r: "GIGA"
 
         stages = [
             PipelineStage(
                 name="architect",
                 role="arch",
                 model="opus",
-                host="gpu-server-1",
+                host="GIGA",
                 requires=[],
                 depends_on=[],
                 prompt_template="Design: {input}",
@@ -200,7 +200,7 @@ class TestContextPassing:
                 name="implement",
                 role="impl",
                 model="sonnet",
-                host="gpu-server-1",
+                host="GIGA",
                 requires=[],
                 depends_on=["architect"],
                 prompt_template="Arch was: {previous_output.architect}\nTask: {input}",
@@ -241,7 +241,7 @@ class TestFailureHandling:
         executor = PipelineExecutor.__new__(PipelineExecutor)
         executor._dispatch = fake_dispatch
         executor._recall = lambda d: ""
-        executor._find_best_host = lambda r: "gpu-server-1"
+        executor._find_best_host = lambda r: "GIGA"
 
         p = make_pipeline(
             make_stage("a"),
@@ -415,14 +415,14 @@ class TestParallelExecution:
         executor = PipelineExecutor.__new__(PipelineExecutor)
         executor._dispatch = fake_dispatch
         executor._recall = fake_recall
-        executor._find_best_host = lambda r: "gpu-server-1"
+        executor._find_best_host = lambda r: "GIGA"
 
         stages = [
             PipelineStage(
                 name="scan_a",
                 role="scan",
                 model="sonnet",
-                host="orchestration-node",
+                host="miniboss",
                 requires=[],
                 depends_on=[],
                 prompt_template="Scan A: {input}",
@@ -432,7 +432,7 @@ class TestParallelExecution:
                 name="scan_b",
                 role="scan",
                 model="sonnet",
-                host="gpu-server-1",
+                host="GIGA",
                 requires=[],
                 depends_on=[],
                 prompt_template="Scan B: {input}",

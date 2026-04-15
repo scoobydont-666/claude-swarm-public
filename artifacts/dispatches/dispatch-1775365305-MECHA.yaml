@@ -1,13 +1,13 @@
 completed_at: ''
-dispatch_id: dispatch-1775365305-gpu-server-2
+dispatch_id: dispatch-1775365305-MECHA
 error: ''
 exit_code: -1
-host: gpu-server-2
+host: MECHA
 model: sonnet
-output_file: /var/lib/swarm/artifacts/dispatches/dispatch-1775365305-gpu-server-2.output
+output_file: /opt/swarm/artifacts/dispatches/dispatch-1775365305-MECHA.output
 started_at: '2026-04-05T05:01:45Z'
 status: running
-task: "Implement Phase 1 of the behavioral enforcement plan at:\n/opt/hydra-project/plans/behavioral-enforcement-ntnx-promptforge-2026-04-04.md\n\
+task: "Implement Phase 1 of the behavioral enforcement plan at:\n<hydra-project-path>/plans/behavioral-enforcement-ntnx-promptforge-2026-04-04.md\n\
   \nBuild 3 things:\n1. Behavioral Compliance Gate (Stop hook): ~/.claude/hooks/behavioral-compliance-gate.sh\n\
   \   - Scans last_assistant_message for hesitation patterns (\"should I\", \"want\
   \ me to\", \"let me know if\")\n   - Exempt genuinely destructive ops (delete, reboot,\

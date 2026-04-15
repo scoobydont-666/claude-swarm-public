@@ -1,8 +1,8 @@
 complexity: moderate
-dispatch_id: session-1774380344-gpu-server-1
+dispatch_id: session-1774380344-GIGA
 estimated_cost_usd: 0.0
 estimated_minutes: 20
-host: gpu-server-1
+host: GIGA
 model: sonnet
 project_dir: /opt/examforge
 prompt: 'Implement ExamForge E3 on this host: (1) Add JWT auth to backend with register/login

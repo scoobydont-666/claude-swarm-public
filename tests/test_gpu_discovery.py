@@ -22,25 +22,25 @@ def db_path(tmp_path):
 def sample_inventory():
     return [
         HostGpuInventory(
-            host="gpu-server-3",
+            host="MEGA",
             gpus=[
-                GpuInfo(host="gpu-server-3", gpu_index=0, gpu_model="RTX 5080",
+                GpuInfo(host="MEGA", gpu_index=0, gpu_model="RTX 5080",
                         vram_total_mb=16303, vram_free_mb=12000, vram_used_mb=4303, utilization_pct=10),
-                GpuInfo(host="gpu-server-3", gpu_index=1, gpu_model="RTX 5080",
+                GpuInfo(host="MEGA", gpu_index=1, gpu_model="RTX 5080",
                         vram_total_mb=16303, vram_free_mb=14000, vram_used_mb=2303, utilization_pct=5),
             ],
         ),
         HostGpuInventory(
-            host="gpu-server-2",
+            host="MECHA",
             gpus=[
-                GpuInfo(host="gpu-server-2", gpu_index=0, gpu_model="RTX 5060 Ti",
+                GpuInfo(host="MECHA", gpu_index=0, gpu_model="RTX 5060 Ti",
                         vram_total_mb=16311, vram_free_mb=10000, vram_used_mb=6311, utilization_pct=25),
             ],
         ),
         HostGpuInventory(
-            host="gpu-server-4",
+            host="MONGO",
             gpus=[
-                GpuInfo(host="gpu-server-4", gpu_index=0, gpu_model="RTX 5080",
+                GpuInfo(host="MONGO", gpu_index=0, gpu_model="RTX 5080",
                         vram_total_mb=16303, vram_free_mb=8000, vram_used_mb=8303, utilization_pct=50),
             ],
         ),
@@ -86,37 +86,37 @@ class TestDatabase:
     def test_save_and_retrieve(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
         gpus = get_available_gpus(db_path=db_path)
-        assert len(gpus) == 4  # 2 on gpu-server-3 + 1 gpu-server-2 + 1 gpu-server-4
+        assert len(gpus) == 4  # 2 on MEGA + 1 MECHA + 1 MONGO
 
     def test_exclude_hosts(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
-        gpus = get_available_gpus(exclude_hosts=["gpu-server-1", "gpu-server-3"], db_path=db_path)
-        assert all(g.host != "gpu-server-3" for g in gpus)
-        assert len(gpus) == 2  # gpu-server-2 + gpu-server-4 only
+        gpus = get_available_gpus(exclude_hosts=["GIGA", "MEGA"], db_path=db_path)
+        assert all(g.host != "MEGA" for g in gpus)
+        assert len(gpus) == 2  # MECHA + MONGO only
 
     def test_min_vram_filter(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
         gpus = get_available_gpus(min_vram_mb=11000, db_path=db_path)
         assert all(g.vram_free_mb >= 11000 for g in gpus)
-        assert len(gpus) == 2  # gpu-server-3 GPU 0 (12000) + gpu-server-3 GPU 1 (14000)
+        assert len(gpus) == 2  # MEGA GPU 0 (12000) + MEGA GPU 1 (14000)
 
 
 class TestAllocation:
     def test_allocate_and_release(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
-        assert allocate_gpu("gpu-server-3", 0, "task-1", "qwen3:14b", 10000, db_path) is True
+        assert allocate_gpu("MEGA", 0, "task-1", "qwen3:14b", 10000, db_path) is True
         # GPU 0 should now be unavailable
         gpus = get_available_gpus(db_path=db_path)
-        assert not any(g.host == "gpu-server-3" and g.gpu_index == 0 for g in gpus)
+        assert not any(g.host == "MEGA" and g.gpu_index == 0 for g in gpus)
         # Release
-        release_gpu("gpu-server-3", 0, db_path)
+        release_gpu("MEGA", 0, db_path)
         gpus = get_available_gpus(db_path=db_path)
-        assert any(g.host == "gpu-server-3" and g.gpu_index == 0 for g in gpus)
+        assert any(g.host == "MEGA" and g.gpu_index == 0 for g in gpus)
 
     def test_double_allocate_fails(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
-        assert allocate_gpu("gpu-server-3", 0, "task-1", db_path=db_path) is True
-        assert allocate_gpu("gpu-server-3", 0, "task-2", db_path=db_path) is False
+        assert allocate_gpu("MEGA", 0, "task-1", db_path=db_path) is True
+        assert allocate_gpu("MEGA", 0, "task-2", db_path=db_path) is False
 
     def test_find_best_gpu(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
@@ -126,5 +126,5 @@ class TestAllocation:
 
     def test_find_best_gpu_excludes_hosts(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
-        gpu = find_best_gpu_for_model("qwen3:8b", exclude_hosts=["gpu-server-3", "gpu-server-2", "gpu-server-4"], db_path=db_path)
+        gpu = find_best_gpu_for_model("qwen3:8b", exclude_hosts=["MEGA", "MECHA", "MONGO"], db_path=db_path)
         assert gpu is None  # No GPUs available after excluding all hosts

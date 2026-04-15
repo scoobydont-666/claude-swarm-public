@@ -5,13 +5,13 @@ set -euo pipefail
 # For remote hosts without NFS access
 
 CLAUDE_CONFIG="${HOME}/claude-configs/claude-config"
-SWARM_TARGET="/var/lib/swarm"
+SWARM_TARGET="/opt/swarm"
 SWARM_LOCAL="${HOME}/.swarm"
 
 # Check for claude-config repo
 if [[ ! -d "${CLAUDE_CONFIG}/.git" ]]; then
     echo "[ERROR] claude-config repo not found: ${CLAUDE_CONFIG}"
-    echo "Clone it first: git clone git@github.com:your-github-user/claude-config.git ${CLAUDE_CONFIG}"
+    echo "Clone it first: git clone git@github.com:scoobydont-666/claude-config.git ${CLAUDE_CONFIG}"
     exit 1
 fi
 

@@ -70,7 +70,7 @@ class AutoDispatcher:
         if "mode" not in ad_cfg and ad_cfg.get("enabled", False):
             self.mode = "sonnet"
         self.max_concurrent: int = ad_cfg.get("max_concurrent_dispatches", 3)
-        self.swarm_root = Path(config.get("swarm_root", "/var/lib/swarm"))
+        self.swarm_root = Path(config.get("swarm_root", "/opt/swarm"))
 
         # Host failure tracking (in-memory, resets on restart)
         self._host_failures: dict[str, int] = {}

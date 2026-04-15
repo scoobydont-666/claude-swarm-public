@@ -1,0 +1,39 @@
+---
+timestamp: "2026-04-11T00:05:00Z"
+host: miniboss
+session_id: "miniboss-migration-drivers-20260410"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: miniboss-driver-research
+    description: "Identified all chipsets for MinisForum AI X1 Pro 470: MediaTek MT7925 Wi-Fi 7, Realtek RTL8125BG 2.5GbE, AMD XDNA 2 NPU, Radeon 890M iGPU"
+    timestamp: "2026-04-10T23:30:00Z"
+
+  - id: firmware-installed
+    description: "Installed linux-firmware (20240318-0ubuntu2.26) and amd64-microcode (3.20250311.1) on miniboss — will carry over in dd clone. MT7925 blobs in /lib/firmware/mediatek/mt7925/, XDNA firmware in /lib/firmware/amdnpu/, initramfs regenerated"
+    timestamp: "2026-04-10T23:45:00Z"
+
+  - id: drivers-staged
+    description: "Staged r8125-dkms (9.016.01), xdna-driver (official AMD source), amdxdna-dkms (community DKMS) at <hydra-project-path>/staging/miniboss-migration/packages/"
+    timestamp: "2026-04-10T23:40:00Z"
+
+  - id: checkpoint-skill-created
+    description: "Created /checkpoint skill at /home/josh/.claude/skills/checkpoint/SKILL.md — codifies session checkpoint workflow into invocable skill"
+    timestamp: "2026-04-10T23:55:00Z"
+
+  - id: feedback-stage-means-install
+    description: "Saved feedback memory: 'stage' means ready-to-use, not parked in a directory — think through end state"
+    timestamp: "2026-04-10T23:50:00Z"
+
+decisions:
+  - "Installed firmware packages NOW on miniboss rather than just downloading .debs — dd clone carries installed firmware to new hardware automatically"
+  - "Staged r8125-dkms but did NOT install — may conflict with in-kernel r8169, install only if NIC has perf issues post-clone"
+  - "Staged both official xdna-driver (build from source) and community amdxdna-dkms (simpler) — Josh decides which path"
+
+state_changes:
+  - "linux-firmware upgraded 0ubuntu2.25 → 0ubuntu2.26 on miniboss"
+  - "initramfs regenerated with AMD microcode + new firmware blobs"
+  - "New staging dir: <hydra-project-path>/staging/miniboss-migration/ (631M)"
+  - "New skill: /home/josh/.claude/skills/checkpoint/SKILL.md"
+  - "New memory: feedback_stage_means_install.md"

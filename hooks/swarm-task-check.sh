@@ -4,7 +4,7 @@ set -euo pipefail
 # swarm-task-check.sh — Check for available tasks matching this node's capabilities
 # Does NOT auto-claim — human decides.
 
-SWARM_ROOT="/var/lib/swarm"
+SWARM_ROOT="/opt/swarm"
 
 if [[ ! -d "${SWARM_ROOT}/status" ]]; then
     if [[ -d "${HOME}/.swarm/status" ]]; then

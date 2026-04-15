@@ -70,7 +70,7 @@ class TestNFSHealthCheck:
                         assert "write_time_seconds" in triggered[0]
 
     def test_check_nfs_health_missing_path(self):
-        """Test NFS health check when /var/lib/swarm doesn't exist."""
+        """Test NFS health check when /opt/swarm doesn't exist."""
         monitor = HealthMonitor()
         rule = {
             "name": "nfs_health_test",

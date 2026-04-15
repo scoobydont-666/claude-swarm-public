@@ -1,10 +1,10 @@
 completed_at: ''
-dispatch_id: dispatch-1775365305-gpu-server-3
+dispatch_id: dispatch-1775365305-MEGA
 error: ''
 exit_code: -1
-host: gpu-server-3
+host: MEGA
 model: sonnet
-output_file: /var/lib/swarm/artifacts/dispatches/dispatch-1775365305-gpu-server-3.output
+output_file: /opt/swarm/artifacts/dispatches/dispatch-1775365305-MEGA.output
 started_at: '2026-04-05T05:01:45Z'
 status: running
 task: "Build DocuMint Phase D3 \u2014 cross-document validation pipeline.\nProject:\

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Hydra Pulse database path (default on all fleet hosts)
 PULSE_DB_PATHS = [
     Path.home() / ".local/share/hydra-pulse/pulse.db",
-    Path("/var/lib/hydra-pulse/pulse.db"),
+    Path("/opt/hydra-pulse/pulse.db"),
 ]
 
 HYDRA_PULSE_BIN = "hydra-pulse"

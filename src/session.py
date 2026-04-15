@@ -37,7 +37,7 @@ from crash_handler import install_crash_handlers
 
 from util import now_iso as _now_iso
 
-SWARM_ROOT = Path("/var/lib/swarm")
+SWARM_ROOT = Path("/opt/swarm")
 SUMMARIES_DIR = SWARM_ROOT / "artifacts" / "summaries"
 
 

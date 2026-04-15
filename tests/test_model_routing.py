@@ -61,7 +61,7 @@ class TestClassifyModelSize:
         result = classify_model_size("run llama3.3-70b inference")
         assert result is not None
         assert result["model_size"] == "70b"
-        assert "gpu-server-1" in result["hosts"]
+        assert "GIGA" in result["hosts"]
 
     def test_code_analysis_no_gpu(self):
         result = classify_model_size("fix the login bug in auth.py")
@@ -99,7 +99,7 @@ class TestGetModelGPURequirements:
     def test_large_model_hosts(self):
         result = get_model_gpu_requirements("llama3.3-70b")
         assert result is not None
-        assert "gpu-server-1" in result["hosts"]
+        assert "GIGA" in result["hosts"]
 
     def test_405b_needs_tensor_parallel(self):
         result = get_model_gpu_requirements("llama3.1-405b")

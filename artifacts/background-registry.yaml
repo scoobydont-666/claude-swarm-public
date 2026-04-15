@@ -3,9 +3,9 @@ d-1:
   description: test
   dispatch_id: d-1
   exit_code: -1
-  host: gpu-server-2
+  host: MECHA
   model: sonnet
-  output_file: /var/lib/swarm/artifacts/dispatches/d-1.output
+  output_file: /opt/swarm/artifacts/dispatches/d-1.output
   pid: -1
   started_at: '2026-04-10T10:44:00Z'
   status: running

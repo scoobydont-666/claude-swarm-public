@@ -1,0 +1,119 @@
+---
+timestamp: "2026-04-11T08:20:00Z"
+host: miniboss
+session_id: "fleet-bootstrap-sync-dashboard"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: mega-ollama-bootstrap
+    description: "MEGA Ollama systemd service created, 2x RTX 5080 detected, phi4:14b + qwen3:14b pulled. Fixed port override (11435→11434)."
+    timestamp: "2026-04-11T05:20:00Z"
+
+  - id: claude-config-template-update
+    description: "CLAUDE.md template: Docker Swarm→K3s, GIGA RTX PRO 6000 96GB, MEGA 2x RTX 5080, MONGO added. Host-specific personas via .env.local."
+    commit: "a81da0d"
+    repo: claude-config
+    timestamp: "2026-04-11T05:25:00Z"
+
+  - id: claude-config-fleet-deploy
+    description: "Deployed to all hosts. bmc-ops skill added and synced fleet-wide (62 skills everywhere)."
+    commit: "124b887"
+    repo: claude-config
+    timestamp: "2026-04-11T07:55:00Z"
+
+  - id: fleet-repo-sync
+    description: "All repos pulled to origin/main on MEGA (25/27, 2 conflicts stashed), MECHA (13/13 after reboot), MONGO (all clean)."
+    timestamp: "2026-04-11T08:15:00Z"
+
+  - id: redis-fix
+    description: "Redis protected-mode disabled on miniboss — celery workers unblocked."
+    timestamp: "2026-04-11T05:18:00Z"
+
+  - id: hydra-control-center-phase6
+    description: "HCC deployed: standalone Next.js on miniboss:3300, fleet agents on all 4 hosts (8591). 24 agent tests pass."
+    commit: "eb1cc1f"
+    repo: hydra-control-center
+    timestamp: "2026-04-11T05:50:00Z"
+
+  - id: dashboard-overhaul
+    description: "Full dashboard rewrite: shadcn/ui (8 components), removed demo data fallback, normalized fleet API to handle real agent responses, multi-GPU aggregation for MEGA, loading skeletons, cluster summary bar, live connection indicator, color-coded GPU temps."
+    commit: "386ae73"
+    repo: hydra-control-center
+    timestamp: "2026-04-11T07:40:00Z"
+
+  - id: examforge-secplus-gen
+    description: "Security+ SY0-701: +410 questions via MONGO phi4:14b (544→954, target 750 exceeded). 7,883 total across 13 certs."
+    commit: "44bcada"
+    repo: examforge
+    timestamp: "2026-04-11T06:15:00Z"
+
+  - id: gpu-fan-control-fleet
+    description: "New fan control script: 50% default, 100% over 70°C, back to 50% at 65°C. Deployed to MEGA, MECHA, MONGO via systemd. Replaces NFS-dependent version (single point of failure eliminated)."
+    commit: "7551d6d"
+    repo: ai-project
+    timestamp: "2026-04-11T07:45:00Z"
+
+  - id: mecha-ollama-native
+    description: "Installed Ollama 0.20.5 natively on MECHA (replaces K3s pod). Fixed K3s CNI iptables DNAT rule blocking port 11434. phi4:14b available."
+    timestamp: "2026-04-11T06:30:00Z"
+
+  - id: mega-bmc-diagnostic
+    description: "Diagnosed MEGA drops via BMC: 'Unrecoverable video controller failure' in SEL was GNOME/LightDM putting system to sleep. Josh fixed by disabling display manager sleep. systemd sleep targets masked."
+    timestamp: "2026-04-11T07:10:00Z"
+
+  - id: mega-ufw-fleet-agent
+    description: "Added UFW rule on MEGA allowing port 8591 from LAN for fleet agent access."
+    timestamp: "2026-04-11T07:05:00Z"
+
+  - id: mega-github-token-sanitize
+    description: "Removed hardcoded GitHub token from MEGA claude-swarm remote URL."
+    timestamp: "2026-04-11T06:00:00Z"
+
+  - id: mecha-reboot-nfs-recovery
+    description: "MECHA rebooted to clear kernel NFS hang (stale /opt/ai-shared mount). NFS lazy unmount done pre-reboot. Clean boot, no stale mounts."
+    timestamp: "2026-04-11T08:10:00Z"
+
+  - id: fleet-sync-verify-script
+    description: "Built fleet-sync-verify.sh: checks host reachability, git sync, fan control, Ollama, fleet agents, dashboard health, Claude config parity. 22 PASS / 0 FAIL."
+    commit: "771bc3d"
+    repo: hydra-project
+    timestamp: "2026-04-11T08:00:00Z"
+
+  - id: master-plan-updates
+    description: "Updated hydra-master-execution-order.md with fleet bootstrap, HCC Phase 6, Security+ gen."
+    commit: "42a0ecd"
+    repo: hydra-project
+    timestamp: "2026-04-11T06:40:00Z"
+
+blocked:
+  - id: giga-offline
+    description: "K3s control plane, NAI suite launch, 96GB inference, Code RAG"
+    blocker: "GIGA down until tomorrow"
+
+  - id: remaining-plan-items
+    description: "Swarm NFS mounts on MEGA/MONGO, security stack (fail2ban/CrowdSec on MEGA/MECHA), GPU Guardian deployment, Session Snitch deployment"
+    blocker: "Deferred — fleet stabilization took priority. GIGA NFS needed for some items."
+
+decisions:
+  - "Fan control: 50% always / 100% over 70°C / 50% at 65°C cooldown — Josh's spec, simple and effective"
+  - "Fan script deployed locally to /usr/local/bin/ instead of NFS — eliminates GIGA as single point of failure"
+  - "Installed native Ollama on MECHA via systemd — K3s pod can't restart without GIGA control plane"
+  - "Removed stale K3s CNI iptables DNAT rule on MECHA — was redirecting port 11434 to dead pod IP"
+  - "Dashboard: removed ALL demo/random data — offline hosts show clear 'Unreachable' state instead of fake numbers"
+  - "Dashboard: normalized API route to handle actual fleet agent response schema (load_avg→cpu%, used_pct→memory%, etc.)"
+  - "MEGA video controller failures were GNOME sleep, not hardware — Josh disabled display manager"
+  - "Lazy NFS unmount on MECHA/MONGO before GIGA comes back — prevents future kernel hangs"
+
+state_changes:
+  - "MEGA: Ollama systemd service (/usr/local/bin), UFW port 8591 allowed, sleep targets masked"
+  - "MEGA: GitHub token removed from claude-swarm remote URL"
+  - "MECHA: Ollama 0.20.5 installed natively (systemd), K3s CNI DNAT rule removed, stale NFS cleared by reboot"
+  - "MECHA: ollama-container service stopped and disabled (was duplicate of K3s pod)"
+  - "MONGO: Stale NFS /opt/ai-shared lazy-unmounted"
+  - "ALL GPU hosts: gpu-fan-control.py deployed to /usr/local/bin/, systemd enabled, 50% default"
+  - "ALL hosts: bmc-ops skill deployed (62 skills everywhere)"
+  - "ALL hosts: git repos synced to origin/main"
+  - "miniboss: Redis protected-mode disabled, hydra-fleet-agent + hydra-control-center systemd services"
+  - "miniboss: HCC dashboard serving real data from 4 fleet agents on port 3300"
+  - "ExamForge DB: 7,883 total questions (Security+ 544→954)"

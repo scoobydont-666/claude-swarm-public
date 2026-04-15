@@ -129,10 +129,10 @@ class TestSecurityAuditPipeline:
         assert len(SECURITY_AUDIT.stages) == 3
 
     def test_scan_stages_pinned_to_hosts(self):
-        scan_mb = next(s for s in SECURITY_AUDIT.stages if s.name == "scan_orchestration")
+        scan_mb = next(s for s in SECURITY_AUDIT.stages if s.name == "scan_miniboss")
         scan_giga = next(s for s in SECURITY_AUDIT.stages if s.name == "scan_giga")
-        assert scan_mb.host == "orchestration-node"
-        assert scan_giga.host == "gpu-server-1"
+        assert scan_mb.host == "miniboss"
+        assert scan_giga.host == "GIGA"
 
     def test_analyze_uses_opus(self):
         s = next(s for s in SECURITY_AUDIT.stages if s.name == "analyze")
@@ -140,14 +140,14 @@ class TestSecurityAuditPipeline:
 
     def test_analyze_depends_on_both_scans(self):
         s = next(s for s in SECURITY_AUDIT.stages if s.name == "analyze")
-        assert "scan_orchestration" in s.depends_on
+        assert "scan_miniboss" in s.depends_on
         assert "scan_giga" in s.depends_on
 
     def test_scans_run_in_parallel(self):
         """Both scan stages have no deps — should be in the same batch."""
         batches = SECURITY_AUDIT.topological_order()
         first_batch_names = {s.name for s in batches[0]}
-        assert "scan_orchestration" in first_batch_names
+        assert "scan_miniboss" in first_batch_names
         assert "scan_giga" in first_batch_names
 
     def test_passes_validation(self):
@@ -158,9 +158,9 @@ class TestQuestionGenPipeline:
     def test_has_two_stages(self):
         assert len(QUESTION_GEN.stages) == 2
 
-    def test_both_stages_pinned_to_orchestration-node(self):
+    def test_both_stages_pinned_to_miniboss(self):
         for s in QUESTION_GEN.stages:
-            assert s.host == "orchestration-node"
+            assert s.host == "miniboss"
 
     def test_validate_depends_on_generate(self):
         s = next(s for s in QUESTION_GEN.stages if s.name == "validate")

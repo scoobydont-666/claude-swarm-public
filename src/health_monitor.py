@@ -61,10 +61,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "enabled": True,
     "check_interval_seconds": 60,
     "prometheus_url": "http://127.0.0.1:9090",
-    "email_alerts": "admin@example.com",
+    "email_alerts": "r.josh.jones@gmail.com",
     "hosts": {
-        "orchestration-node": {
-            "ip": os.environ.get("MINIBOSS_HOST", "10.0.0.5"),
+        "miniboss": {
+            "ip": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
             "services": [
                 "monerod",
                 "p2pool-main",
@@ -75,8 +75,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
                 "crowdsec",
             ],
         },
-        "gpu-server-1": {
-            "ip": os.environ.get("gpu-server-1-host", "10.0.0.1"),
+        "GIGA": {
+            "ip": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
             "services": ["docker", "fail2ban", "crowdsec"],
         },
     },
@@ -134,7 +134,7 @@ class HealthMonitor:
         self.hosts: dict[str, Any] = self.config.get("hosts", {})
         self.cooldowns_cfg: dict[str, int] = self.config.get("cooldowns", {})
         self.thresholds: dict[str, Any] = self.config.get("thresholds", {})
-        self.email_to: str = self.config.get("email_alerts", "admin@example.com")
+        self.email_to: str = self.config.get("email_alerts", "r.josh.jones@gmail.com")
 
         self.rules: list[dict] = self._load_rules()
         self.event_log = EventLog()
@@ -266,9 +266,9 @@ class HealthMonitor:
         return triggered
 
     def _check_nfs_sync(self) -> list[dict]:
-        """Compare mtime of /var/lib/swarm vs /var/lib/swarm-replica to detect drift."""
-        primary = Path("/var/lib/swarm")
-        replica = Path("/var/lib/swarm-replica")
+        """Compare mtime of /opt/swarm vs /opt/swarm-replica to detect drift."""
+        primary = Path("/opt/swarm")
+        replica = Path("/opt/swarm-replica")
         if not primary.is_dir() or not replica.is_dir():
             return []
 
@@ -421,7 +421,7 @@ class HealthMonitor:
 
     def _check_nfs_health(self, rule: dict) -> list[dict]:
         """Check NFS mount health: write/read a test file, check response time."""
-        nfs_path = Path("/var/lib/swarm")
+        nfs_path = Path("/opt/swarm")
         if not nfs_path.is_dir():
             return []
 
@@ -490,7 +490,7 @@ class HealthMonitor:
         from pathlib import Path
 
         triggered = []
-        claimed_dir = Path("/var/lib/swarm/tasks/claimed")
+        claimed_dir = Path("/opt/swarm/tasks/claimed")
         if not claimed_dir.is_dir():
             return triggered
 
@@ -710,18 +710,18 @@ class HealthMonitor:
     # ── Main loop ──────────────────────────────────────────────────────────
 
     def _check_nfs_mount(self) -> None:
-        """Check if /var/lib/swarm is a proper NFS mount or local dir. Log warning if not mounted."""
+        """Check if /opt/swarm is a proper NFS mount or local dir. Log warning if not mounted."""
         import subprocess
 
         try:
             result = subprocess.run(
-                ["mountpoint", "-q", "/var/lib/swarm"],
+                ["mountpoint", "-q", "/opt/swarm"],
                 capture_output=True,
                 timeout=5,
             )
             if result.returncode != 0:
                 log.debug(
-                    "NFS not mounted at /var/lib/swarm — using local directory (sync via swarm-sync.sh)"
+                    "NFS not mounted at /opt/swarm — using local directory (sync via swarm-sync.sh)"
                 )
         except (OSError, subprocess.TimeoutExpired):
             pass

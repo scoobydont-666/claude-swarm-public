@@ -2,12 +2,12 @@
 # Used by: claude-swarm pipelines, ntnx-codeforge training, hydra-sentinel monitoring
 
 artifact_paths:
-  root: /var/lib/swarm/training
-  runs: /var/lib/swarm/training/runs
-  datasets: /var/lib/swarm/training/datasets
-  checkpoints: /var/lib/swarm/training/checkpoints
-  exports: /var/lib/swarm/training/exports
-  promotions: /var/lib/swarm/training/promotions
+  root: /opt/swarm/training
+  runs: /opt/swarm/training/runs
+  datasets: /opt/swarm/training/datasets
+  checkpoints: /opt/swarm/training/checkpoints
+  exports: /opt/swarm/training/exports
+  promotions: /opt/swarm/training/promotions
 
 # Model ladder — teacher to student
 model_ladder:
@@ -18,7 +18,7 @@ model_ladder:
     node: giga
     vram_gb: 44
     role: teacher
-    endpoint: http://10.0.0.1:8000/v1
+    endpoint: http://<primary-node-ip>:8000/v1
   T1:
     name: Qwen3-14B-AWQ
     params: 14b
@@ -26,7 +26,7 @@ model_ladder:
     node: mega
     vram_gb: 16
     role: fast_teacher
-    endpoint: http://10.0.0.3:8000/v1
+    endpoint: http://<gpu-node-ip>:8000/v1
   S1:
     name: Qwen3-14B
     params: 14b
@@ -138,8 +138,8 @@ data_sources:
     description: "Convention-heavy code and infrastructure configs"
     paths:
       - /opt/claude-configs/claude-config  # Skills, hooks, agents
-      - /opt/ai-project/ansible           # Ansible roles and playbooks
-      - /opt/ai-project/k8s               # K3s manifests
+      - <ai-project-path>/ansible           # Ansible roles and playbooks
+      - <ai-project-path>/k8s               # K3s manifests
 
 # Quality filters for data extraction
 data_quality:
@@ -156,8 +156,8 @@ data_quality:
     - "migrations/"
 
 generation:
-  giga_concurrency: 4      # Concurrent requests to gpu-server-1 vLLM
-  mega_concurrency: 8      # Concurrent requests to gpu-server-3 vLLM
+  giga_concurrency: 4      # Concurrent requests to GIGA vLLM
+  mega_concurrency: 8      # Concurrent requests to MEGA vLLM
   temperature: 0.7
   top_p: 0.9
   max_tokens: 2048

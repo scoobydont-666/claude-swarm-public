@@ -39,13 +39,13 @@ def swarm_tmpdir(tmp_path):
         "swarm": {"name": "test-swarm", "version": 1},
         "nodes": {
             "testhost": {
-                "ip": "10.0.0.99",
+                "ip": "192.168.200.99",
                 "role": "client",
                 "capabilities": ["docker", "gpu"],
                 "projects": ["test-project"],
             },
             "otherhost": {
-                "ip": "10.0.0.100",
+                "ip": "192.168.200.100",
                 "role": "client",
                 "capabilities": ["docker"],
                 "projects": [],
@@ -68,9 +68,9 @@ def swarm_tmpdir(tmp_path):
             "enabled": True,
             "auto_suggest": True,
             "capability_routing": {
-                "ollama": ["gpu-server-1"],
-                "gpu": ["gpu-server-1"],
-                "mining": ["orchestration-node"],
+                "ollama": ["GIGA"],
+                "gpu": ["GIGA"],
+                "mining": ["miniboss"],
             },
         },
         "worktrees": {

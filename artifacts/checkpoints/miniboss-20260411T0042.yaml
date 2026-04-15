@@ -1,0 +1,90 @@
+---
+timestamp: "2026-04-11T00:42:00Z"
+host: miniboss
+session_id: "session-snitch-v4-fleet-intelligence"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: plan-session-snitch-v4
+    description: "Planned Session Snitch v4 'Fleet Intelligence' — SQL hardening, auto-calibration, forecast, skills, web tests"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:30:00Z"
+
+  - id: sql-injection-hardening
+    description: "Eliminated all SQL string interpolation in main.rs and otel.rs — parameterized queries throughout, deleted period_filter()"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:45:00Z"
+
+  - id: skills-cli-command
+    description: "Added 'skills' CLI command + GET /api/skills web endpoint — shows skill activation frequency with bar chart"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:50:00Z"
+
+  - id: dead-code-cleanup
+    description: "Annotated unused routing functions (estimate_savings, recommend_session_model) with #[allow(dead_code)] + TODO for v3.2"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-10T23:52:00Z"
+
+  - id: auto-calibration
+    description: "Added auto_calibrate_from_snapshot() — statusline snapshots auto-set calibration keys, eliminates manual calibrate command"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:00:00Z"
+
+  - id: predictive-forecast
+    description: "Added 'forecast' CLI + GET /api/forecast — token velocity extrapolation, 80%/100% threshold ETAs"
+    commit: "fdf78cd"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:05:00Z"
+
+  - id: dod-completion
+    description: "DoD pass: 87 tests (39 unit + 36 integration + 12 web API), e2e verification, durability checks, README + skill updated"
+    commit: "0e109bd"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:25:00Z"
+
+  - id: dod-skill-created
+    description: "Created definition-of-done skill at ~/.claude/skills/definition-of-done/SKILL.md — 10-point checklist"
+    commit: "n/a"
+    repo: claude-config
+    timestamp: "2026-04-11T00:30:00Z"
+
+  - id: fleet-install-mecha
+    description: "Updated session-snitch binaries on MECHA — v4 build, all 5 hooks wired, timer active, doctor green"
+    commit: "n/a"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:39:00Z"
+
+  - id: fleet-install-mongo
+    description: "Fresh session-snitch install on MONGO — binaries, hooks, timer, fixed root-owned .config/.local dirs"
+    commit: "n/a"
+    repo: hydra-pulse
+    timestamp: "2026-04-11T00:40:00Z"
+
+blocked:
+  - id: fleet-install-giga
+    description: "Session Snitch v4 install on GIGA"
+    blocker: "GIGA unreachable — install when back online"
+
+  - id: fleet-install-mega
+    description: "Session Snitch v4 install on MEGA"
+    blocker: "MEGA unreachable — install when back online"
+
+decisions:
+  - "Deferred full rename (hydra-pulse → session-snitch binaries) — high churn, no functional value, deserves own session"
+  - "Deferred cross-host DB aggregation — needs architectural design (NFS vs PostgreSQL vs DB merge)"
+  - "Kept estimate_savings/recommend_session_model as annotated dead code rather than deleting — needed for planned v3.2 smart routing"
+  - "Used reqwest blocking client for web tests instead of axum test utilities — simpler, tests real HTTP stack"
+  - "Fixed root-owned ~/.config on MONGO rather than working around it — root cause fix"
+
+state_changes:
+  - "Session Snitch v4 deployed: miniboss (primary), MECHA (updated), MONGO (fresh install)"
+  - "87 tests (was 66): +4 unit (auto-cal, projections), +5 integration (skills, forecast, auto-cal), +12 web API"
+  - "New skill: definition-of-done at ~/.claude/skills/definition-of-done/SKILL.md"
+  - "hydra-pulse skill updated with new commands, test count, auto-calibration docs"
+  - "MONGO: fixed root-owned ~/.config and ~/.local directories"

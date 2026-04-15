@@ -1,0 +1,53 @@
+hostname: miniboss
+session_id: examforge-pipeline-sync
+timestamp: "2026-04-01T11:35:00-07:00"
+project: ExamForge + NutantForge question pipeline
+duration_minutes: 100
+key_decisions:
+  - "Fixed /api/embeddings -> /api/embed bug across all hosts"
+  - "Seeded 4 new ExamForge certs (EA x3 + Security+) — 13 total"
+  - "ExamForge: 7,748 SQLite / 7,846 PostgreSQL questions"
+  - "Security+ complete: 500 questions, all 5 domains"
+  - "NutantForge COMPLETE: 1,402 questions (NCA 602 + NCP-MCI 800)"
+  - "MEGA batch gen queue ran to completion autonomously"
+  - "MEGA firewall: permanent systemd iptables service"
+  - "XMRig DISABLED on MEGA (power cost). No mining unless Josh says so."
+  - "Docker DNS fix: full compose restart for ExamForge API"
+  - "tmux 100K scrollback + bash 100K history"
+files_changed:
+  - /opt/examforge/backend/src/examforge/cli.py
+  - /opt/examforge/backend/seed/certifications/{ea-see-part1,part2,part3,comptia-secplus}.yaml
+  - /opt/nutantforge/backend/src/examforge/cli.py
+  - /opt/nutantforge/backend/seed/certifications/{nutanix-nca,nutanix-ncp-mci}.yaml
+  - /opt/nutantforge/backend/scripts/batch-gen.sh
+  - <hydra-project-path>/CLAUDE.md
+  - /home/josh/.tmux.conf
+  - /home/josh/.bashrc
+  - /etc/systemd/system/fix-kube-firewall.service (MEGA)
+artifacts_produced:
+  - "7 git commits (examforge, nutantforge, hydra-project)"
+  - "ExamForge Docker API serving 13 certs on port 8010"
+  - "NutantForge DB: 1,402 questions ready for QA"
+context_for_next: |
+  GPU JOBS STILL RUNNING:
+  - GIGA: EA Part 1 QA — 302/993 (~30%), hours remaining
+  - MECHA: Security+ QA — 316/500 (~63%), ~1-2 hours remaining
+  - MEGA: IDLE (batch gen complete, mining disabled)
+  
+  WHEN QA JOBS FINISH:
+  - Review EA QA results, apply verdicts
+  - Review SecPlus QA results, apply verdicts
+  - Start NutantForge QA on MEGA (NCA + NCP-MCI, 1,402 questions)
+  - Start EA Part 2 + Part 3 QA on GIGA after Part 1 finishes
+  
+  COMPLETED THIS SESSION:
+  - ExamForge: 7,748 questions, 13 certs, all seeded + imported
+  - NutantForge: 1,402 questions (NCA + NCP-MCI), all domains filled
+  - Security+: all 5 domains complete (500q)
+  - MEGA firewall permanent fix
+  - Scrollback + history configured
+  
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged questions)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel
+  - Mining policy: disabled everywhere, re-enable only on explicit request

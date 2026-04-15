@@ -1,19 +1,19 @@
 """Celery application for claude-swarm task orchestration.
 
 Replaces custom auto_dispatch.py with Celery workers + beat scheduler.
-Redis on orchestration-node (10.0.0.5:6379) serves as both broker and result backend.
+Redis on miniboss (<orchestration-node-ip>:6379) serves as both broker and result backend.
 
 Queues:
-  gpu     — GPU workloads (gpu-server-1, gpu-server-2 only)
+  gpu     — GPU workloads (GIGA, MECHA only)
   cpu     — CPU workloads (all hosts)
   default — fallback
 
 Usage:
   # Start worker on a GPU host:
-  celery -A celery_app worker -Q gpu,cpu,default -c 2 --hostname=worker@gpu-server-1
+  celery -A celery_app worker -Q gpu,cpu,default -c 2 --hostname=worker@GIGA
 
   # Start worker on a CPU host:
-  celery -A celery_app worker -Q cpu,default -c 4 --hostname=worker@orchestration-node
+  celery -A celery_app worker -Q cpu,default -c 4 --hostname=worker@miniboss
 
   # Start beat scheduler:
   celery -A celery_app beat
@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from celery import Celery
 
 # Redis connection — uses same DB as redis_client (default 0)
-REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "10.0.0.5")
+REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")
 REDIS_PORT = os.environ.get("SWARM_REDIS_PORT", "6379")
 REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "")
 REDIS_DB = os.environ.get("SWARM_REDIS_DB", "0")

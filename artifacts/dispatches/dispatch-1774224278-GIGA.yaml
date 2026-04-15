@@ -1,13 +1,13 @@
 completed_at: ''
-dispatch_id: dispatch-1774224278-gpu-server-1
+dispatch_id: dispatch-1774224278-GIGA
 error: ''
 exit_code: -1
-host: gpu-server-1
+host: GIGA
 model: haiku
-output_file: /var/lib/swarm/artifacts/dispatches/dispatch-1774224278-gpu-server-1.output
+output_file: /opt/swarm/artifacts/dispatches/dispatch-1774224278-GIGA.output
 started_at: '2026-03-23T00:04:38Z'
 status: running
 task: 'Index these projects with Kin semantic VCS. For each, run: kin init . && kin
-  commit -m ''Initial semantic index''. Projects: /opt/ai-project, /opt/str-project,
+  commit -m ''Initial semantic index''. Projects: <ai-project-path>, /opt/str-project,
   /opt/taxprep-project. Skip any that already have a .kin directory. Report entity
   counts for each.'

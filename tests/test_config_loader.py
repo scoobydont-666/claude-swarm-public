@@ -43,7 +43,7 @@ class TestEnvVarResolution:
 
     def test_mixed_text(self):
         with patch.dict(os.environ, {"HOST": "giga"}):
-            assert _resolve_env_vars("ssh admin@example.com == "ssh admin@example.com
+            assert _resolve_env_vars("ssh josh@${HOST}") == "ssh josh@giga"
 
     def test_no_vars(self):
         assert _resolve_env_vars("plain text") == "plain text"
@@ -94,16 +94,16 @@ class TestTypedAccessors:
     def test_get_nodes(self):
         nodes = get_nodes()
         assert isinstance(nodes, dict)
-        # Should have at least gpu-server-1
-        assert "gpu-server-1" in nodes or len(nodes) > 0
+        # Should have at least GIGA
+        assert "GIGA" in nodes or len(nodes) > 0
 
     def test_get_node_config_exact(self):
-        node = get_node_config("gpu-server-1")
+        node = get_node_config("GIGA")
         if node:  # May not exist in test env
             assert "ip" in node or "capabilities" in node
 
     def test_get_node_config_case_insensitive(self):
-        node_upper = get_node_config("gpu-server-1")
+        node_upper = get_node_config("GIGA")
         node_lower = get_node_config("giga")
         assert node_upper == node_lower
 
@@ -151,13 +151,13 @@ class TestCustomConfig:
         config_file = tmp_path / "env_test.yaml"
         config_file.write_text(yaml.dump({
             "database_url": "${DB_URL:-postgresql://127.0.0.1/swarm}",
-            "nodes": {"HOST": {"ip": "${HOST_IP:-10.0.0.1}"}},
+            "nodes": {"HOST": {"ip": "${HOST_IP:-192.168.1.1}"}},
         }))
 
         with patch.dict(os.environ, {"SWARM_CONFIG": str(config_file), "DB_URL": "postgresql://prod/swarm"}):
             config = load_config(force_reload=True)
             assert config["database_url"] == "postgresql://prod/swarm"
-            assert config["nodes"]["HOST"]["ip"] == "10.0.0.1"  # default
+            assert config["nodes"]["HOST"]["ip"] == "192.168.1.1"  # default
 
         # Restore
         load_config(force_reload=True)

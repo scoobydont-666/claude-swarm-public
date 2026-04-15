@@ -10,7 +10,7 @@ Usage:
 
     config = get_config()
     fleet = get_fleet()
-    node = get_node_config("gpu-server-1")
+    node = get_node_config("GIGA")
 """
 
 import logging
@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 # Config search paths in priority order
 CONFIG_PATHS = [
-    Path("/var/lib/swarm/config/swarm.yaml"),
+    Path("/opt/swarm/config/swarm.yaml"),
     Path("/opt/claude-swarm/config/swarm.yaml"),
 ]
 
@@ -152,7 +152,7 @@ def get_node_config(hostname: str) -> dict:
     """Get config for a specific node by hostname (case-insensitive).
 
     Args:
-        hostname: Node hostname (e.g., "gpu-server-1", "orchestration-node").
+        hostname: Node hostname (e.g., "GIGA", "miniboss").
 
     Returns:
         Node config dict, or empty dict if not found.
@@ -181,7 +181,7 @@ def get_fleet() -> dict[str, dict]:
         if ip and ip != "TBD":
             fleet[name] = {
                 "ip": ip,
-                "user": "user",
+                "user": "josh",
                 "capabilities": info.get("capabilities", []),
                 "projects": info.get("projects", []),
                 "role": info.get("role", "client"),
@@ -213,8 +213,8 @@ def get_capability_routing() -> dict[str, list[str]]:
 def get_swarm_root() -> Path:
     """Get the swarm root path from NFS config."""
     nfs = get_nfs_config()
-    mount = nfs.get("mount_point", "/var/lib/swarm")
+    mount = nfs.get("mount_point", "/opt/swarm")
     p = Path(mount)
     if p.is_dir():
         return p
-    return Path("/var/lib/swarm")
+    return Path("/opt/swarm")

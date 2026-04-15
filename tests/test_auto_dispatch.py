@@ -97,7 +97,7 @@ class TestApprovalGating:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch("auto_dispatch._find_best_host", return_value="orchestration-node"),
+            patch("auto_dispatch._find_best_host", return_value="miniboss"),
             patch("auto_dispatch.dispatch", return_value=fake_dispatch_result),
         ):
             dispatched = dispatcher.process_pending_tasks()
@@ -128,7 +128,7 @@ class TestApprovalGating:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch("auto_dispatch._find_best_host", return_value="orchestration-node"),
+            patch("auto_dispatch._find_best_host", return_value="miniboss"),
             patch("auto_dispatch.dispatch", return_value=fake_result),
         ):
             dispatched = dispatcher.process_pending_tasks()
@@ -152,7 +152,7 @@ class TestApprovalGating:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch("auto_dispatch._find_best_host", return_value="orchestration-node"),
+            patch("auto_dispatch._find_best_host", return_value="miniboss"),
             patch("auto_dispatch.dispatch") as mock_dispatch,
         ):
             dispatched = dispatcher.process_pending_tasks()
@@ -240,7 +240,7 @@ class TestConcurrentDispatchLimits:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch("auto_dispatch._find_best_host", return_value="orchestration-node"),
+            patch("auto_dispatch._find_best_host", return_value="miniboss"),
             patch("auto_dispatch.dispatch", return_value=fake_result),
         ):
             dispatched = dispatcher.process_pending_tasks()
@@ -292,13 +292,13 @@ class TestHostMatching:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch("auto_dispatch._find_best_host", return_value="gpu-server-1") as mock_host,
+            patch("auto_dispatch._find_best_host", return_value="GIGA") as mock_host,
             patch("auto_dispatch.dispatch", return_value=fake_result) as mock_dispatch,
         ):
             dispatched = dispatcher.process_pending_tasks()
 
         mock_host.assert_called_once_with(["gpu"])
-        assert dispatched[0]["host"] == "gpu-server-1"
+        assert dispatched[0]["host"] == "GIGA"
 
 
 # ---------------------------------------------------------------------------

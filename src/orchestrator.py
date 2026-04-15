@@ -30,7 +30,7 @@ except (ImportError, Exception):
 
 from util import now_iso as _now_iso
 
-SWARM_ROOT = Path("/var/lib/swarm")
+SWARM_ROOT = Path("/opt/swarm")
 QUEUE_DIR = SWARM_ROOT / "queue"
 PLANS_DIRS = [
     "/opt/examforge/plans",
@@ -41,7 +41,7 @@ PLANS_DIRS = [
     "/opt/hashrate-hedger/plans",
     "/opt/solar-sentinel/plans",
     "/opt/claude-swarm/plans",
-    "/opt/hydra-project/plans",
+    "<hydra-project-path>/plans",
 ]
 
 

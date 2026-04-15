@@ -101,7 +101,7 @@ class TestAutoDispatchScan:
     def test_dispatch_scan_runs(self, mock_process, mock_config, swarm_tmpdir):
         config = _make_config(swarm_tmpdir, mode="full")
         mock_config.return_value = config
-        mock_process.return_value = [{"task_id": "task-001", "host": "gpu-server-1"}]
+        mock_process.return_value = [{"task_id": "task-001", "host": "GIGA"}]
 
         from celery_app import auto_dispatch_scan
 

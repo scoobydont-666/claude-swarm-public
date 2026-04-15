@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# setup-replica.sh — Run on orchestration-node (10.0.0.5)
-# Mounts gpu-server-1's NFS share and sets up local replica + backup NFS export
+# setup-replica.sh — Run on miniboss (<orchestration-node-ip>)
+# Mounts GIGA's NFS share and sets up local replica + backup NFS export
 # Requires: sudo
 
-gpu-server-1-ip="10.0.0.1"
-SWARM_MOUNT="/var/lib/swarm"
-REPLICA_DIR="/var/lib/swarm-replica"
-SUBNET="10.0.0.0/23"
+GIGA_IP="<primary-node-ip>"
+SWARM_MOUNT="/opt/swarm"
+REPLICA_DIR="/opt/swarm-replica"
+SUBNET="192.168.200.0/23"
 
-echo "=== claude-swarm: NFS Replica Setup (orchestration-node) ==="
+echo "=== claude-swarm: NFS Replica Setup (miniboss) ==="
 
 # Install NFS packages
 if ! dpkg -l | grep -q nfs-common; then
@@ -26,17 +26,17 @@ fi
 # Create mount point
 sudo mkdir -p "${SWARM_MOUNT}"
 
-# Mount gpu-server-1's NFS share (idempotent)
+# Mount GIGA's NFS share (idempotent)
 if mountpoint -q "${SWARM_MOUNT}" 2>/dev/null; then
     echo "NFS already mounted at ${SWARM_MOUNT}."
 else
-    echo "Mounting ${gpu-server-1-ip}:/var/lib/swarm at ${SWARM_MOUNT}..."
-    sudo mount -t nfs "${gpu-server-1-ip}:/var/lib/swarm" "${SWARM_MOUNT}"
+    echo "Mounting ${GIGA_IP}:/opt/swarm at ${SWARM_MOUNT}..."
+    sudo mount -t nfs "${GIGA_IP}:/opt/swarm" "${SWARM_MOUNT}"
 fi
 
 # Add to fstab (idempotent)
-FSTAB_LINE="${gpu-server-1-ip}:/var/lib/swarm ${SWARM_MOUNT} nfs defaults,_netdev,soft,timeo=30 0 0"
-if ! grep -qF "${gpu-server-1-ip}:/var/lib/swarm" /etc/fstab 2>/dev/null; then
+FSTAB_LINE="${GIGA_IP}:/opt/swarm ${SWARM_MOUNT} nfs defaults,_netdev,soft,timeo=30 0 0"
+if ! grep -qF "${GIGA_IP}:/opt/swarm" /etc/fstab 2>/dev/null; then
     echo "Adding to /etc/fstab..."
     echo "${FSTAB_LINE}" | sudo tee -a /etc/fstab
 else
@@ -79,6 +79,6 @@ sudo systemctl enable --now nfs-kernel-server
 
 echo ""
 echo "=== Replica setup complete ==="
-echo "NFS mount: ${gpu-server-1-ip}:/var/lib/swarm -> ${SWARM_MOUNT}"
+echo "NFS mount: ${GIGA_IP}:/opt/swarm -> ${SWARM_MOUNT}"
 echo "Replica: ${REPLICA_DIR} (rsync every 30s)"
 echo "Backup export: ${EXPORT_LINE}"

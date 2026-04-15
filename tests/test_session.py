@@ -15,7 +15,7 @@ def mock_registry():
     from registry import AgentInfo
 
     agent = AgentInfo(
-        hostname="orchestration-node",
+        hostname="miniboss",
         pid=12345,
         state="idle",
         project="/opt/test",
@@ -79,7 +79,7 @@ class TestSwarmSessionStart:
         mock_registry["register"].assert_called_once_with(
             model="sonnet", project="/opt/test", session_context=""
         )
-        assert result["agent_id"] == "orchestration-node-12345"
+        assert result["agent_id"] == "miniboss-12345"
 
     def test_starts_heartbeat(self, mock_registry, mock_events, mock_sync):
         from session import SwarmSession

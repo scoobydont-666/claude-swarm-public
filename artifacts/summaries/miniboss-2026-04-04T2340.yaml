@@ -1,0 +1,47 @@
+hostname: miniboss
+session_id: gpu-scheduling-overhaul-2026-04-04
+timestamp: "2026-04-04T23:40:00Z"
+project: hydra-project (multi-project — 4 repos touched)
+duration_minutes: 35
+key_decisions:
+  - "DaemonSet→4 per-GPU Deployments (Recreate strategy, per-node hostPort)"
+  - "Model placement via ConfigMap (declarative, source of truth)"
+  - "qwen3:32b banned from 16GB GPUs — qwen3:14b replaces it everywhere"
+  - "Probe keep_alive: parse string to int for Ollama API compatibility"
+  - "GPU Guardian reconciler: runs every 4 probe cycles (~60s)"
+  - "NAI Swarm: per-GPU endpoints (base_port + gpu_index) for 4-GPU blocks"
+files_changed:
+  - "ai-project: 6 new manifests, 3 modified (probe, guardian, config)"
+  - "nai-swarm: routing.yaml, gpu_discovery.py, model_router.py"
+  - "nutantforge: validate_ncpdb_triadic.py (qwen3:32b→qwen3:14b)"
+  - "hydra-project: master execution plan updated"
+artifacts_produced:
+  - "4 per-GPU Deployment YAMLs: <ai-project-path>/k8s/apps/ollama/"
+  - "Model placement ConfigMap: <ai-project-path>/k8s/apps/ollama/model-placement.yaml"
+  - "GPU Guardian reconciler: 12 new tests (94 total)"
+  - "NAI Swarm per-GPU routing: 1089 tests unchanged"
+test_delta:
+  - "ai-project/gpu-guardian: 82→94 (+12)"
+  - "nai-swarm: 1089 (unchanged)"
+context_for_next: >
+  See checkpoint: /opt/swarm/artifacts/checkpoints/miniboss-current.yaml
+
+  GPU SCHEDULING OVERHAUL COMPLETE. All 4 GPUs active:
+    GIGA: deepseek-r1:32b (49.5GB)
+    MECHA: qwen3:8b (5.7GB)
+    MEGA GPU0: qwen3:14b (10.2GB)
+    MEGA GPU1: qwen3:14b (10.2GB, idle — available for work)
+
+  TRIADIC VALIDATION: 195/295 (66%), running on GIGA.
+  Fixed: qwen3:32b→qwen3:14b on MEGA (was causing 500 errors).
+
+  NAI HANDOFF: Both NAI Swarm (1089 tests) and NAI Reserve (122 tests) confirmed handoff-ready.
+  Per-GPU routing backported to NAI Swarm.
+
+  NEXT SESSION:
+    1. Collect triadic results when complete (~100 remaining)
+    2. Behavioral enforcement Phase 2-3 (Prompt Forge)
+    3. RAG-first validation pipeline design
+    4. ExamForge Intelligence Layer (Tier 2)
+
+  ALL REPOS CLEAN AND PUSHED

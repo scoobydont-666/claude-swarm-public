@@ -136,7 +136,7 @@ class TaskQueue:
     Backend priority: SQLite (if configured) → Redis → filesystem (NFS).
     """
 
-    def __init__(self, use_redis: bool = True, tasks_dir: str = "/var/lib/swarm/tasks",
+    def __init__(self, use_redis: bool = True, tasks_dir: str = "/opt/swarm/tasks",
                  use_sqlite: bool = False, sqlite_path: str = "") -> None:
         """Initialize TaskQueue with backend selection.
 

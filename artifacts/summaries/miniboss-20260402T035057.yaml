@@ -1,0 +1,40 @@
+hostname: miniboss
+session_id: ansible-unification-session
+timestamp: 2026-04-02T03:15:00Z
+project: hydra-project (Ansible fleet installer)
+duration_minutes: 90
+key_decisions:
+  - Scanned Claude Code source (claude-code-main) for config optimizations
+  - Unified Ansible repo lives at <hydra-project-path>/ansible/ (not ai-project)
+  - Merge both existing Ansible repos (ai-project + monero-farm) into one
+  - 30 roles planned across 6 phases; Phase 1 complete (7 roles, 39 files)
+  - Monero-farm security role split into crowdsec + fail2ban + auditd for composability
+  - MEGA added as third ExamForge Ollama endpoint (port 11435)
+  - Fleet persona system bootstrapped on GIGA, MECHA, MEGA
+files_changed:
+  - hydra-project: ansible/ (39 new files — inventory, 7 roles, playbooks, site.yml)
+  - hydra-project: docs/mega-audit-2026-04-01.md (MEGA audit)
+  - claude-config: settings.json (additionalDirectories, worktree.symlinkDirectories)
+  - claude-config: scripts/install.sh (shell env var auto-deploy)
+  - claude-config: fleet-env/*.env (Claude Code runtime vars)
+  - examforge: backend/src/examforge/cli.py (MEGA endpoint)
+  - ai-project: plans/ansible-full-fleet-installer.md (initial plan, superseded by unified plan)
+issues_found:
+  - MECHA UFW is INACTIVE — needs enabling via Ansible Phase 1 real run
+  - claude-swarm has 2 dirty files (config/swarm.yaml, src/celery_app.py) — investigate
+  - MEGA Ollama on port 11435 (not 11434) due to K3s conflict — documented in host_vars
+artifacts_produced:
+  - <hydra-project-path>/ansible/ (Phase 1 complete — 7 roles, unified inventory)
+  - /home/josh/.claude/plans/spicy-stargazing-music.md (approved Ansible plan)
+  - <ai-project-path>/plans/ansible-full-fleet-installer.md (initial plan)
+  - <hydra-project-path>/docs/mega-audit-2026-04-01.md
+context_for_next: >
+  Ansible Phase 1 is committed and pushed (963e2ff). Phase 2 is next: docker, nvidia,
+  k3s_server, k3s_agent, nfs (tri-modal), swarm_worker — 6 roles. Reference the approved
+  plan at ~/.claude/plans/spicy-stargazing-music.md. Existing roles to lift/merge from
+  <ai-project-path>/ansible/roles/ (docker, nvidia, nfs, nfs_client, swarm_worker) and
+  /opt/monero-farm/ansible/roles/ (nfs_swarm). Three EA QA jobs running on all 3 GPUs —
+  check /opt/swarm/artifacts/running-jobs.yaml for progress. Claude Code config
+  optimizations deployed fleet-wide (additionalDirectories, env vars). The claude-swarm
+  repo has 2 uncommitted files — check if intentional. Security+ QA done (500 validated:
+  146 approve, 298 review, 56 reject — results in MECHA log only, not in DB).

@@ -24,7 +24,7 @@ def mock_agents():
 
     agents = [
         AgentInfo(
-            hostname="orchestration-node",
+            hostname="miniboss",
             pid=1001,
             state="working",
             project="/opt/examforge",
@@ -32,7 +32,7 @@ def mock_agents():
             capabilities={},
         ),
         AgentInfo(
-            hostname="gpu-server-1",
+            hostname="GIGA",
             pid=2001,
             state="working",
             project="/opt/christi-project",
@@ -40,7 +40,7 @@ def mock_agents():
             capabilities={},
         ),
         AgentInfo(
-            hostname="orchestration-node",
+            hostname="miniboss",
             pid=1002,
             state="idle",
             project="/opt/examforge",
@@ -61,7 +61,7 @@ class TestGetWorkingAgentsByProject:
         assert "/opt/christi-project" in result
         # agent-3 is idle, shouldn't be included
         assert len(result["/opt/examforge"]) == 1
-        assert result["/opt/examforge"][0].agent_id == "orchestration-node-1001"
+        assert result["/opt/examforge"][0].agent_id == "miniboss-1001"
 
     def test_empty_when_no_agents(self):
         with patch("conflicts.list_agents", return_value=[]):
@@ -87,14 +87,14 @@ class TestCheckProjectConflict:
 
             result = check_project_conflict("/opt/examforge", my_agent_id="other-99")
         assert result["conflict"] is True
-        assert "orchestration-node-1001" in result["agents"]
+        assert "miniboss-1001" in result["agents"]
 
     def test_no_self_conflict(self, mock_agents):
         with patch("conflicts.list_agents", return_value=mock_agents):
             from conflicts import check_project_conflict
 
             result = check_project_conflict(
-                "/opt/examforge", my_agent_id="orchestration-node-1001"
+                "/opt/examforge", my_agent_id="miniboss-1001"
             )
         assert result["conflict"] is False
         assert result["safe"] is True

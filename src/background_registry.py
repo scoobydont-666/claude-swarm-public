@@ -8,7 +8,7 @@ Usage:
     from background_registry import BackgroundRegistry
 
     registry = BackgroundRegistry()
-    registry.register(dispatch_id, task_id="task-001", host="gpu-server-1")
+    registry.register(dispatch_id, task_id="task-001", host="GIGA")
     active = registry.active()
     completed = registry.poll()  # Check PIDs, return newly completed
 """
@@ -24,8 +24,8 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-DISPATCH_DIR = Path("/var/lib/swarm/artifacts/dispatches")
-REGISTRY_PATH = Path("/var/lib/swarm/artifacts/background-registry.yaml")
+DISPATCH_DIR = Path("/opt/swarm/artifacts/dispatches")
+REGISTRY_PATH = Path("/opt/swarm/artifacts/background-registry.yaml")
 
 
 @dataclass

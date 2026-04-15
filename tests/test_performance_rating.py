@@ -36,7 +36,7 @@ class TestTaskMetricRecording:
 
         metric = TaskMetric(
             task_id="task-001",
-            hostname="gpu-server-1",
+            hostname="GIGA",
             started_at="2026-03-27T10:00:00Z",
             completed_at="2026-03-27T10:05:00Z",
             duration_seconds=300.0,
@@ -47,7 +47,7 @@ class TestTaskMetricRecording:
         )
         record_metric(metric)
 
-        metrics = get_metrics_for_host("gpu-server-1")
+        metrics = get_metrics_for_host("GIGA")
         assert len(metrics) == 1
         assert metrics[0]["task_id"] == "task-001"
         assert metrics[0]["duration_seconds"] == 300.0
@@ -60,12 +60,12 @@ class TestTaskMetricRecording:
             get_metrics_for_host,
         )
 
-        ts = record_dispatch_start("task-002", "orchestration-node", model="haiku")
+        ts = record_dispatch_start("task-002", "miniboss", model="haiku")
         assert ts  # returns timestamp
 
-        record_dispatch_end("task-002", "orchestration-node", success=True)
+        record_dispatch_end("task-002", "miniboss", success=True)
 
-        metrics = get_metrics_for_host("orchestration-node")
+        metrics = get_metrics_for_host("miniboss")
         assert len(metrics) == 1
         assert metrics[0]["success"] == 1
         assert metrics[0]["completed_at"] is not None
@@ -74,9 +74,9 @@ class TestTaskMetricRecording:
     def test_record_dispatch_end_without_start(self, temp_db):
         from performance_rating import record_dispatch_end, get_metrics_for_host
 
-        record_dispatch_end("task-orphan", "gpu-server-1", success=False, error_type="timeout")
+        record_dispatch_end("task-orphan", "GIGA", success=False, error_type="timeout")
 
-        metrics = get_metrics_for_host("gpu-server-1")
+        metrics = get_metrics_for_host("GIGA")
         assert len(metrics) == 1
         assert metrics[0]["success"] == 0
         assert metrics[0]["error_type"] == "timeout"
@@ -88,10 +88,10 @@ class TestTaskMetricRecording:
             get_metrics_for_host,
         )
 
-        record_dispatch_start("task-fail", "gpu-server-1")
-        record_dispatch_end("task-fail", "gpu-server-1", success=False, error_type="rate_limit")
+        record_dispatch_start("task-fail", "GIGA")
+        record_dispatch_end("task-fail", "GIGA", success=False, error_type="rate_limit")
 
-        metrics = get_metrics_for_host("gpu-server-1")
+        metrics = get_metrics_for_host("GIGA")
         assert len(metrics) == 1
         assert metrics[0]["error_type"] == "rate_limit"
 
@@ -114,7 +114,7 @@ class TestRatingComputation:
             record_metric(
                 TaskMetric(
                     task_id=f"task-{i}",
-                    hostname="gpu-server-1",
+                    hostname="GIGA",
                     started_at=datetime.now(timezone.utc).isoformat(),
                     completed_at=datetime.now(timezone.utc).isoformat(),
                     duration_seconds=300.0,
@@ -123,7 +123,7 @@ class TestRatingComputation:
                 )
             )
 
-        rating = compute_rating("gpu-server-1")
+        rating = compute_rating("GIGA")
         assert rating.composite_score > 600
         assert rating.completion_rate == 1.0
         assert rating.error_rate == 0.0
@@ -241,18 +241,18 @@ class TestScoredHostSelection:
         from performance_rating import scored_host_selection
 
         fleet = {
-            "gpu-server-1": {"capabilities": ["gpu", "docker", "ollama"]},
-            "orchestration-node": {"capabilities": ["docker"]},
+            "GIGA": {"capabilities": ["gpu", "docker", "ollama"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         result = scored_host_selection(fleet, requires=["gpu"])
         assert len(result) == 1
-        assert result[0][0] == "gpu-server-1"
+        assert result[0][0] == "GIGA"
 
     def test_no_capable_hosts(self, temp_db):
         from performance_rating import scored_host_selection
 
         fleet = {
-            "orchestration-node": {"capabilities": ["docker"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         result = scored_host_selection(fleet, requires=["gpu"])
         assert len(result) == 0
@@ -266,17 +266,17 @@ class TestScoredHostSelection:
         )
 
         fleet = {
-            "gpu-server-1": {"capabilities": ["gpu", "docker"]},
-            "gpu-server-2": {"capabilities": ["gpu", "docker", "ollama"]},
+            "GIGA": {"capabilities": ["gpu", "docker"]},
+            "MECHA": {"capabilities": ["gpu", "docker", "ollama"]},
         }
 
-        # Make gpu-server-2 have better rating
+        # Make MECHA have better rating
         now = datetime.now(timezone.utc)
         for i in range(5):
             record_metric(
                 TaskMetric(
                     task_id=f"mecha-{i}",
-                    hostname="gpu-server-2",
+                    hostname="MECHA",
                     started_at=now.isoformat(),
                     completed_at=now.isoformat(),
                     duration_seconds=60.0,
@@ -288,27 +288,27 @@ class TestScoredHostSelection:
             record_metric(
                 TaskMetric(
                     task_id=f"giga-{i}",
-                    hostname="gpu-server-1",
+                    hostname="GIGA",
                     started_at=now.isoformat(),
                     completed_at=now.isoformat(),
                     duration_seconds=60.0,
                     success=(i < 3),  # 3/5 success
                 )
             )
-        compute_rating("gpu-server-2")
-        compute_rating("gpu-server-1")
+        compute_rating("MECHA")
+        compute_rating("GIGA")
 
         result = scored_host_selection(fleet, requires=["gpu"])
         assert len(result) == 2
-        assert result[0][0] == "gpu-server-2"  # Higher rated
+        assert result[0][0] == "MECHA"  # Higher rated
         assert result[0][1] > result[1][1]  # Higher score
 
     def test_empty_requires_matches_all(self, temp_db):
         from performance_rating import scored_host_selection
 
         fleet = {
-            "gpu-server-1": {"capabilities": ["gpu"]},
-            "orchestration-node": {"capabilities": ["docker"]},
+            "GIGA": {"capabilities": ["gpu"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         result = scored_host_selection(fleet, requires=[])
         assert len(result) == 2
@@ -317,33 +317,33 @@ class TestScoredHostSelection:
         from performance_rating import scored_host_selection
 
         fleet = {
-            "gpu-server-1": {"capabilities": ["gpu", "docker"]},
-            "orchestration-node": {"capabilities": ["docker"]},
+            "GIGA": {"capabilities": ["gpu", "docker"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         # Complex task should prefer GPU host
         result = scored_host_selection(
             fleet, requires=["docker"], task_complexity="complex"
         )
         assert len(result) == 2
-        # gpu-server-1 should score higher for complex tasks (has GPU)
-        giga_score = next(s for h, s in result if h == "gpu-server-1")
-        mini_score = next(s for h, s in result if h == "orchestration-node")
+        # GIGA should score higher for complex tasks (has GPU)
+        giga_score = next(s for h, s in result if h == "GIGA")
+        mini_score = next(s for h, s in result if h == "miniboss")
         assert giga_score > mini_score
 
     def test_simple_task_prefers_non_gpu(self, temp_db):
         from performance_rating import scored_host_selection
 
         fleet = {
-            "gpu-server-1": {"capabilities": ["gpu", "docker"]},
-            "orchestration-node": {"capabilities": ["docker"]},
+            "GIGA": {"capabilities": ["gpu", "docker"]},
+            "miniboss": {"capabilities": ["docker"]},
         }
         # Simple task should prefer non-GPU (don't waste GPU)
         result = scored_host_selection(
             fleet, requires=["docker"], task_complexity="simple"
         )
         assert len(result) == 2
-        mini_score = next(s for h, s in result if h == "orchestration-node")
-        giga_score = next(s for h, s in result if h == "gpu-server-1")
+        mini_score = next(s for h, s in result if h == "miniboss")
+        giga_score = next(s for h, s in result if h == "GIGA")
         assert mini_score > giga_score
 
 
@@ -374,7 +374,7 @@ class TestBenchmark:
             mock_run.return_value = MagicMock(
                 returncode=0, stdout="GPU_VAL=8192\nOLLAMA_VAL=200\n"
             )
-            result = on_join_probe("gpu-server-1", "10.0.0.1")
+            result = on_join_probe("GIGA", "<primary-node-ip>")
             assert result.reachable
             assert result.gpu_available
             assert result.gpu_vram_free_mb == 8192
@@ -394,7 +394,7 @@ class TestGetAllRatings:
         from performance_rating import record_metric, TaskMetric, get_all_ratings
 
         now = datetime.now(timezone.utc)
-        for host in ["gpu-server-1", "orchestration-node", "gpu-server-2"]:
+        for host in ["GIGA", "miniboss", "MECHA"]:
             record_metric(
                 TaskMetric(
                     task_id=f"task-{host}",
@@ -409,7 +409,7 @@ class TestGetAllRatings:
         ratings = get_all_ratings()
         assert len(ratings) == 3
         hostnames = {r.hostname for r in ratings}
-        assert hostnames == {"gpu-server-1", "orchestration-node", "gpu-server-2"}
+        assert hostnames == {"GIGA", "miniboss", "MECHA"}
 
 
 class TestScoredRouting:
@@ -423,14 +423,14 @@ class TestScoredRouting:
             patch(
                 "hydra_dispatch.FLEET",
                 {
-                    "gpu-server-1": {"capabilities": ["gpu", "docker"]},
-                    "orchestration-node": {"capabilities": ["docker"]},
+                    "GIGA": {"capabilities": ["gpu", "docker"]},
+                    "miniboss": {"capabilities": ["docker"]},
                 },
             ),
             patch("performance_rating.DB_PATH", temp_db),
         ):
             result = _find_best_host(["gpu"])
-            assert result == "gpu-server-1"
+            assert result == "GIGA"
 
     def test_find_best_host_fallback(self, temp_db):
         """Test fallback when performance_rating import fails."""
@@ -440,8 +440,8 @@ class TestScoredRouting:
             patch(
                 "hydra_dispatch.FLEET",
                 {
-                    "gpu-server-1": {"capabilities": ["gpu"]},
-                    "orchestration-node": {"capabilities": ["docker"]},
+                    "GIGA": {"capabilities": ["gpu"]},
+                    "miniboss": {"capabilities": ["docker"]},
                 },
             ),
             patch("performance_rating.DB_PATH", temp_db),
@@ -456,7 +456,7 @@ class TestScoredRouting:
             patch(
                 "hydra_dispatch.FLEET",
                 {
-                    "orchestration-node": {"capabilities": ["docker"]},
+                    "miniboss": {"capabilities": ["docker"]},
                 },
             ),
             patch("performance_rating.DB_PATH", temp_db),
@@ -482,7 +482,7 @@ class TestMetricsForHost:
             record_metric(
                 TaskMetric(
                     task_id=f"task-{i}",
-                    hostname="gpu-server-1",
+                    hostname="GIGA",
                     started_at=now.isoformat(),
                     completed_at=now.isoformat(),
                     duration_seconds=60.0,
@@ -490,7 +490,7 @@ class TestMetricsForHost:
                 )
             )
 
-        metrics = get_metrics_for_host("gpu-server-1", limit=5)
+        metrics = get_metrics_for_host("GIGA", limit=5)
         assert len(metrics) == 5
 
     def test_ordered_by_recency(self, temp_db):
@@ -501,7 +501,7 @@ class TestMetricsForHost:
             record_metric(
                 TaskMetric(
                     task_id=f"task-{i}",
-                    hostname="gpu-server-1",
+                    hostname="GIGA",
                     started_at=ts,
                     completed_at=ts,
                     duration_seconds=60.0,
@@ -509,7 +509,7 @@ class TestMetricsForHost:
                 )
             )
 
-        metrics = get_metrics_for_host("gpu-server-1")
+        metrics = get_metrics_for_host("GIGA")
         # Should be newest first
         assert metrics[0]["task_id"] == "task-2"
         assert metrics[2]["task_id"] == "task-0"

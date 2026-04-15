@@ -3,7 +3,7 @@
 Orchestrator writes initial context, worker reads and updates progress/blockers,
 orchestrator polls and resolves blockers, then writes resolution back.
 
-Files in /var/lib/swarm/collaborative/{session_id}/:
+Files in /opt/swarm/collaborative/{session_id}/:
 - context.yaml — orchestrator writes, worker reads
 - progress.yaml — worker writes periodically
 - blockers.yaml — worker writes when stuck
@@ -41,7 +41,7 @@ def _locked_file(path: Path, mode: str = "r+"):
         f.close()
 
 
-COLLAB_ROOT = Path("/var/lib/swarm/collaborative")
+COLLAB_ROOT = Path("/opt/swarm/collaborative")
 
 
 @dataclass
@@ -95,7 +95,7 @@ def start_collaborative(
 
     Args:
         task: Task description for the worker
-        worker_host: Hostname where worker will run (e.g. 'gpu-server-1')
+        worker_host: Hostname where worker will run (e.g. 'GIGA')
         orchestrator_host: Hostname of orchestrator (auto-detected if empty)
         project_dir: Project directory context
         model: Claude model to use

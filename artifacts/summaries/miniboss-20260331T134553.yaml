@@ -1,0 +1,57 @@
+hostname: miniboss
+session_id: checkpoint-1-grind-session
+timestamp: "2026-03-31T07:00:00Z"
+project: hydra (cross-project)
+duration_minutes: 60
+key_decisions:
+  - Fixed CKA import with stem-prefix fallback matching (recovered 60 questions)
+  - CKA now at 765 (target 750 exceeded) — review-quality questions included
+  - Fixed all 17 stubborn CPA option explanations (root cause: qwen3 thinking exhausted num_predict)
+  - Generated 120 new CKA questions across all 5 domains on GIGA
+  - Added CCO + NutantForge to cloud cost reports, fixed div-by-zero for $0 revenue projects
+  - Re-sent token burn report via email-bridge MCP (fancy HTML + PDF)
+  - Saved local agentic coding LLM plan to /opt/hydra-forge/plans/
+  - Josh wants hydra-pulse deep dive + rename to "session-snitch" (next session)
+files_changed:
+  - /opt/examforge/scripts/import-approved-k8s.py — stem-prefix fallback matching
+  - /opt/examforge/scripts/fix-missing-option-explanations.py — 8192 num_predict + 300s timeout + env vars
+  - <hydra-project-path>/scripts/generate-cloud-cost-reports.py — CCO + NutantForge project definitions
+  - <hydra-project-path>/scripts/generate-cost-pdfs.py — div-by-zero fix for $0 revenue projects
+  - <hydra-project-path>/reports/ — 30 new report files (7 projects × 4 formats + fleet summary)
+  - /opt/hydra-forge/plans/local-agentic-coding-llm.md — NEW 5-phase plan
+  - /opt/examforge/backend/seed/k8s-cka-drafts/ — 5 new batch files (120 questions, on GIGA host)
+  - /opt/examforge/backend/seed/k8s-ckad-qa/ — 14 new QA result files from MECHA
+artifacts_produced:
+  - 7 cloud cost PDFs + 7 Excel workbooks + fleet summary (reports/2026-03-30/)
+  - Token burn HTML email sent to josh@joshjones.dev
+  - 120 CKA draft questions (on GIGA container + host)
+context_for_next: |
+  RUNNING GPU JOBS:
+  - GIGA: CKA option explanation fix (199 missing, just started)
+  - MECHA: CKA QA validation (new 120 questions + re-validate existing)
+  - MEGA: XMRig mining (42 kH/s, continuous)
+
+  COMPLETED THIS CHECKPOINT:
+  - CKA: 656 → 765 questions (target 750 exceeded via stem-matching + review inclusion)
+  - All 17 CPA missing explanations fixed (num_predict 2048→8192, timeout 120→300s)
+  - Cloud cost reports regenerated with CCO + NutantForge (7 projects now)
+  - Token burn report re-sent via email (HTML + PDF)
+  - Local coding LLM plan saved to hydra-forge
+  - 120 new CKA questions generated on GIGA
+
+  NEXT ROUND PRIORITIES:
+  1. Wait for CKA QA + explanations to finish → import new approved questions
+  2. Hydra Pulse deep dive — stale displays, accuracy, rename to "session-snitch"
+  3. Sync new CKA drafts from GIGA container to git
+  4. ExamForge payment pipeline (Stripe webhook flow) — P0 for revenue
+  5. Phase 1 of local coding LLM (pull GLM-4.7-Flash, configure OpenCode)
+
+  DB STATUS:
+  - AWS CLF-C02: 831 | CKA: 765 | CKAD: 503
+  - CPA AUD: 297 | FAR: 292 | ISC: 258 | TCP: 253 | REG: 234 | BAR: 234
+  - Total: 3,667 | CPA explanations: 100% | CKA explanations: fixing (199 remaining)
+  - Tests: claude-swarm 759, hydra-pulse 29
+
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel

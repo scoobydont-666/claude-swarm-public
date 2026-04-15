@@ -22,8 +22,8 @@ def _make_monitor(tmp_path=None, **kwargs):
         if tmp_path
         else tempfile.mktemp(suffix=".json"),
         "hosts": {
-            "orchestration-node": {"ip": "10.0.0.5", "services": ["monerod"]},
-            "gpu-server-1": {"ip": "10.0.0.1", "services": ["docker"]},
+            "miniboss": {"ip": "<orchestration-node-ip>", "services": ["monerod"]},
+            "GIGA": {"ip": "<primary-node-ip>", "services": ["docker"]},
         },
         "cooldowns": {
             "restart_service": 600,
@@ -53,22 +53,22 @@ class TestCooldownEnforcement:
     def test_no_cooldown_allows_action(self):
         monitor = _make_monitor()
         rule = {"name": "test_rule", "cooldown_minutes": 10}
-        assert monitor._in_cooldown(rule, "orchestration-node") is False
+        assert monitor._in_cooldown(rule, "miniboss") is False
 
     def test_recent_action_triggers_cooldown(self):
         monitor = _make_monitor()
         rule = {"name": "disk_space_low", "cooldown_minutes": 60}
         # Simulate action just fired
-        monitor._cooldown_state[("disk_space_low", "orchestration-node")] = time.time()
-        assert monitor._in_cooldown(rule, "orchestration-node") is True
+        monitor._cooldown_state[("disk_space_low", "miniboss")] = time.time()
+        assert monitor._in_cooldown(rule, "miniboss") is True
 
     def test_expired_cooldown_allows_action(self):
         monitor = _make_monitor()
         rule = {"name": "disk_space_low", "cooldown_minutes": 1}
         # Set last action 90 seconds ago (> 1 min cooldown)
         past = time.time() - 90
-        monitor._cooldown_state[("disk_space_low", "orchestration-node")] = past
-        assert monitor._in_cooldown(rule, "orchestration-node") is False
+        monitor._cooldown_state[("disk_space_low", "miniboss")] = past
+        assert monitor._in_cooldown(rule, "miniboss") is False
 
     def test_zero_cooldown_never_blocks(self):
         monitor = _make_monitor()
@@ -80,9 +80,9 @@ class TestCooldownEnforcement:
         monitor = _make_monitor()
         rule = {"name": "my_rule"}
         before = time.time()
-        monitor._record_action(rule, "gpu-server-1")
+        monitor._record_action(rule, "GIGA")
         after = time.time()
-        recorded = monitor._cooldown_state[("my_rule", "gpu-server-1")]
+        recorded = monitor._cooldown_state[("my_rule", "GIGA")]
         assert before <= recorded <= after
 
 
@@ -111,7 +111,7 @@ class TestPrometheusCheck:
             "data": {
                 "result": [
                     {
-                        "metric": {"instance": "orchestration-node:9090", "job": "monerod"},
+                        "metric": {"instance": "miniboss:9090", "job": "monerod"},
                         "value": [1234567890, "1"],
                     }
                 ]
@@ -156,7 +156,7 @@ class TestPrometheusCheck:
             "data": {
                 "result": [
                     {
-                        "metric": {"instance": "orchestration-node"},
+                        "metric": {"instance": "miniboss"},
                         "value": [1234567890, "0"],
                     }
                 ]
@@ -363,7 +363,7 @@ class TestHandleTriggered:
             "action": "restart_service",
             "cooldown_minutes": 10,
         }
-        item = {"host": "orchestration-node", "labels": {"job": "monerod"}, "value": 1.0}
+        item = {"host": "miniboss", "labels": {"job": "monerod"}, "value": 1.0}
 
         with patch.object(
             monitor.remediation, "execute", return_value=(True, "OK")
@@ -384,7 +384,7 @@ class TestHandleTriggered:
             "action": "warn_swarm_message",
             "cooldown_minutes": 60,
         }
-        item = {"host": "gpu-server-1", "repo": "/opt/hydra-project"}
+        item = {"host": "GIGA", "repo": "<hydra-project-path>"}
 
         with patch.object(
             monitor.remediation, "execute", return_value=(True, "warned")
@@ -404,10 +404,10 @@ class TestHandleTriggered:
             "action": "alert_email",
             "cooldown_minutes": 60,
         }
-        item = {"host": "orchestration-node"}
+        item = {"host": "miniboss"}
 
         # Set cooldown as recently fired
-        monitor._cooldown_state[("disk_space_low", "orchestration-node")] = time.time()
+        monitor._cooldown_state[("disk_space_low", "miniboss")] = time.time()
 
         with patch.object(monitor.remediation, "execute") as mock_exec:
             with patch.object(monitor.event_log, "record"):
@@ -426,7 +426,7 @@ class TestHandleTriggered:
             "escalate": "email",
             "cooldown_minutes": 0,
         }
-        item = {"host": "gpu-server-1"}
+        item = {"host": "GIGA"}
 
         with (
             patch.object(

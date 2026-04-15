@@ -1,0 +1,37 @@
+hostname: miniboss
+session_id: task-master-execution-2026-04-06g
+timestamp: "2026-04-06T22:58:34Z"
+project: hydra-project (multi-project — hydra-media, comfyforge)
+duration_minutes: 45
+
+key_decisions:
+  - "Voice: Daniel (onwK4e9ZLuTAKqWW03F9, Steady Broadcaster) — ideal for technical presentations"
+  - "Engineering deck: no speaker notes — generated narration via qwen3:14b (LLM-written from slide content)"
+  - "ComfyForge port: 8188→30188 (K3s nodePort is the correct access path)"
+  - "E2E tests: async client API (health_check, queue_prompt, poll_completion)"
+
+files_changed:
+  - "hydra-media: presenter.py, cli.py, CLAUDE.md, pyproject.toml (4fa48f3, b667416)"
+  - "comfyforge: config.py, test_e2e.py, CLAUDE.md, pyproject.toml (f6d1c1c, 6a1fab9)"
+
+test_delta:
+  - "comfyforge: 71 → 75 tests (4 E2E added)"
+
+artifacts_produced:
+  - "3 narrated MP4 videos (123.6MB total)"
+  - "Google Drive: narrated-video-presentations/ (3 files)"
+  - "ComfyForge E2E test suite"
+
+context_for_next: |
+  See checkpoint: /opt/swarm/artifacts/checkpoints/miniboss-current.yaml
+
+  NEXT SESSION:
+  1. ComfyForge Phase 2.2-2.4 (preset validation, API docs, error hardening)
+  2. RDP setup for fleet (xrdp from Windows)
+  3. Code quality audit (docstrings + type hints)
+
+  KEY STATE:
+  - All presentation videos generated and on Google Drive
+  - ComfyForge E2E validated — real SDXL generation works via K3s nodePort
+  - Engineering deck narration was LLM-generated (slide content → qwen3:14b → notes)
+  - ALL REPOS CLEAN AND PUSHED

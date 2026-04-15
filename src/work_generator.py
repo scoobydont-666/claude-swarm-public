@@ -33,7 +33,7 @@ from util import atomic_write_yaml as _atomic_write_yaml
 
 # Keywords → model tier
 _HUMAN_SKIP_RE = re.compile(
-    r"\b(human|manual review|human review|physical|approve|sign off)\b", re.IGNORECASE
+    r"\b(josh|manual review|human review|physical|approve|sign off)\b", re.IGNORECASE
 )
 _HAIKU_RE = re.compile(
     r"\b(test|run|check|verify|count|list|search|grep|find|scan|validate|monitor)\b",
@@ -131,7 +131,7 @@ class WorkGenerator:
 
     def __init__(self, config: dict) -> None:
         self.config = config  # Store config for access in generate_work
-        self.swarm_root = Path(config.get("swarm_root", "/var/lib/swarm"))
+        self.swarm_root = Path(config.get("swarm_root", "/opt/swarm"))
         wg_cfg = config.get("work_generator", {})
         self.projects: dict[str, dict] = wg_cfg.get("projects", {})
         self.prometheus_url: str = wg_cfg.get("prometheus_url", "http://127.0.0.1:9090")
@@ -185,7 +185,7 @@ class WorkGenerator:
         tasks: list[dict] = []
         for project_name, project_cfg in self.projects.items():
             project_path = Path(project_cfg.get("path", f"/opt/{project_name}"))
-            host = project_cfg.get("host", "orchestration-node")
+            host = project_cfg.get("host", "miniboss")
             plans_dir = project_path / "plans"
             if not plans_dir.is_dir():
                 continue
@@ -204,7 +204,7 @@ class WorkGenerator:
                 text = item["text"]
                 requires = infer_requires(text)
                 # Override requires based on project host capabilities
-                if host == "gpu-server-1":
+                if host == "GIGA":
                     if "gpu" not in requires:
                         requires.append("gpu")
 
@@ -532,7 +532,7 @@ class WorkGenerator:
                         source="scheduled_daily",
                     ),
                     self._make_task(
-                        title="Check for package updates on orchestration-node and gpu-server-1",
+                        title="Check for package updates on miniboss and GIGA",
                         description="Daily: apt/pip update check across fleet",
                         project="",
                         priority="low",
@@ -566,7 +566,7 @@ class WorkGenerator:
             tasks.extend(
                 [
                     self._make_task(
-                        title="Full security audit of gpu-server-1",
+                        title="Full security audit of GIGA",
                         description="Weekly: comprehensive security audit of primary GPU host",
                         project="",
                         priority="high",

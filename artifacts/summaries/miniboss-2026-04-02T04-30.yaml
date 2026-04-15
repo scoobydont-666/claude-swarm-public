@@ -1,0 +1,51 @@
+hostname: miniboss
+session_id: ansible-phase2-swarm-fix
+timestamp: 2026-04-02T04:30:00Z
+project: hydra-project (Ansible Phase 2) + claude-swarm (config fix)
+duration_minutes: 75
+key_decisions:
+  - "[21:00] Found root cause of MECHA/MEGA not receiving dispatches: stale /opt/swarm/config/swarm.yaml (NFS copy loaded first, MEGA ip=TBD)"
+  - "[21:05] Synced updated swarm.yaml to NFS, added cpu/docker caps to all hosts"
+  - "[21:10] Restarted Celery via systemd (not manual — Redis auth required)"
+  - "[21:14] Fixed celery_app.py dispatch_task return type, cpu_task delegation, HUMAN_SKIP_RE false positives"
+  - "[21:18] All 924 tests passing (865 core + 59 Redis — fakeredis was already installed)"
+  - "[21:20] Started Ansible Phase 2: docker + nvidia roles lifted from ai-project"
+  - "[21:25] NFS tri-modal role merged from 3 sources (ai-project nfs + nfs_client + monero-farm nfs_swarm)"
+  - "[21:30] K3s server + agent roles created from scratch, swarm_worker lifted from ai-project"
+  - "[21:35] All 6 Phase 2 roles complete, syntax-checked, site.yml updated"
+files_changed:
+  - claude-swarm: config/swarm.yaml (full fleet caps, mode full, all projects assigned)
+  - claude-swarm: src/celery_app.py (return type fix, cpu_task fix, 2 new beat tasks)
+  - claude-swarm: src/work_generator.py (HUMAN_SKIP_RE tightened)
+  - claude-swarm: src/orchestrator.py (deprecated)
+  - claude-swarm: tests/test_celery_tasks.py (10 new tests)
+  - hydra-project: ansible/roles/docker/ (4 files — tasks, defaults, handlers, meta)
+  - hydra-project: ansible/roles/nvidia/ (5 files — tasks, defaults, handlers, meta, daemon.json.j2)
+  - hydra-project: ansible/roles/nfs/ (3 files — tasks, defaults, handlers)
+  - hydra-project: ansible/roles/swarm_worker/ (2 files — tasks, defaults)
+  - hydra-project: ansible/roles/k3s_server/ (3 files — tasks, defaults, handlers)
+  - hydra-project: ansible/roles/k3s_agent/ (2 files — tasks, defaults)
+  - hydra-project: ansible/playbooks/02-docker-gpu.yml
+  - hydra-project: ansible/playbooks/03-orchestration.yml
+  - hydra-project: ansible/playbooks/04-storage.yml
+  - hydra-project: ansible/site.yml (Phase 2 layers active)
+issues_found:
+  - "Sudoers on miniboss too scoped for Ansible — setup module needs /usr/bin/python3 in NOPASSWD list"
+  - "EA Part 3 QA on MEGA getting intermittent 404s on http://<gpu-node-ip>:11435/api/chat (but Ollama responds fine manually)"
+  - "Celery beat schedule file locks up if process crashes — must rm celerybeat-schedule* before restart"
+artifacts_produced:
+  - <hydra-project-path>/ansible/roles/{docker,nvidia,nfs,swarm_worker,k3s_server,k3s_agent}/ (Phase 2 — 19 files)
+  - <hydra-project-path>/ansible/playbooks/{02-docker-gpu,03-orchestration,04-storage}.yml
+  - /opt/claude-swarm/tests/test_celery_tasks.py (10 tests)
+context_for_next: >
+  Ansible Phase 2 COMPLETE (6 roles, 3 playbooks, 19 files). Phase 3 is next: ollama,
+  redis, celery, monero/p2pool/xmrig roles. Before Phase 3, fix the sudoers role to add
+  /usr/bin/python3 to NOPASSWD (or add ALL for josh user) so ansible --check --diff works.
+  claude-swarm auto-dispatch is now live (mode=full, all 4 hosts with capabilities).
+  Scored routing defaults to MEGA for most tasks — verify MECHA gets work too after a
+  few dispatch cycles. Three EA QA jobs still running on GIGA (Parts 1-3). 924 tests
+  passing in claude-swarm. Check EA QA completion and import results to DB.
+  PRIORITY: Sync all claude-swarm improvements to nai-swarm repo. Then plan enterprise
+  scaling of nai-swarm for NAI: 12-24x RTX 9000 in HCL NX systems + GPU Factory with
+  10x B200 GPUs. Design Claude Code/Cursor integration with NAI for industrialized model
+  routing. See memory/project_nai_swarm.md for full scope.

@@ -36,21 +36,21 @@ class TestSessionStartOutput:
         ):
             # Write another node's status
             other_status = {
-                "hostname": "gpu-server-1",
-                "ip": "10.0.0.1",
+                "hostname": "GIGA",
+                "ip": "<primary-node-ip>",
                 "state": "active",
                 "current_task": "Christi dev",
                 "model": "opus",
                 "updated_at": lib._now_iso(),
             }
-            path = swarm_tmpdir / "status" / "gpu-server-1.json"
+            path = swarm_tmpdir / "status" / "GIGA.json"
             with open(path, "w") as f:
                 json.dump(other_status, f)
 
             all_status = lib.get_all_status()
             other_nodes = [s for s in all_status if s["hostname"] != "testhost"]
             assert len(other_nodes) >= 1
-            assert other_nodes[0]["hostname"] == "gpu-server-1"
+            assert other_nodes[0]["hostname"] == "GIGA"
             assert other_nodes[0]["current_task"] == "Christi dev"
 
 

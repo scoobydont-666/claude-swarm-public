@@ -117,11 +117,11 @@ class TestNonPrometheusRules:
 
 
 class TestAllowlist:
-    def test_allowlist_has_orchestration-node_and_giga(self):
-        assert "orchestration-node" in ALLOWED_SERVICES
-        assert "gpu-server-1" in ALLOWED_SERVICES
+    def test_allowlist_has_miniboss_and_giga(self):
+        assert "miniboss" in ALLOWED_SERVICES
+        assert "GIGA" in ALLOWED_SERVICES
 
-    def test_orchestration-node_has_required_services(self):
+    def test_miniboss_has_required_services(self):
         required = [
             "monerod",
             "p2pool-main",
@@ -130,14 +130,14 @@ class TestAllowlist:
             "grafana-server",
         ]
         for svc in required:
-            assert svc in ALLOWED_SERVICES["orchestration-node"], (
-                f"{svc} missing from orchestration-node allowlist"
+            assert svc in ALLOWED_SERVICES["miniboss"], (
+                f"{svc} missing from miniboss allowlist"
             )
 
     def test_giga_has_required_services(self):
         required = ["docker", "fail2ban", "crowdsec"]
         for svc in required:
-            assert svc in ALLOWED_SERVICES["gpu-server-1"], f"{svc} missing from gpu-server-1 allowlist"
+            assert svc in ALLOWED_SERVICES["GIGA"], f"{svc} missing from GIGA allowlist"
 
     def test_no_empty_service_names(self):
         for host, services in ALLOWED_SERVICES.items():

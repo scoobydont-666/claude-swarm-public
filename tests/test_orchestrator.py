@@ -46,17 +46,17 @@ class TestClaimTask:
         from orchestrator import create_task, claim_task
 
         task = create_task("Claimable", "/opt/test")
-        claimed = claim_task(task["id"], "gpu-server-1-123")
+        claimed = claim_task(task["id"], "GIGA-123")
         assert claimed is not None
         assert claimed["state"] == "claimed"
-        assert claimed["claimed_by"] == "gpu-server-1-123"
+        assert claimed["claimed_by"] == "GIGA-123"
 
     def test_claim_already_claimed(self, tmp_queue_dir):
         from orchestrator import create_task, claim_task
 
         task = create_task("Taken", "/opt/test")
-        claim_task(task["id"], "gpu-server-1-123")
-        second = claim_task(task["id"], "orchestration-node-456")
+        claim_task(task["id"], "GIGA-123")
+        second = claim_task(task["id"], "miniboss-456")
         assert second is None
 
 
@@ -65,7 +65,7 @@ class TestCompleteTask:
         from orchestrator import create_task, claim_task, complete_task
 
         task = create_task("Doable", "/opt/test")
-        claim_task(task["id"], "gpu-server-1-123")
+        claim_task(task["id"], "GIGA-123")
         done = complete_task(task["id"], result={"output": "success"})
         assert done["state"] == "done"
         assert done["result"]["output"] == "success"
@@ -80,7 +80,7 @@ class TestFindBestTask:
         create_task("CPU task", "/opt/test2", requires=[])
 
         cpu_agent = AgentInfo(
-            hostname="orchestration-node",
+            hostname="miniboss",
             pid=1,
             capabilities={"gpu": False, "ollama": False, "docker": True},
         )
@@ -106,7 +106,7 @@ class TestFindBestTask:
         create_task("Needs GPU", "/opt/test", requires=["gpu"])
 
         cpu_agent = AgentInfo(
-            hostname="orchestration-node",
+            hostname="miniboss",
             pid=1,
             capabilities={"gpu": False},
         )

@@ -1,0 +1,45 @@
+hostname: miniboss
+session_id: 5ef3b42c-5f4c-4824-ba81-d42983325406
+timestamp: "2026-03-25T02:15:00Z"
+project: hydra-project (marathon session — all projects + LLM fine-tuning)
+duration_minutes: 540
+key_decisions:
+  - Unsloth QLoRA fine-tuning proven on RTX 5080 (8B works, 14B OOMs during training)
+  - 132 curated 2025 tax Q&A pairs with IRC citations generated
+  - Overfit discovered: 132 examples × 5 epochs = gibberish; 414 × 3 epochs = coherent
+  - RAG is the accuracy lever, not fine-tuning alone
+  - 3 new skills created: llm-finetune, rag-pipeline, model-evaluation
+  - claude-swarm bulletproofed (518 tests), sanitized for public release
+  - All 3 public repos updated (claude-swarm-public, shared-claude-skills, claude-to-cursor)
+  - Cursor IDE config package emailed with 23 rules + model-router
+  - hydra-pulse calibration with auto-recalibrate at 5h window reset
+  - Smart-dispatch shell escaping fixed (heredoc approach)
+files_changed:
+  - 12+ projects advanced phases, 50+ agents used, 100+ commits
+issues_found:
+  - 14B QLoRA OOMs during training on 16GB (loads OK, trains OOM)
+  - v2 training overfit (132 examples × 5 epochs)
+  - smart-dispatch shell escaping broke on parentheses (fixed with heredoc)
+  - Subagents cannot write files on remote hosts (documented, use smart-dispatch)
+  - Ollama Docker container cant see host paths (copy to mounted volume)
+artifacts_produced:
+  - christi-tax:v1 on Ollama (8B, 414 AICPA examples, coherent)
+  - christi-tax:v2 on Ollama (8B, 132 curated examples, overfit - not usable)
+  - 2360 training examples (414 QA + 1946 IRS chunks)
+  - 132 curated 2025 Q&A pairs with IRC citations
+  - RAG pipeline scripts (rag_query.py + rag_ingest.py)
+  - 3 new skills (llm-finetune, rag-pipeline, model-evaluation)
+  - Cursor config package (23 rules + model-router)
+  - Token optimization HTML report
+context_for_next: >
+  CHRISTI FINE-TUNING: v1 works (coherent), v2 overfit. Next: combine 414 AICPA + 132 curated
+  + 1946 IRS chunks into one training set, train at 3 epochs. Then wire RAG pipeline
+  (rag_ingest.py to populate ChromaDB, rag_query.py for inference). Test RAG+v1 first.
+  14B training needs 2nd GPU or gradient offloading.
+  PLATFORM: ~2,190 tests across 11 projects. All phases advanced through Sessions A/B/C.
+  Audit Sentinel M6, DocuMint D5, Hashrate Hedger H6, Tax Prep Phase 2, ExamForge E4,
+  ClauseHound C6, STR Intel scaffolded, Hydra Media M4, Prompt Forge P5.
+  INFRASTRUCTURE: claude-swarm v4 (518 tests, bulletproofed, public), 2 systemd services,
+  Prometheus scraping, smart-dispatch with heredoc escaping fix.
+  NEXT PRIORITIES: (1) Run RAG ingest + test RAG-augmented v1, (2) Combined training run
+  (all data, 3 epochs), (3) ExamForge production hardening, (4) 14B training when 2nd GPU arrives.

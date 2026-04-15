@@ -1,0 +1,52 @@
+---
+timestamp: "2026-04-10T14:41:00Z"
+host: miniboss
+session_id: "61bfc955-275c-41eb-86c0-f754bbff9e2a"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: adaptive-thinking-fix
+    description: "Disabled adaptive thinking via CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 in ~/.claude/settings.json env block"
+    files_changed:
+      - ~/.claude/settings.json
+    timestamp: "2026-04-10T14:35:00Z"
+
+  - id: gemini-fetch-skill-fix
+    description: "Fixed gemini-fetch skill: --non-interactive → -p flag for headless mode"
+    files_changed:
+      - /opt/claude-configs/claude-config/skills/user/gemini-fetch/SKILL.md
+    timestamp: "2026-04-10T14:40:00Z"
+
+  - id: session-report-memory
+    description: "Saved feedback memory requiring session report at every session end"
+    files_changed:
+      - ~/.claude/projects/-opt-hydra-project/memory/feedback_session_report.md
+      - ~/.claude/projects/-opt-hydra-project/memory/MEMORY.md
+    timestamp: "2026-04-10T14:28:00Z"
+
+  - id: handoff-skill-update
+    description: "Added session report requirement to /handoff skill"
+    files_changed:
+      - /opt/claude-configs/claude-config/claude-code/commands/handoff.md
+      - /opt/claude-configs/claude-config/dist/claude-code/commands/handoff.md
+    timestamp: "2026-04-10T14:30:00Z"
+
+  - id: adaptive-thinking-memory
+    description: "Saved feedback memory for no adaptive thinking rule"
+    files_changed:
+      - ~/.claude/projects/-opt-hydra-project/memory/feedback_no_adaptive_thinking.md
+      - ~/.claude/projects/-opt-hydra-project/memory/MEMORY.md
+    timestamp: "2026-04-10T14:41:00Z"
+
+blockers:
+  - id: gemini-auth
+    description: "Gemini CLI auth not configured — ~/.gemini/settings.json missing auth method, OAuth flow failed"
+    action: "Set GEMINI_API_KEY or complete Google OAuth interactively"
+
+active_background_jobs: []
+
+next_session:
+  - "Fix Gemini CLI auth (API key or OAuth) so gemini-fetch skill works"
+  - "Verify adaptive thinking disable takes effect (check reasoning_effort tag absent in next session system prompt)"
+  - "Run claude-config collect.sh to sync skill changes"

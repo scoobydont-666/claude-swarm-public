@@ -1,0 +1,37 @@
+hostname: miniboss
+session_id: project-management-session4
+timestamp: "2026-03-27T04:30:00Z"
+project: hydra-project (ExamForge QA, Christi v5 training, policy gates)
+duration_minutes: 60
+key_decisions:
+  - "ExamForge auto-fix: 102 fixed, 1 stubborn (q792). review-drafts.md regenerated (1,674 Qs, 2.2 MB)"
+  - "Christi v5 trained (r=8, packing=False, 5 epochs) — STILL DEGENERATE. Disproves LoRA rank hypothesis."
+  - "Root cause narrowed to dataset: v1 used christi-qa.jsonl, v3+ used christi-qa-v3-combined.jsonl"
+  - "NEW POLICY: No cloud deployment without cost analysis (3-5 providers, 4 tiers) + Josh approval"
+  - "ExamForge deploy.yml GitHub Action DISABLED — was auto-deploying on push to main"
+  - "ExamForge needs: home testing → CPA/accountant validation → legal/regulatory review → cloud"
+  - "Legal research TODO: AICPA IP, NCEES precedent, state board regs, AI-generated content IP — determines if paid/free/personal/no-go"
+  - "Hashrate Hedger CLAUDE.md updated with H6. Project registry updated (5 projects COMPLETE)."
+  - "Monero farm healthy: monerod 100% synced, P2Pool active, all Prometheus targets up"
+files_changed:
+  - "examforge: build_review_doc_db.py (NEW), review-drafts.md, roadmap, deploy.yml (DISABLED)"
+  - "hashrate-hedger: CLAUDE.md (H6 added)"
+  - "christi (on GIGA): finetune_v5.py (NEW), christi-tax:v5 deployed (degenerate)"
+  - "skills: project-management/SKILL.md (registry updated)"
+  - "memory: project_christi_finetune.md, feedback_cloud_deploy.md (NEW), project_examforge_legal.md (NEW)"
+issues_found:
+  - "Christi v5 degenerate — dataset is the variable, not hyperparams"
+  - "ExamForge deploy workflow was live on push to main with no gate"
+artifacts_produced:
+  - "ExamForge review-drafts.md: 1,674 questions with QA annotations"
+  - "Christi christi-tax:v5 in Ollama (degenerate, not production)"
+context_for_next: >
+  EXAMFORGE: Phase 3a nearly complete. review-drafts.md ready for Josh CPA review (3a.7).
+  Deploy workflow DISABLED. Legal/regulatory research TODO before any public release
+  (AICPA IP, NCEES precedent, state boards, AI content IP — see project_examforge_legal.md).
+  NEW POLICY: No cloud deploy without cost analysis report (3-5 providers, 4 tiers) + Josh approval.
+  CHRISTI: v5 failed. Root cause is dataset not hyperparams. Next: reproduce v1 with original
+  data files (christi-qa.jsonl + christi-knowledge.jsonl) to verify reproducibility.
+  BLOCKED: Solar Sentinel (JWT), Hydra Media M2/M5 (API keys), ExamForge 3a.7 (Josh review),
+  ExamForge legal research, Rainbow (physical access).
+  COMPLETED: Audit Sentinel, ClauseHound, DocuMint, Prompt Forge, claude-swarm, Hashrate Hedger.

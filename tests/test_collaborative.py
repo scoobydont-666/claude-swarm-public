@@ -24,14 +24,14 @@ class TestStartCollaborative:
 
         session = start_collaborative(
             task="Implement feature X",
-            worker_host="gpu-server-1",
-            orchestrator_host="orchestration-node",
+            worker_host="GIGA",
+            orchestrator_host="miniboss",
             project_dir="/opt/examforge",
             model="opus",
         )
         assert session.session_id.startswith("collab-")
-        assert session.worker_host == "gpu-server-1"
-        assert session.orchestrator_host == "orchestration-node"
+        assert session.worker_host == "GIGA"
+        assert session.orchestrator_host == "miniboss"
         assert session.status == "active"
         assert session.context_dir.exists()
 
@@ -40,13 +40,13 @@ class TestStartCollaborative:
 
         session = start_collaborative(
             task="Test task",
-            worker_host="gpu-server-1",
-            orchestrator_host="orchestration-node",
+            worker_host="GIGA",
+            orchestrator_host="miniboss",
         )
         context = read_context(session.session_id)
         assert context is not None
         assert context["task"] == "Test task"
-        assert context["worker_host"] == "gpu-server-1"
+        assert context["worker_host"] == "GIGA"
 
 
 class TestContextExchange:
@@ -209,7 +209,7 @@ class TestSessionStatus:
             get_session_status,
         )
 
-        session = start_collaborative("Task", "gpu-server-1")
+        session = start_collaborative("Task", "GIGA")
         assert get_session_status(session.session_id) == "active"
 
         update_session_status(session.session_id, "blocked")
@@ -236,9 +236,9 @@ class TestListSessions:
         import time
         from collaborative import start_collaborative, list_sessions
 
-        s1 = start_collaborative("Task 1", "gpu-server-1", "orchestration-node")
+        s1 = start_collaborative("Task 1", "GIGA", "miniboss")
         time.sleep(0.01)  # Ensure different timestamps
-        s2 = start_collaborative("Task 2", "gpu-server-1", "orchestration-node")
+        s2 = start_collaborative("Task 2", "GIGA", "miniboss")
 
         sessions = list_sessions()
         assert len(sessions) == 2
@@ -251,7 +251,7 @@ class TestCleanup:
     def test_cleanup_session(self, tmp_collab_root):
         from collaborative import start_collaborative, cleanup_session, list_sessions
 
-        session = start_collaborative("Task", "gpu-server-1")
+        session = start_collaborative("Task", "GIGA")
         assert len(list_sessions()) == 1
 
         cleanup_session(session.session_id)
@@ -288,11 +288,11 @@ class TestCollaborativeSessionDataclass:
 
         session = CollaborativeSession(
             session_id="test-123",
-            orchestrator_host="orchestration-node",
-            worker_host="gpu-server-1",
+            orchestrator_host="miniboss",
+            worker_host="GIGA",
             task="Test task",
         )
         assert session.status == "active"
         assert session.created_at != ""
         assert session.updated_at != ""
-        assert session.context_dir == Path("/var/lib/swarm/collaborative/test-123")
+        assert session.context_dir == Path("/opt/swarm/collaborative/test-123")

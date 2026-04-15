@@ -17,8 +17,8 @@ Implemented 5 observability features for `/opt/claude-swarm/` with 40+ new tests
 
 **Usage:**
 ```bash
-swarm dispatches tail session-123456-gpu-server-1  # Live monitor
-python3 -c "from remote_session import get_dispatch_output; print(get_dispatch_output('session-123456-gpu-server-1', 50))"
+swarm dispatches tail session-123456-GIGA  # Live monitor
+python3 -c "from remote_session import get_dispatch_output; print(get_dispatch_output('session-123456-GIGA', 50))"
 ```
 
 ---
@@ -121,7 +121,7 @@ Six new alert rules configured:
 - **Check Type:** `nfs_health` (new)
 - **Location:** `HealthMonitor._check_nfs_health()`
 - **Operation:**
-  1. Write test file to `/var/lib/swarm/.health-check`
+  1. Write test file to `/opt/swarm/.health-check`
   2. Measure write and read times
   3. Verify content matches
   4. Delete test file

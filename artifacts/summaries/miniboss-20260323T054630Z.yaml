@@ -1,0 +1,37 @@
+hostname: miniboss
+session_id: session-2026-03-23-c
+timestamp: '2026-03-23T06:15:00Z'
+project: <hydra-project-path>
+duration_minutes: 45
+key_decisions:
+- "Autonomous work loop activated — executed 8+ items without stopping"
+- "ExamForge: 2019 PDFs now parsing (format fix), domain names corrected for DB import"
+- "ExamForge: CI/CD pipeline (GitHub Actions) deployed"
+- "Audit Sentinel M3: IRS Pubs 334/535/463 downloaded + chunked (1,273 chunks ready for ChromaDB)"
+- "ClauseHound C3: 5 market regulation knowledge bases created (Austin, Denver, Nashville, San Diego, Savannah)"
+- "DocuMint D2: agent working on W-2/1099 schema validation (in progress)"
+- "All 10 repos got GitHub topics added"
+- "Project-management skill rewritten for autonomous execution loop"
+files_changed:
+- "examforge: parser fix, domain mapping, CI pipeline, plan update, AICPA data refresh"
+- "audit-sentinel: IRS pub download script + 3 PDFs + 1,273 chunks"
+- "clausehound: 5 market YAML files + market profiles"
+- "documint: D2 schema validation in progress (agent still running)"
+issues_found:
+- "GIGA PAT lacks repo write scope — can't push to GitHub (BLOCKED: Josh needs gh auth login on GIGA)"
+- "DocuMint D2 agent still running at session end — needs verification next session"
+artifacts_produced:
+- "414 AICPA questions with correct domain names"
+- "1,273 IRS publication chunks (Pub 334/535/463)"
+- "5 STR market regulation profiles"
+- "GitHub Actions CI pipeline for ExamForge"
+context_for_next: >
+  DocuMint D2 agent may have finished — check /opt/documint for uncommitted schemas dir, verify tests, commit+push.
+  ExamForge: 414 AICPA questions ready in YAML but not yet imported into DB — need to run import script.
+  AICPA questions need explanations (tagged needs-explanation) — Ollama on GIGA can generate these.
+  72 AI-generated questions still need Josh CPA review.
+  Audit Sentinel M3 slices 3-5 need ChromaDB wiring (sentinel_irs_pubs collection).
+  ClauseHound C3 slices 3-5 need ChromaDB ingestion (lease_regulations collection).
+  GIGA GitHub push auth BLOCKED — Josh needs to run gh auth login on GIGA with repo write scope.
+  Solar Sentinel still needs Firewalla rule + JWT token.
+  Rainbow still needs physical access for Ubuntu boot.

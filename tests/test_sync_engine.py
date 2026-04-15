@@ -230,10 +230,10 @@ class TestProcessCommitEvents:
         from sync_engine import process_commit_events
 
         events = [
-            {"hostname": "gpu-server-1", "project": str(proj), "type": "commit"},
+            {"hostname": "GIGA", "project": str(proj), "type": "commit"},
         ]
         with patch("events.query", return_value=events):
-            with patch("socket.gethostname", return_value="orchestration-node"):
+            with patch("socket.gethostname", return_value="miniboss"):
                 with patch(
                     "sync_engine.git_pull",
                     return_value={"status": "ok", "stdout": "Updated"},
@@ -245,9 +245,9 @@ class TestProcessCommitEvents:
         from sync_engine import process_commit_events
 
         events = [
-            {"hostname": "orchestration-node", "project": "/opt/test", "type": "commit"},
+            {"hostname": "miniboss", "project": "/opt/test", "type": "commit"},
         ]
         with patch("events.query", return_value=events):
-            with patch("socket.gethostname", return_value="orchestration-node"):
+            with patch("socket.gethostname", return_value="miniboss"):
                 result = process_commit_events("2026-01-01T00:00:00Z")
         assert result == {}
