@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Redis connection config
 REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")  # miniboss
 REDIS_PORT = int(os.environ.get("SWARM_REDIS_PORT", "6379"))
-REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "0e9c8d78efbc573a74e75636783dc9b6")
+REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "")
 REDIS_DB = int(os.environ.get("SWARM_REDIS_DB", "0"))
 
 # Channel names
