@@ -1,0 +1,132 @@
+swarm:
+  name: hydra-swarm
+  version: 1
+nodes:
+  node-1:
+    ip: 10.0.0.1
+    role: replica
+    cpu: "CPU description"
+    ram: "RAM description"
+    gpu: "GPU description"
+    capabilities:
+    - docker
+    - cpu
+    - gpu
+    - ollama
+    projects:
+    - project-a
+  node-2:
+    ip: 10.0.0.2
+    role: primary
+    capabilities:
+    - docker
+    - gpu
+    - ollama
+    - cpu
+    projects:
+    - project-a
+    - project-b
+  node-3:
+    ip: 10.0.0.3
+    role: worker
+    capabilities:
+    - cpu
+    - gpu
+    - ollama
+    - docker
+    projects:
+    - project-a
+nfs:
+  primary: 10.0.0.2:/opt/swarm
+  replica: 10.0.0.1:/opt/swarm-replica
+  mount_point: /opt/swarm
+  sync_interval_seconds: 30
+git:
+  repo: your-org/your-config-repo
+  branch: main
+  sync_interval_seconds: 60
+  sync_on_task_complete: true
+heartbeat:
+  interval_seconds: 60
+  stale_threshold_seconds: 300
+tasks:
+  auto_claim: false
+  notify_on_new: true
+decomposition:
+  enabled: true
+  auto_suggest: true
+  capability_routing:
+    ollama:
+    - node-1
+    - node-2
+    - node-3
+    gpu:
+    - node-1
+    - node-2
+    - node-3
+    cpu:
+    - node-1
+    - node-2
+    - node-3
+    docker:
+    - node-1
+    - node-2
+    - node-3
+worktrees:
+  enabled: true
+  base_path: /tmp/swarm-worktrees
+  auto_cleanup_hours: 24
+  branch_prefix: swarm
+summaries:
+  enabled: true
+  auto_generate: true
+  max_decisions: 10
+  max_files: 20
+  retention_days: 30
+work_generator:
+  enabled: true
+  scan_interval_minutes: 30
+  prometheus_url: http://127.0.0.1:9090
+  max_pending_tasks: 10
+  projects:
+    project-a:
+      path: /opt/project-a
+      host: node-1
+    project-b:
+      path: /opt/project-b
+      host: node-2
+auto_dispatch:
+  enabled: true
+  mode: full
+  max_concurrent_dispatches: 3
+scheduled_maintenance:
+  daily_hour: 6
+  weekly_day: 0
+health_monitor:
+  enabled: true
+  check_interval_seconds: 60
+  prometheus_url: http://127.0.0.1:9090
+  email_alerts: admin@example.com
+  hosts:
+    node-1:
+      ip: 10.0.0.1
+      services:
+      - prometheus
+      - grafana-server
+    node-2:
+      ip: 10.0.0.2
+      services:
+      - docker
+    node-3:
+      ip: 10.0.0.3
+      services:
+      - docker
+  cooldowns:
+    restart_service: 600
+    force_sync_replica: 300
+    alert_email: 3600
+  thresholds:
+    disk_usage_percent: 85
+    stale_node_seconds: 600
+    dirty_repo_minutes: 480
+    gpu_vram_percent: 95
