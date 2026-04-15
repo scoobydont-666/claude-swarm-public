@@ -3,7 +3,7 @@ swarm:
   version: 1
 nodes:
   orchestration-node:
-    ip: 192.168.200.170
+    ip: 10.0.0.1
     role: replica
     cpu: AMD Ryzen AI 9 HX 470 (12c/24t, 5.3GHz boost)
     ram: 48GB DDR5 (46Gi usable)
@@ -166,7 +166,7 @@ nodes:
     - taxprep-project
 nfs:
   primary: 10.0.0.1:/var/lib/swarm
-  replica: 192.168.200.170:/var/lib/swarm-replica
+  replica: 10.0.0.1:/var/lib/swarm-replica
   mount_point: /var/lib/swarm
   sync_interval_seconds: 30
 git:
@@ -286,7 +286,7 @@ health_monitor:
   email_alerts: admin@example.com
   hosts:
     orchestration-node:
-      ip: 192.168.200.170
+      ip: 10.0.0.1
       services:
       - monerod
       - p2pool-main

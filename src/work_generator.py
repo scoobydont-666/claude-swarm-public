@@ -33,7 +33,7 @@ from util import atomic_write_yaml as _atomic_write_yaml
 
 # Keywords → model tier
 _HUMAN_SKIP_RE = re.compile(
-    r"\b(josh|manual review|human review|physical|approve|sign off)\b", re.IGNORECASE
+    r"\b(human|manual review|human review|physical|approve|sign off)\b", re.IGNORECASE
 )
 _HAIKU_RE = re.compile(
     r"\b(test|run|check|verify|count|list|search|grep|find|scan|validate|monitor)\b",

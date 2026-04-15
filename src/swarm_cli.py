@@ -1640,7 +1640,7 @@ def ratings_benchmark(
 
     config = fleet[host]
     ip = config.get("ip", "")
-    user = config.get("user", "josh")
+    user = config.get("user", "user")
 
     console.print(f"[cyan]Benchmarking {host} ({ip})...[/cyan]")
     result = benchmark_host(host, ip, user)

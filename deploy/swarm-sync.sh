@@ -10,7 +10,7 @@ set -euo pipefail
 # Install: sudo cp /opt/claude-swarm/deploy/swarm-sync.sh /usr/local/bin/swarm-sync.sh
 
 gpu-server-1-host="10.0.0.1"
-gpu-server-1_USER="josh"
+gpu-server-1_USER="user"
 LOCAL_SWARM="/var/lib/swarm"
 REMOTE_SWARM="/var/lib/swarm"
 REPLICA_BACKUP="/var/lib/swarm-replica"

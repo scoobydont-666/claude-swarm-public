@@ -116,7 +116,7 @@ class TestDispatch:
         fleet = {
             "gpu-server-1": {
                 "ip": "10.0.0.1",
-                "ssh_user": "josh",
+                "ssh_user": "user",
                 "claude_path": "/usr/bin/claude",
                 "capabilities": ["gpu"],
                 "default_model": "sonnet",
@@ -146,7 +146,7 @@ class TestDispatch:
         fleet = {
             "gpu-server-1": {
                 "ip": "10.0.0.1",
-                "ssh_user": "josh",
+                "ssh_user": "user",
                 "claude_path": "/usr/bin/claude",
                 "capabilities": ["gpu"],
                 "default_model": "sonnet",

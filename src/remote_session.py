@@ -77,16 +77,16 @@ class ExecutionPlan:
 FLEET: dict[str, dict[str, Any]] = {
     "orchestration-node": {
         "ip": os.environ.get("MINIBOSS_HOST", "10.0.0.5"),
-        "ssh_user": "josh",
-        "claude_path": "/home/josh/.local/bin/claude",
+        "ssh_user": "user",
+        "claude_path": "/home/user/.local/bin/claude",
         "capabilities": {"docker", "tailscale", "nfs_replica", "monero"},
         "strengths": "Fullnode relay, lightweight services, orchestration, CPU-only tasks",
         "is_primary": True,  # Usually the swarm controller
     },
     "gpu-server-1": {
         "ip": os.environ.get("gpu-server-1-host", "10.0.0.1"),
-        "ssh_user": "josh",
-        "claude_path": "/home/josh/.local/bin/claude",
+        "ssh_user": "user",
+        "claude_path": "/home/user/.local/bin/claude",
         "capabilities": {
             "gpu",
             "docker",

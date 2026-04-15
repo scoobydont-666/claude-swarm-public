@@ -15,7 +15,7 @@ from remediations import RemediationEngine
 @pytest.fixture
 def engine():
     return RemediationEngine(
-        ssh_user="josh",
+        ssh_user="user",
         email_to="admin@example.com",
         replica_sync_script="/usr/local/bin/swarm-replica-sync.sh",
     )

@@ -150,7 +150,7 @@ def _get_fleet() -> dict:
         for name, info in fleet.items():
             result[name] = {
                 "ip": info["ip"],
-                "ssh_user": info.get("user", "josh"),
+                "ssh_user": info.get("user", "user"),
                 "claude_path": "claude",  # Resolved via PATH on remote host
                 "capabilities": info.get("capabilities", []),
                 "default_model": "sonnet",
@@ -160,15 +160,15 @@ def _get_fleet() -> dict:
     return {
         "orchestration-node": {
             "ip": os.environ.get("MINIBOSS_HOST", "10.0.0.5"),
-            "ssh_user": "josh",
-            "claude_path": "/home/josh/.local/bin/claude",
+            "ssh_user": "user",
+            "claude_path": "/home/user/.local/bin/claude",
             "capabilities": ["docker", "tailscale", "nfs_replica"],
             "default_model": "sonnet",
         },
         "gpu-server-1": {
             "ip": os.environ.get("gpu-server-1-host", "10.0.0.1"),
-            "ssh_user": "josh",
-            "claude_path": "/home/josh/.npm-global/bin/claude",
+            "ssh_user": "user",
+            "claude_path": "/home/user/.npm-global/bin/claude",
             "capabilities": ["gpu", "docker", "ollama", "nfs_primary"],
             "default_model": "sonnet",
         },

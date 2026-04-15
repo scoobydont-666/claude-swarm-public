@@ -26,7 +26,7 @@ class RemediationEngine:
 
     def __init__(
         self,
-        ssh_user: str = "josh",
+        ssh_user: str = "user",
         email_to: str = "admin@example.com",
         replica_sync_script: str = "/usr/local/bin/swarm-replica-sync.sh",
     ) -> None:

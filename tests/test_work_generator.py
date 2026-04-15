@@ -92,7 +92,7 @@ class TestInferRequires:
 
 
 class TestIsHumanTask:
-    def test_josh_keyword(self):
+    def test_human_keyword(self):
         assert is_human_task("Josh reviews the output") is True
 
     def test_review_keyword(self):

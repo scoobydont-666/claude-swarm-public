@@ -461,7 +461,7 @@ def get_all_ratings() -> list[HostRating]:
     return [get_rating(h) for h in sorted(hostnames)]
 
 
-def benchmark_host(hostname: str, ip: str, ssh_user: str = "josh") -> BenchmarkResult:
+def benchmark_host(hostname: str, ip: str, ssh_user: str = "user") -> BenchmarkResult:
     """Run an on-demand benchmark probe against a host.
 
     Tests: SSH connectivity, disk latency, GPU presence, Ollama health,
@@ -573,7 +573,7 @@ echo "CLAUDE_END"
     return result
 
 
-def on_join_probe(hostname: str, ip: str, ssh_user: str = "josh") -> BenchmarkResult:
+def on_join_probe(hostname: str, ip: str, ssh_user: str = "user") -> BenchmarkResult:
     """Lightweight probe run when an agent joins the cluster.
 
     Only tests SSH + GPU + Ollama (skip disk benchmark for speed).

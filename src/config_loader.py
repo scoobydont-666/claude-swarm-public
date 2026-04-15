@@ -181,7 +181,7 @@ def get_fleet() -> dict[str, dict]:
         if ip and ip != "TBD":
             fleet[name] = {
                 "ip": ip,
-                "user": "josh",
+                "user": "user",
                 "capabilities": info.get("capabilities", []),
                 "projects": info.get("projects", []),
                 "role": info.get("role", "client"),
