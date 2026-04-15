@@ -1,0 +1,39 @@
+hostname: orchestration-node
+session_id: 2a7e9dd6-1416-4be1-aee0-4a8b7524286a
+timestamp: "2026-03-27T15:30:00Z"
+project: hydra-pulse + hydra-project (system config optimization)
+duration_minutes: 60
+key_decisions:
+  - "hydra-pulse: subagent transcripts now parsed — was missing ~44% of tokens"
+  - "hydra-pulse: fuzzy model matching, per-message cost accumulation, live statusline fix"
+  - "hydra-pulse: calibrated against claude.ai — wk 57%, 5h 41% match"
+  - "Global CLAUDE.md slimmed 42% (5792→3341 bytes) — project detail moved to project files"
+  - "Stripped boilerplate from 15 project CLAUDE.md files"
+  - "Fixed cluster-ops agent (had V100/4080/580.x), str-dev port 8502→8507"
+  - "NVIDIA driver 580→590 in 3 skills, gpu-server-2 added to claude-swarm + hydra-dispatch"
+  - "Removed broken subagent-cost-tracker.sh hook, merged session-miser into token-miser"
+  - "Created central port registry at docs/port-registry.md"
+  - "Weekly config audit cron: Fridays 8pm PT"
+files_changed:
+  - "hydra-pulse: src/transcript.rs, src/db.rs, src/hook.rs, tests/integration.rs"
+  - "hydra-project: docs/port-registry.md, scripts/weekly-config-audit.sh"
+  - "claude-config: agents/cluster-ops.md, agents/str-dev.md, settings.json, 6 skills"
+  - "15 project CLAUDE.md files (boilerplate stripped)"
+  - "~/.claude/CLAUDE.md (slimmed 42%)"
+issues_found:
+  - "hydra-pulse was missing 44% of session tokens (subagent transcripts never parsed)"
+  - "cluster-ops agent had completely wrong hardware (V100, 4080, 580.x)"
+  - "subagent-cost-tracker.sh logged 0 tokens for all 70 entries — broken"
+  - "session-miser was 90% duplicate of token-miser"
+artifacts_produced:
+  - "hydra-pulse v2: 29 tests, subagent parsing, fuzzy model match, calibrated"
+  - "Central port registry: docs/port-registry.md"
+  - "Weekly audit cron: scripts/weekly-config-audit.sh"
+context_for_next: >
+  HYDRA-PULSE: 29 tests green, installed, calibrated wk 57% 5h 41%. CostGuard public version
+  needs same subagent fixes ported. CONFIG: Global CLAUDE.md at 3.3KB, all project files stripped.
+  STILL TODO: Create missing reference files for modern-python (9), systematic-debugging (3),
+  insecure-defaults (1). Split ai-cluster-knowledge 40K monolith into SKILL.md + refs.
+  Create CLAUDE.md for christi-project and ai-project. Port hydra-pulse subagent fixes to
+  CostGuard public repo (costguard-pulse). BLOCKED: ExamForge 3a.7 (Josh CPA review),
+  Solar Sentinel (Enphase dev registration), Hydra Media M2/M5 (API keys), Rainbow (physical access).

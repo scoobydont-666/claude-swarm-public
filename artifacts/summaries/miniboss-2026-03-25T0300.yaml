@@ -1,0 +1,42 @@
+hostname: orchestration-node
+session_id: b23253d2-c012-48cf-85e2-995f7b12b08d
+timestamp: "2026-03-25T03:00:00Z"
+project: hydra-project (fleet-wide security hardening + phase advances)
+duration_minutes: 45
+key_decisions:
+  - Security hardening applied uniformly across 5 projects (ExamForge, Audit Sentinel, ClauseHound, Prompt Forge — rate limiting, password validation, security headers, production config enforcement)
+  - ExamForge Phase 4 multi-cert refactor completed (dynamic sections, onboard CLI, CPA seed data, parameterized prompts/QA)
+  - DocuMint D6 cross-document validation tests added (TDD specs, implementation pending)
+  - All datetime.utcnow() deprecation warnings fixed fleet-wide (hashrate-hedger, solar-sentinel)
+  - PyJWT dependency added to ExamForge for auth v2 module compatibility
+  - Test environments fixed across 5 projects (uv sync --extra dev)
+files_changed:
+  - examforge: Phase 3b security (18 tests) + Phase 4 multi-cert (23 tests) = 299 total
+  - audit-sentinel: M7 security hardening (39 tests) = 201 total
+  - clausehound: C7 security hardening (21 tests) = 165 total
+  - prompt-forge: P6 security hardening (24 tests) = 163 total
+  - documint: D6 cross-validation tests (28 tests) = 326 total
+  - hashrate-hedger: utcnow fix = 158 tests
+  - solar-sentinel: utcnow fix = 98 tests
+  - hydra-media: verified = 155 tests
+  - claude-swarm: agents.db committed
+issues_found:
+  - DocuMint D6 agent only wrote tests (TDD), not the cross_validation module implementation
+  - Solar Sentinel BLOCKED: needs Enphase JWT token + Firewalla config from Josh
+  - Hydra Media M5 BLOCKED: needs Google Cloud OAuth2 credentials from Josh
+  - ExamForge Phase 3b.18 (DNS examforge.com → CloudFront) BLOCKED: domain registration
+artifacts_produced:
+  - Security hardening pattern applied across 5 projects (consistent baseline)
+  - ExamForge seed/cpa-uniform/ directory for cert onboarding
+  - ExamForge cli_onboard.py + qa/validators/ for multi-cert support
+context_for_next: >
+  FLEET: 1,565 tests across 8 projects, all green. Security baseline applied to
+  ExamForge, Audit Sentinel, ClauseHound, Prompt Forge. Pattern: rate limiting (slowapi),
+  password validation, security headers, production config enforcement.
+  EXAMFORGE (P0): Phase 4 complete (multi-cert foundation). Next: Phase 5 — AWS CLF-C02
+  onboarding (download exam guide, build reference corpus, generate 750 questions, QA pipeline).
+  DOCUMINT: D6 tests written but implementation missing — need to create
+  src/documint/cross_validation/ module (linker.py, rules.py, api endpoints).
+  CHRISTI: Fine-tuning next step unchanged — combine training sets, test RAG+v1.
+  BLOCKED: Solar Sentinel (Enphase JWT), Hydra Media M5 (Google OAuth2), ExamForge DNS.
+  QUICK WINS: Hydra Media utcnow fix, DocuMint D6 implementation, fleet Dockerfile updates.

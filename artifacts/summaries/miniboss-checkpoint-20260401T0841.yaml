@@ -1,0 +1,51 @@
+hostname: orchestration-node
+session_id: infra-health-overhaul
+timestamp: "2026-04-01T08:10:00-07:00"
+checkpoint: true
+project: hydra-platform (cross-project infra)
+key_decisions:
+  - "K3s NodePort range extended to 10000-32767 for Ollama on 11434"
+  - "ComfyUI migrated from Docker to K3s on gpu-server-2 (NodePort 30188)"
+  - "Ollama consolidated: K3s canonical on gpu-server-1, native Docker removed"
+  - "Context Bridge moved from gpu-server-2 to orchestration-node (always-on orchestrator)"
+  - "Comprehensive hydra-report.sh replaces status-report.sh (2h cron)"
+  - "Installed pyright-lsp, gopls-lsp plugins"
+  - "Added K8s MCP + Grafana MCP servers (need session restart)"
+completed:
+  - "Full fleet health assessment (all 4 hosts + K3s + GPUs)"
+  - "ComfyUI K3s migration (Fix 2)"
+  - "Ollama K3s consolidation (Fix 3)"
+  - "Redis auth discovered (Fix 4)"
+  - "P2Pool verified healthy — all 3 sidechains (Fix 6)"
+  - "XMRig API found on port 8082 (Fix 7)"
+  - "Port registry fully updated (Fix 5)"
+  - "Comprehensive report script + cron (Fix 6-7)"
+  - "Context Bridge MCP deep analysis + email report sent"
+  - "Plugin evaluation + installs (pyright, gopls, K8s MCP, Grafana MCP)"
+  - "Checkpoint rule saved to memory"
+  - "orchestration-node-as-orchestrator rule saved to memory"
+running_jobs:
+  - "gpu-server-1: ExamForge EA QA validation (restarted with port 11434)"
+  - "gpu-server-2: Security+ domain 3 generation"
+  - "gpu-server-3: Nutanix NCA domain 3 generation + XMRig 42 kH/s"
+context_for_next: |
+  INFRA IS SOLID. All fixes from the plan are complete.
+  
+  STILL TODO:
+  - Phase 2: Project work alignment plan (ExamForge results, Christi v5, etc.)
+  - Fix Context Bridge Prometheus metrics (dead code, ~30 min)
+  - Wire compact hooks to Context Bridge
+  - Schedule skills auto-refresh cron for CB
+  - Token-miser + CB integration design
+  
+  NEW MCP SERVERS (need session restart to load):
+  - context-bridge: 127.0.0.1:8520 (via .mcp.json)
+  - kubernetes: npx mcp-server-kubernetes (via .claude.json)
+  - grafana: npx @anthropic-ai/mcp-grafana (via .claude.json)
+  
+  PLUGINS INSTALLED (need session restart):
+  - pyright-lsp, gopls-lsp (+ existing rust-analyzer-lsp)
+  
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel

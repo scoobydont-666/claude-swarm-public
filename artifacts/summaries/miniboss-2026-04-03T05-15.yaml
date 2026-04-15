@@ -1,0 +1,51 @@
+hostname: orchestration-node
+session_id: gentle-stirring-feigenbaum
+timestamp: 2026-04-03T05:15:00Z
+project: hydra-project (multi-project — NutantForge, ExamForge, NAI Swarm, security)
+duration_minutes: 180
+key_decisions:
+  - "[02:30] Grill session: NutantForge roadmap — 1200 questions, 24x RTX 6000, Okta SSO, RAG+finetune"
+  - "[03:00] Master execution plan: 33 plans consolidated to 18 active, 7 heads deferred"
+  - "[03:15] Intelligence layer: build in ExamForge first, cherry-pick to NutantForge (skip 3a.7 blocker)"
+  - "[03:15] Security hardening parallel with NAI (separate hardware)"
+  - "[03:30] Ansible fork Phase 1-2 COMPLETE — 13 roles + IP parametrization"
+  - "[03:45] NutantForge Phase 2 COMPLETE — Stripe removed, Nutanix purple/black theming, 312 tests"
+  - "[04:15] Security hardening Phase 1+2 COMPLETE — gitleaks + pre-commit on 29 repos"
+  - "[04:45] ExamForge intelligence layer COMPLETE — SM-2, 5 endpoints, 420 tests pass"
+  - "[05:00] NutantForge Phase 3 COMPLETE — intelligence cherry-pick, 338 tests pass"
+  - "[05:10] Passwordless sudo enabled on orchestration-node"
+files_changed:
+  - "nai-swarm: ansible/ (13 roles, inventory, site.yml), src/config_loader.py, 4 Python files refactored"
+  - "nutantforge: Stripe removed, theming, landing page, intelligence layer (6 endpoints, 2 models)"
+  - "examforge: intelligence layer (SM-2, routes_intelligence.py, 26 tests, migration)"
+  - "claude-swarm: setup-client.sh refactored, .gitleaks.toml"
+  - "ai-project: .gitleaks.toml updated"
+  - "monero-farm: .gitleaks.toml for docs"
+  - "examforge + cco: .env.example templates"
+  - "claude-config: deploy scripts (gitignore + precommit), worklog"
+  - "hydra-project: master execution order plan"
+  - "Fleet-wide: .gitignore security blocks (30+ repos), .pre-commit-config.yaml (29 repos)"
+issues_found:
+  - "NutantForge Phase 4 blocked on NAI hardware access"
+  - "Claude-Swarm Phase 2 (NFS deploy) needs sudo on gpu-server-1"
+  - "gpu-server-2 SSH unreachable this session"
+artifacts_produced:
+  - "/opt/hydra-project/plans/hydra-master-execution-order.md — master plan"
+  - "/opt/nutantforge/plans/nutantforge-roadmap.md — 8-phase roadmap"
+  - "gitleaks v8.21.2 installed on orchestration-node"
+  - "pre-commit 4.5.1 installed on orchestration-node"
+context_for_next: >
+  GPU JOBS STILL RUNNING:
+    - gpu-server-3: EA P3 QA (examforge validate --cert ea-see-part3) — still validating, let it finish
+    - gpu-server-1: ExamForge uvicorn running (Docker, not a batch job)
+  MASTER PLAN: /opt/hydra-project/plans/hydra-master-execution-order.md
+  NEXT PRIORITY (Week 1 remaining):
+    - NutantForge Phase 4: POC deploy on NAI hardware (Josh provides access)
+    - NAI Reserve Phase 4: WebSocket + dashboard (code work, unblocked)
+    - NCCG Phase 2: GCP parser + provider coverage (code work, unblocked)
+    - Ansible Fork Phase 3-5: 7 NAI-specific roles (20h, unblocked)
+    - Claude-Swarm Phase 2-5: NFS deploy (needs sudo on gpu-server-1)
+  SIDE QUEST: RDP/remote desktop to all cluster hosts (saved to memory)
+  BLOCKED: NutantForge Phase 4 (NAI hardware), NCCG Phase 4 (Slack webhook), NCCG Phase 5 (Prism creds)
+  SUDO: Passwordless sudo now enabled on orchestration-node (josh ALL NOPASSWD)
+  ALL REPOS CLEAN: Everything committed and pushed

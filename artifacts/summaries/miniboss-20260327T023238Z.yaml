@@ -1,0 +1,37 @@
+hostname: orchestration-node
+session_id: project-management-session3
+timestamp: "2026-03-27T02:30:00Z"
+project: hydra-project (examforge QA, christi v4, llm-training skill)
+duration_minutes: 180
+key_decisions:
+  - "ExamForge QA 100% COMPLETE: 1,236/1,236 AI-generated questions reviewed via phi4:14b on gpu-server-2"
+  - "QA pass rate: 91.7% (1,133 pass, 91 needs-edit, 12 fixed)"
+  - "Christi v4 trained (Q&A-only, 546 examples, r=16) but STILL DEGENERATE — disproves format-mixing hypothesis"
+  - "Root cause of v3+v4 degeneration is likely LoRA r=16 (v1 used r=8 and worked) or packing=True"
+  - "llm-training skill created — codifies all Unsloth QLoRA knowledge from v1-v4 experiments"
+  - "Dual-GPU QA parallelism failed due to SQLite write contention — single process on gpu-server-2 was optimal (18 q/min)"
+  - "CLAUDE.md updates: ExamForge (1,112→1,674 questions), TaxPrep (M2 complete)"
+files_changed:
+  - "examforge: qa_review_drafts.py (env var overrides, WAL mode, retry logic), CLAUDE.md"
+  - "taxprep: CLAUDE.md (Phase 2 complete)"
+  - "christi (on gpu-server-1): training/finetune_v4.py, output/christi-tax-v4 artifacts"
+  - "skills: llm-training/SKILL.md (NEW — 270 lines)"
+  - "memory: project_christi_finetune.md (updated with v4 failure analysis)"
+issues_found:
+  - "SQLite concurrent writes fail even with WAL + busy_timeout + retry — single-writer pattern required"
+  - "Christi v4 degenerate: r=16 suspected, NOT format mixing"
+  - "Solar Sentinel JWT is a placeholder, not a real Enphase token"
+artifacts_produced:
+  - "ExamForge: 1,236/1,236 QA reviews complete (100%), 91.7% pass rate"
+  - "Christi: christi-tax:v4 model in Ollama (degenerate, not production)"
+  - "llm-training skill: comprehensive Unsloth QLoRA pipeline documentation"
+context_for_next: >
+  EXAMFORGE QA COMPLETE: All 1,236 AI-generated questions reviewed. 91 need edits (7.4%).
+  Next: regenerate review-drafts.md with QA annotations, Josh CPA review of flagged questions.
+  Phase 3a tasks remaining: fill explanations gap (51 remaining), update review-drafts.md.
+  CHRISTI V4 FAILED: Q&A-only didn't fix degeneration. Next experiment: train v5 with r=8
+  (matching v1's working config) and packing=False. Cheapest diagnostic: change ONLY r value.
+  v1+RAG remains production. LLM-TRAINING SKILL CREATED: ~/.claude/skills/llm-training/SKILL.md
+  (270 lines). Needs references/ subdirectory population in future session.
+  STILL BLOCKED: Solar Sentinel (real JWT needed), Hydra Media M2/M5 (API keys),
+  ExamForge CPA review (901 questions in review-drafts.md), Rainbow (physical access).

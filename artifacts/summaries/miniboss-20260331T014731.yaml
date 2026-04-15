@@ -1,0 +1,38 @@
+hostname: orchestration-node
+session_id: 2026-03-30-main
+timestamp: 2026-03-30T19:30:00Z
+project: hydra (cross-project)
+duration_minutes: 240
+key_decisions:
+  - CCO architecture: 5-phase plan, port 8510, gpu-server-3 host, Grafana dashboard
+  - Hydra Forge coding model: not useful, use base model + system prompt
+  - Fleet DNS via /etc/hosts (giga, mecha, mega, orchestration-node)
+  - gpu-server-3 onboarded as CPU workhorse (EPYC 7B12 128t, 125GB RAM)
+files_changed:
+  - /opt/documint — D8.4 state form schemas (CA-540, NY-IT-201)
+  - /opt/examforge — CPA landing pages, QA imports, distractor script
+  - /opt/ai-project — nvidia no-cgroups Ansible fix
+  - /opt/cco — new project scaffold (Phase 1)
+  - /tmp/project-ncg — sanitized fork as PROJECT-NCG
+  - /opt/nutantforge — pushed to GitHub
+artifacts_produced:
+  - /home/josh/.claude/plans/linked-hatching-rabbit.md (CCO 5-phase plan)
+  - /opt/hydra-project/claude-sync/outbound/2026-03-30-session-sync.md
+context_for_next: |
+  GPU JOBS STILL RUNNING:
+  - gpu-server-1: distractor explanation gen (~97% done, will finish in ~15min)
+    Log: /tmp/distractor-gen-final.log
+    After completion: deploy updated DB to gpu-server-1 (scp examforge.db)
+  - gpu-server-2: CKAD QA validation (192/540 done, ~4hr remaining)
+    Log: /tmp/ckad-qa-new.log
+    After completion: run import-approved-k8s.py --cert ckad, deploy DB
+
+  IMMEDIATE NEXT:
+  1. Import CKAD QA results when gpu-server-2 finishes
+  2. Deploy updated ExamForge DB to gpu-server-1
+  3. Start CCO Phase 1 implementation (models are scaffolded, need Alembic migration + integration tests)
+  4. Run distractor gen for remaining failures (~10% fail rate, may need retry)
+
+  DB STATUS: 3,385+ questions (CKA 874, CKAD 326+pending, AWS 831, CPA 1568)
+  REPOS: 28 total (24 private, 4 public) — all projects covered
+  FLEET: giga/mecha/mega/orchestration-node all reachable by hostname

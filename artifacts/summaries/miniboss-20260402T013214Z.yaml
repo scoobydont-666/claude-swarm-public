@@ -1,0 +1,19 @@
+hostname: orchestration-node
+session_id: fleet-persona-sync
+timestamp: 2026-04-01T00:00:00Z
+project: claude-config
+duration_minutes: 30
+key_decisions:
+  - Template-based persona system via envsubst (CLAUDE.md.template + .env.local)
+  - Personas: gpu-server-1=Titan, gpu-server-2=Artisan, gpu-server-3=Workhorse, orchestration-node=Conductor
+  - Hardened render_template() to explicit var list to prevent accidental substitution
+  - Double persona injection: baked in CLAUDE.md + swarm-session-start.sh systemMessage
+files_changed:
+  - claude-config: CLAUDE.md.template, install.sh, .gitignore, .env.local.example
+  - claude-config: fleet-deploy.sh, fleet-bootstrap.sh, fleet-env/*.env, fleet-env/README.md
+  - claude-config: hooks/swarm-session-start.sh
+issues_found: []
+artifacts_produced:
+  - fleet-env/gpu-server-1.env, gpu-server-2.env, gpu-server-3.env, orchestration-node.env
+  - scripts/fleet-deploy.sh, scripts/fleet-bootstrap.sh
+context_for_next: "Fleet persona system committed and pushed (9490c37). orchestration-node verified working. gpu-server-1, gpu-server-2, gpu-server-3 still need bootstrapping — run fleet-bootstrap.sh for each. After bootstrap, run fleet-deploy.sh to verify full fleet sync. Also need to add HOST_NAME/HOST_PERSONA to .secrets.map on each host so collect.sh can re-templatize properly."

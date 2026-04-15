@@ -1,0 +1,26 @@
+[Unit]
+Description=claude-swarm Health Monitor — fleet health daemon with auto-remediation
+After=network.target
+
+[Service]
+Type=simple
+User=josh
+WorkingDirectory=/opt/claude-swarm
+Environment=PYTHONPATH=/opt/claude-swarm/src
+ExecStart=/usr/bin/python3 /opt/claude-swarm/src/health_monitor.py
+Restart=on-failure
+RestartSec=30
+
+# Hardening
+ProtectSystem=strict
+ReadWritePaths=/var/lib/swarm /opt/claude-swarm/data
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=swarm-health-monitor
+
+[Install]
+WantedBy=multi-user.target

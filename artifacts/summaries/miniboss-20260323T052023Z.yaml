@@ -1,0 +1,33 @@
+hostname: orchestration-node
+session_id: session-2026-03-23-b
+timestamp: '2026-03-23T05:30:00Z'
+project: /opt/examforge
+duration_minutes: 60
+key_decisions:
+- "Session Start Protocol rewritten: read summaries FIRST, no full rediscovery"
+- "Email reports now HTML rich text (daily-worklog.sh + swarm-task-poll.sh)"
+- "ExamForge test coverage expanded: 188 → 220 tests, all passing"
+- "AICPA released questions ingested: 473 official questions from 2019-2023 PDFs"
+- "Staleness filter built with CPA expertise: 5 questions removed (SALT, exemptions, gift exclusion)"
+- "ExamForge cloned + venv installed on gpu-server-1 for fast test execution"
+files_changed:
+- "examforge: 5 new test files, AICPA ingest script, 4 YAML data files, bloom fix"
+- "claude-config: HTML email scripts, project-management skill overhaul"
+issues_found:
+- "Bloom level validation was case-sensitive — FIXED"
+- "AICPA PDFs use non-standard format (no numbered questions) — parser rewritten"
+- "gpu-server-1 lacks GitHub push auth — pushed via orchestration-node relay"
+- "2019 AUD/BEC/FAR PDFs use yet another format — 0 extracted, needs third parser variant"
+artifacts_produced:
+- "473 official AICPA released CPA exam questions (AUD:112, FAR:106, REG:155, BAR:100)"
+- "aicpa_ingest.py pipeline script with staleness filters"
+- "5 new test files: admin API, TBS API, auth edge, engine edge, export"
+context_for_next: >
+  ExamForge question inventory: 473 AICPA official + ~160 AI-generated drafts = ~633 total.
+  Target is 1,640 MCQ + 180 TBS. Gap: ~1,000 MCQ + 180 TBS.
+  72 AI-generated questions still need Josh CPA review.
+  2019 AUD/BEC/FAR PDFs need separate parser (different format, ~120 more questions).
+  AICPA questions need explanations added (tagged needs-explanation).
+  gpu-server-1 needs GitHub auth configured (currently can't push).
+  Solar Sentinel still needs Firewalla rule + JWT token.
+  Rainbow still needs physical access for Ubuntu boot.

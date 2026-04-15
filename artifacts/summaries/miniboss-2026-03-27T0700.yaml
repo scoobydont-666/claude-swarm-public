@@ -1,0 +1,47 @@
+hostname: orchestration-node
+session_id: project-management-session6
+timestamp: "2026-03-27T07:00:00Z"
+project: hydra-project (ExamForge, Solar Sentinel, Audit Sentinel, hydra-pulse, agent-bridge, STR Intel)
+duration_minutes: 120
+key_decisions:
+  - "2026-03-27T06:10Z — ExamForge Phase 3b security hardening: rate limiting all endpoints, IDOR fix, JWT revocation, OWASP tests (352 tests)"
+  - "2026-03-27T06:25Z — Hydra-pulse statusline fix: always use live transcript, add delta to window aggregates (21 tests)"
+  - "2026-03-27T06:35Z — Solar Sentinel: Enphase Enlighten v4 cloud API client with OAuth 2.0, replaces blocked local JWT approach (203 tests)"
+  - "2026-03-27T06:40Z — Solar Sentinel Phase 2: TOU seasonal rates, historical data, battery tracking, net metering (background agent)"
+  - "2026-03-27T06:45Z — agent_bridge: pyproject.toml + 70 unit tests (background agent)"
+  - "2026-03-27T06:45Z — STR Intel: roadmap.md + test expansion to 106 tests (background agent)"
+  - "2026-03-27T06:50Z — Security audit: found 9 unauth routes in Audit Sentinel, all fixed with IDOR protection (201 tests)"
+  - "2026-03-27T06:55Z — Public repo sanitization: monero-farm CLAUDE.md cleaned, costguard+shared-skills clean"
+  - "2026-03-27T06:55Z — Christi on gpu-server-1: conftest.py added, langchain-ollama installed, test runner needs script-mode execution"
+  - "2026-03-27T07:00Z — Full fleet test run: 2,241+ tests across 9 projects, all green"
+files_changed:
+  - "examforge: api/auth.py, routes_questions.py, routes_attempts.py, routes_mastery.py, schemas.py, models/user.py, tests/test_owasp.py (NEW)"
+  - "hydra-pulse: src/main.rs (statusline fix)"
+  - "solar-sentinel: enphase_cloud.py (NEW), config.py, tests/test_enphase_cloud.py (NEW), Phase 2 features (background)"
+  - "audit-sentinel: api.py (9 routes auth-hardened), tests/test_security.py"
+  - "hydra-project: libs/agent_bridge/ (pyproject.toml, tests/)"
+  - "str-project: plans/roadmap.md (NEW), tests/test_api.py (NEW), tests/test_models.py (NEW)"
+  - "monero-farm: CLAUDE.md (sanitized internal references)"
+  - "christi: tests/conftest.py (NEW, on gpu-server-1)"
+issues_found:
+  - "Christi tests on gpu-server-1 are script-based (not pytest) — need `python tests/run_tests.py`, not `pytest tests/`"
+  - "Christi run_tests.py needs langchain-ollama + Ollama running for full pipeline tests"
+  - "Enphase local gateway JWT not available to Josh from portal — switching to v4 cloud API"
+artifacts_produced:
+  - "ExamForge: 24 new OWASP security tests + RevokedToken model"
+  - "Solar Sentinel: EnlightenClient (v4 cloud API) with full OAuth 2.0 lifecycle"
+  - "agent_bridge: 70 tests + pyproject.toml packaging"
+  - "STR Intel: roadmap.md (M1-M4) + 48 new tests"
+  - "Audit Sentinel: 9 routes secured with auth + IDOR protection"
+context_for_next: >
+  ROUND 2 READY: All primary tasks complete. Fleet test counts: ExamForge 352, Solar Sentinel 203,
+  Audit Sentinel 201, ClauseHound 165, DocuMint 335, Prompt Forge 163, Hashrate Hedger 158,
+  claude-swarm 691, Hydra Media 155, STR Intel 106, agent-bridge 70, Hydra Pulse 21 = 2,620 total.
+  SOLAR SENTINEL: Josh needs to register at developer-v4.enphase.com, create app, get API key +
+  client ID/secret. Then run OAuth flow (one-time). EnlightenClient handles refresh automatically.
+  EXAMFORGE: 3a.7 still needs Josh CPA review. 3b security hardening done. Legal research pending.
+  CHRISTI on gpu-server-1: tests need script-mode execution. Base model (christi:latest + RAG) is production.
+  All fine-tuned models degenerate — don't spend GPU time on training.
+  BLOCKED: ExamForge 3a.7 (Josh CPA review), Solar Sentinel (Enphase developer registration),
+  Hydra Media M2/M5 (API keys), Rainbow (physical access).
+  PUBLIC REPOS: monero-farm, shared-claude-skills, costguard all sanitized and clean.

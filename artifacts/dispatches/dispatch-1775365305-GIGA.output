@@ -1,0 +1,19 @@
+The infosec-architect SKILL.md edit is being blocked by a permission gate — it requires explicit user approval each time. Here's the summary of what's done vs. what's pending:
+
+**Completed:**
+- **A1** (Christi 172.17.0.1 IP) — already fixed in a prior session ✓
+- **A2** (Milvus port 19530 reserved) — already marked in port-registry.md ✓
+- **A3** (model-evaluation archived) — already archived ✓
+- **A4** (superseded plans archived) — hydra-consolidated-next-steps + portmap already have SUPERSEDED headers; 05-swarm-to-k3s already in archive/ ✓
+- **Phase 1a** (docker-swarm-ops DEPRECATED) — already done ✓
+- **Phase 1** (Christi/Monero Swarm purge) — Christi already on K3s; Monero already explicitly says systemd NOT Docker Swarm ✓
+- **A6** (FROZEN footers) — all 4 repos committed and pushed ✓
+
+**Blocked — needs your approval:**
+- **A5**: `infosec-architect/SKILL.md` Infrastructure Context needs:
+  - `Docker Engine 29.x with NVIDIA Container Toolkit` → `K3s v1.34.6+k3s1 with NVIDIA device plugin`
+  - `Docker Swarm (v6.0.3 GOLD, v7 planned)` → `K3s (3-node: gpu-server-1, gpu-server-2, gpu-server-3)`
+  - `2× Zotac RTX 5080 OC 16GB` → `gpu-server-1 — RTX PRO 6000 Blackwell 96GB | gpu-server-2 — RTX 5060 Ti 16GB | gpu-server-3 — 2× RTX 5080 16GB`
+  - `590.x` → `570.x+`
+
+The edit targets `~/.claude/skills/infosec-architect/SKILL.md` lines 97-100. Please approve the permission prompt or grant access so I can complete A5.

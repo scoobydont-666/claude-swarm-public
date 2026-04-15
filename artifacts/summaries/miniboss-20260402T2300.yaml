@@ -1,0 +1,49 @@
+hostname: orchestration-node
+session_id: task-master-evening-send
+timestamp: 2026-04-02T23:00:00Z
+project: hydra-project (multi-project — NCCG, NAI, TaxPrep, Guardian, docstrings)
+duration_minutes: 60
+key_decisions:
+  - "[22:47] Freed gpu-server-2 VRAM (killed qwen3:8b) — CKA QA jumped from 29→883 validated"
+  - "[22:50] Launched 17 parallel agents for feature work + docstring audit"
+  - "[22:55] NCCG Phase 4 COMPLETE: ServiceNow, Dashboard API, RBAC (commit b4c51a2)"
+  - "[22:55] NAI Reserve CLI + integration tests + Phase 3 complete (commit 6dd2f09)"
+  - "[22:55] NAI Swarm E2E integration tests (commit 23c992d)"
+  - "[22:55] Christi CPA review prep: config fix + converter (commit d6a37bd)"
+  - "[22:55] TaxPrep M3.9-M3.10 Schedule E + cross-validation (commit 4c21820)"
+  - "[22:58] GPU Guardian Phase 5: Fleet CLI + Prometheus + Slack, 73 tests (commits a6b97a2, d70c39f)"
+  - "[23:00] Docstring audit: 15/18 repos committed (examforge, christi, nutantforge still running)"
+  - "[23:02] Sanitized monero-farm public repo (removed internal LAN IPs)"
+files_changed:
+  - "cco: Phase 4 — ServiceNow client, dashboard router, RBAC middleware, tests"
+  - "nai-reserve: CLI (typer), integration tests, Phase 3 completion"
+  - "nai-swarm: E2E integration tests, boundary docs"
+  - "christi-project: rag_config.json (ChromaDB port), review model, converter script"
+  - "taxprep-project: schedule_e.py (compute + PAL), cross_validation.py, tests"
+  - "hydra-project: GPU Guardian P5 (cli.py, notifications.py, prometheus/, 73 tests)"
+  - "monero-farm: fleet-status.sh sanitized"
+  - "15 repos: docstrings + type hints added"
+issues_found:
+  - "qwen3:8b auto-reloads on gpu-server-2 — something pulls it back after unload"
+  - "EA P1 QA on gpu-server-1 has 598 embedding errors (nomic-embed-text OOM with qwen3:14b)"
+  - "EA P3 on gpu-server-3 running OLD code without persistence — needs re-run after completion"
+artifacts_produced:
+  - "NCCG Phase 4: ServiceNow + Dashboard + RBAC (total ~150 tests)"
+  - "NAI Reserve: 84+ tests, typer CLI with teams/reservations/nodes/scheduler commands"
+  - "NAI Swarm: 1057+ tests, E2E integration coverage"
+  - "TaxPrep: 353+ tests, Schedule E + PAL rules + cross-form validation"
+  - "GPU Guardian: 73 tests, v0.5.0 (CLI + Prometheus + Slack)"
+context_for_next: >
+  THREE GPU QA JOBS STILL RUNNING (significant progress):
+    - gpu-server-1: EA P1 (662/993 ~67%, should finish in ~4-6 hours)
+    - gpu-server-3: EA P3 (800/? close to done, BUT old code no persistence — MUST re-run after)
+    - gpu-server-2: CKA (883/1158 ~76%! Jumped from 36→883 after VRAM free, ETA ~3-4 hours)
+  When EA P1 completes: `python3 seed/apply_qa_verdicts.py --cert ea-see-part1`
+  When CKA completes: `python3 seed/apply_qa_verdicts.py --cert k8s-cka`
+  When EA P3 finishes: RE-RUN with persistence: `examforge validate --cert ea-see-part3 --endpoint mega`
+  CHRISTI CPA REVIEW: Config fixed (giga:32073), converter ready. Run when GPU free.
+  DOCSTRINGS: 3 repos still in progress (examforge, christi, nutantforge) — check if committed.
+  NCCG: Phase 4 DONE. Phase 5 next: multi-tenant dashboards, APScheduler tuning.
+  NAI: Phase 4 DONE. Phase 5 next: model-size-aware routing.
+  GUARDIAN: Phase 5 DONE. Phase 6: deploy Prometheus rules, wire Slack webhook.
+  BLOCKED: ServiceNow creds (CCO_SN_*), STR/Media/Solar API keys, orchestration-node hardware

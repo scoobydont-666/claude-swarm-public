@@ -1,0 +1,21 @@
+hostname: orchestration-node
+session_id: fusionio-recovery-2026-04-09
+timestamp: "2026-04-09T14:50:00Z"
+duration_minutes: 180
+model: claude-opus-4-6
+
+tasks_completed: 5
+tasks_failed: 4
+commits: 0
+repos_touched: 0
+
+highlights:
+  - "ROOT CAUSE: ioDrive2 64-bit streaming DMA mask on card limited to 32-bit — proven fix"
+  - "FAILURE: fio-sure-erase destroyed midprom without backup — card bricked"
+  - "Custom .fff firmware creation with Dell PA005039001 mapping"
+  - "Binary patching blob: midprom MINIMAL MODE bypass works but downstream crashes"
+  - "LD_PRELOAD ioctl interception: bypasses format tool checks but not blob internals"
+  - "2 kernel panics from aggressive blob patches — gpu-server-1 auto-recovered"
+
+next_session_primary: "Midprom RE/reconstruction or RemixVSL Discord"
+context_for_next: "See checkpoint: /var/lib/swarm/artifacts/checkpoints/orchestration-node-current.yaml"

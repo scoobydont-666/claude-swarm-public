@@ -1,0 +1,58 @@
+hostname: orchestration-node
+session_id: project-management-session10
+timestamp: "2026-03-27T20:45:00Z"
+project: multi-project autonomous execution (8 tasks across 7 projects)
+duration_minutes: 105
+key_decisions:
+  - "2026-03-27T20:00Z — ExamForge 3a.8: cross-validation script written, fixed think-tag parsing + Ollama overload (4 concurrent processes killed), switched to qwen3:14b, 65% agreement rate running"
+  - "2026-03-27T20:10Z — ComfyForge Phase 3: fixed 4 critical gaps in Hydra Media integration (pipeline wiring, image download, async→sync, real PNG output). 216 tests pass."
+  - "2026-03-27T20:15Z — ComfyForge: added /api/images/{job_id}/{filename} proxy endpoint for remote image download"
+  - "2026-03-27T20:20Z — ExamForge 3b.15-16: 18 security pen tests (admin 403, file upload path traversal, oversized files). 387 total tests."
+  - "2026-03-27T20:22Z — ExamForge Q792: Fixed needs-edit installment sale question"
+  - "2026-03-27T20:25Z — CostGuard: synced subagent parsing + fuzzy model matching from hydra-pulse. 21 tests."
+  - "2026-03-27T20:26Z — Hydra Pulse: Phase 3 commands (project-costs, task-costs, anomalies) verified working. 29 tests."
+  - "2026-03-27T20:30Z — claude-swarm: EventWatcher class (auto-pull daemon), 5 new projects in registry/config, gpu-server-2 node updated. 759 tests (was 750)."
+  - "2026-03-27T20:35Z — Hydra Forge: finetune.py written (adapted from Christi pipeline with hard-won lessons). Ready for training."
+files_changed:
+  - "examforge: christi_cross_validate.py (NEW), test_security_pentest.py (NEW, 18 tests), Q792 fix"
+  - "comfyforge: api.py (image download endpoint)"
+  - "hydra-media: comfyforge_client.py (async→sync, download_image), pipeline.py (wiring), visuals.py (real PNG), thumbnail.py (sync download), test_comfyforge_client.py (rewritten)"
+  - "claude-code-costguard: synced subagent parsing + fuzzy model matching"
+  - "claude-swarm: events.py (EventWatcher), sync_engine.py (5 new projects), swarm.yaml (registry), test_events.py (17 tests)"
+  - "hydra-forge: finetune.py (NEW), CLAUDE.md phase update"
+issues_found:
+  - "christi-14b-obbba returns empty for ~70% of MCQ questions — fine-tuning artifact. Switched to qwen3:14b base model."
+  - "Multiple concurrent cross-validation processes overloaded Ollama — killed extras, single process now stable."
+artifacts_produced:
+  - "ExamForge cross-validation: in progress (40/411, ~65% agreement, ETA 90min)"
+  - "ComfyForge Phase 3: production-ready (4 fixes, 216 tests)"
+  - "claude-swarm: 759 tests (EventWatcher + expanded registry)"
+  - "Hydra Forge: finetune.py ready for gpu-server-1 training run"
+  - "ExamForge: 387 tests (18 new security pen tests)"
+context_for_next: >
+  CROSS-VALIDATION STILL RUNNING: ExamForge 3a.8 cross-validation (qwen3:14b model)
+  is running in background on orchestration-node. ~371 questions remaining, ETA ~90 min from 20:45Z.
+  When complete, it writes report to /opt/examforge/reports/christi-cross-validation.md.
+  COMMIT THE REPORT when done: cd /opt/examforge && git add reports/ && git commit -m "docs(3a.8): Christi cross-validation report" && git push.
+  
+  HYDRA FORGE TRAINING: finetune.py is ready at /opt/hydra-forge/finetune.py.
+  BLOCKED until cross-validation finishes (both need Ollama/GPU).
+  Steps: 1) sudo systemctl stop ollama-container on gpu-server-1
+  2) source /opt/christi-project/training/.venv/bin/activate
+  3) cd /opt/hydra-forge && python3 finetune.py
+  4) Deploy: ollama create hydra-coder:v1 -f ./output/Modelfile
+  5) Test: python3 eval/smoke_test.py
+  6) Restart Ollama: sudo systemctl start ollama-container
+  
+  COMPLETED THIS SESSION (8/9 tasks):
+  - ComfyForge Phase 3: DONE (4 critical fixes, production-ready)
+  - ExamForge Q792 fix: DONE
+  - ExamForge 3b.15-16 pen tests: DONE (18 tests)
+  - CostGuard sync: DONE
+  - Hydra Pulse Phase 3 verify: DONE
+  - claude-swarm S3 EventWatcher: DONE
+  - claude-swarm S5 registry update: DONE
+  - Hydra Forge finetune.py: DONE (script written, training pending)
+  
+  BLOCKED: ExamForge 3a.7 (Josh CPA review), Solar Sentinel (Enphase JWT),
+  Hydra Media M2/M5 (API keys), Rainbow (physical access).

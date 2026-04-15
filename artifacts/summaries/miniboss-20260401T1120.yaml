@@ -1,0 +1,61 @@
+hostname: orchestration-node
+session_id: examforge-pipeline-sync
+timestamp: "2026-04-01T11:20:00-07:00"
+project: ExamForge + NutantForge question pipeline
+duration_minutes: 85
+key_decisions:
+  - "Fixed /api/embeddings -> /api/embed bug across gpu-server-1, gpu-server-2, gpu-server-3"
+  - "Seeded 4 new certs: EA part 1/2/3 + Security+ (13 total)"
+  - "Imported 2,987 questions into ExamForge SQLite (7,748 total)"
+  - "Synced and imported into Docker PostgreSQL (7,846 total)"
+  - "Security+ now complete: 500 questions across all 5 domains"
+  - "Seeded NCA + NCP-MCI into NutantForge DB (302 NCA questions)"
+  - "Created NCA D4 + NCP-MCI D1-D4 batch queue on gpu-server-3 (500q queued)"
+  - "gpu-server-3 firewall fix: permanent systemd service for iptables rules"
+  - "tmux scrollback: 100K lines + bash history 100K"
+  - "Fixed Docker DNS issue: full docker-compose restart"
+  - "ExamForge API now serving all 13 certs on port 8010"
+files_changed:
+  - /opt/examforge/backend/src/examforge/cli.py (embed fix)
+  - /opt/examforge/backend/seed/certifications/{ea-see-part1,ea-see-part2,ea-see-part3,comptia-secplus}.yaml
+  - /opt/nutantforge/backend/src/examforge/cli.py (embed fix)
+  - /opt/nutantforge/backend/seed/certifications/{nutanix-nca,nutanix-ncp-mci}.yaml
+  - /opt/nutantforge/backend/scripts/batch-gen.sh
+  - /opt/hydra-project/CLAUDE.md (gpu-server-3 GPU, ExamForge description)
+  - /home/josh/.tmux.conf
+  - /home/josh/.bashrc (history)
+  - /etc/systemd/system/fix-kube-firewall.service (gpu-server-3)
+issues_found:
+  - "ExamForge CLI used /api/embeddings (old API) with new-style payload — silent empty results"
+  - "Docker DNS broke on examforge-net — fixed with full compose restart"
+  - "NutantForge CLI binary is nutantforge not examforge"
+artifacts_produced:
+  - "7 git commits across examforge, nutantforge, hydra-project"
+  - "ExamForge: 7,748 SQLite / 7,846 PostgreSQL questions"
+  - "NutantForge: 302 NCA questions in DB"
+context_for_next: |
+  GPU JOBS RUNNING (all 3 GPUs active):
+  - gpu-server-1: EA Part 1 QA validation (35 of ~993 done, embeddings working)
+  - gpu-server-2: Security+ QA validation (500 questions, just started)
+  - gpu-server-3: NCA D1 gen at 48/100, then auto-chains: NCA D4 → NCP-MCI D1-D4
+  
+  WHEN JOBS FINISH:
+  - gpu-server-1 EA QA: Review results, apply verdicts (approve/review/reject)
+  - gpu-server-2 SecPlus QA: Review results, apply verdicts
+  - gpu-server-3 batch complete: Run load_drafts.py to import NCA/NCP-MCI into DB
+  
+  REMAINING WORK:
+  - EA Part 2 + Part 3 QA validation (run after Part 1 finishes on gpu-server-1)
+  - NutantForge Docker deployment (compose file ready, 0 running containers)
+  - Security+ D1 batch sync: already done to gpu-server-1 and imported
+  - Monero Farm: healthy (monerod synced 3,643,071, P2Pool x3, 41.5 kH/s gpu-server-3)
+  
+  ALL OTHER PROJECTS STABLE:
+  - Christi: Phase 27 production ✅
+  - claude-swarm: v2 stable, Redis operational ✅
+  - CCO: Phase 2 complete ✅
+  - Context Bridge: All 5 priorities done ✅
+  
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged questions)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel

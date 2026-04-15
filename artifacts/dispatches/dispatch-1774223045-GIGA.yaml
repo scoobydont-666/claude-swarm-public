@@ -1,0 +1,11 @@
+completed_at: ''
+dispatch_id: dispatch-1774223045-gpu-server-1
+error: ''
+exit_code: -1
+host: gpu-server-1
+model: sonnet
+output_file: /var/lib/swarm/artifacts/dispatches/dispatch-1774223045-gpu-server-1.output
+started_at: '2026-03-22T23:44:05Z'
+status: running
+task: 'Claim swarm task-001. Run: cd /opt/christi-project && kin init . && kin commit
+  -m ''Initial semantic index''. Report the entity count when done.'

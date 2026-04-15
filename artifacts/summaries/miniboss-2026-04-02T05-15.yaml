@@ -1,0 +1,50 @@
+hostname: orchestration-node
+session_id: phase3-coredns-k3s-plan
+timestamp: 2026-04-02T05:15:00Z
+project: hydra-project (Ansible Phase 3 + CoreDNS + K3s planning)
+duration_minutes: 60
+key_decisions:
+  - "[21:30] NAI swarm sync — cherry-picked 8 commits (42 files, 3589 insertions) from claude-swarm"
+  - "[21:35] CoreDNS 1.12.0 deployed on orchestration-node (10.0.0.5:53) — hydra.local zone + reverse DNS"
+  - "[21:36] Fleet DNS configured — all 4 hosts use CoreDNS with hydra.local search domain"
+  - "[21:40] EA QA jobs killed and restarted: gpu-server-3→Part3, gpu-server-2→Part2, gpu-server-1→Part1"
+  - "[21:45] Ansible Phase 3: 7 roles (ollama, redis, celery, monerod, p2pool, xmrig, dns_client)"
+  - "[21:50] Phase 3 playbooks: 05-core-services.yml, 07-mining.yml + site.yml updated"
+  - "[21:55] Sudoers fix: added /bin/sh, python3, docker, k3s, helm, kubectl — deployed to all 4 hosts"
+  - "[22:00] K3s migration Phase 1 plan written to plans/k3s-migration/phase1-install.md"
+  - "[22:05] gpu-server-2 recovered from reboot, Security+ QA (500q) started on gpu-server-2 Ollama"
+  - "[22:10] Self-SSH enabled on orchestration-node for Ansible self-management"
+files_changed:
+  - nai-swarm: 42 files (upstream sync from claude-swarm)
+  - hydra-project: docker/coredns/ (4 files — Corefile, zone files, compose)
+  - hydra-project: ansible/roles/dns_client/ (3 files)
+  - hydra-project: ansible/roles/celery/ (6 files)
+  - hydra-project: ansible/roles/sudoers/defaults/main.yml (/bin/sh fix)
+  - hydra-project: ansible/playbooks/05-core-services.yml
+  - hydra-project: ansible/playbooks/07-mining.yml
+  - hydra-project: ansible/site.yml (layers 05+07 active)
+  - hydra-project: docs/port-registry.md (CoreDNS port 53)
+  - hydra-project: plans/k3s-migration/phase1-install.md
+issues_found:
+  - "gpu-server-2 went offline mid-session (rebooted) — EA Part 2 QA failed, rerouted to gpu-server-1"
+  - "gpu-server-3 Ollama times out under 2 concurrent QA jobs — limited to 1 at a time"
+  - "Ansible become needs /bin/sh in sudoers — not documented anywhere"
+  - "SSH known_hosts needs updating when using DNS names instead of IPs"
+artifacts_produced:
+  - /opt/hydra-project/docker/coredns/ (CoreDNS deployment)
+  - /opt/hydra-project/ansible/roles/{dns_client,celery,ollama,redis,monerod,p2pool,xmrig}/ (Phase 3)
+  - /opt/hydra-project/ansible/playbooks/{05-core-services,07-mining}.yml
+  - /opt/hydra-project/plans/k3s-migration/phase1-install.md
+  - /opt/nai-swarm upstream sync commit
+context_for_next: >
+  4 QA jobs running on GPUs (EA Parts 1-3 + Security+ 500q). When complete:
+  import results with apply_qa_verdicts.py, update landing pages. gpu-server-2 is back
+  online after reboot. CoreDNS live on orchestration-node:53 — all fleet hosts configured.
+  Ansible Phase 3 COMPLETE (7 roles, 2 playbooks). Ansible works on all 4 hosts
+  including orchestration-node self-manage. K3s Phase 1 plan ready at
+  plans/k3s-migration/phase1-install.md — needs Josh go-ahead to execute.
+  Next priorities: (1) import QA results, (2) execute K3s Phase 1, (3) Ansible
+  Phase 4 (monitoring: Prometheus, Grafana, Alloy roles). NAI swarm synced —
+  next step is enterprise scaling architecture design.
+  BLOCKED: CPA TCP+REG review (48 Christi-flagged), API keys (STR, Hydra Media,
+  Solar Sentinel), gpu-server-2 stability investigation.

@@ -1,0 +1,23 @@
+[Unit]
+Description=claude-swarm Prometheus Metrics Exporter (port 9191)
+After=network.target
+Documentation=https://github.com/your-github-user/claude-swarm
+
+[Service]
+Type=simple
+User=josh
+Group=josh
+WorkingDirectory=/opt/claude-swarm
+Environment=PYTHONPATH=/opt/claude-swarm/src
+ExecStart=/usr/bin/python3 /opt/claude-swarm/src/swarm_metrics.py
+Restart=on-failure
+RestartSec=10
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/var/lib/swarm /opt/claude-swarm/data
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

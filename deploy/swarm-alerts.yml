@@ -1,0 +1,57 @@
+groups:
+  - name: swarm_alerts
+    interval: 30s
+    rules:
+      - alert: SwarmNodeOffline
+        expr: swarm_nodes_total{state="offline"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $value }} swarm node(s) offline"
+          description: "Swarm has {{ $value }} offline nodes. Check connectivity."
+
+      - alert: SwarmTaskQueueBacklog
+        expr: swarm_tasks_total{state="pending"} > 5
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Task queue backlog: {{ $value }} pending tasks"
+          description: "{{ $value }} tasks are pending and waiting to be claimed."
+
+      - alert: SwarmHeartbeatStale
+        expr: swarm_last_heartbeat_age_seconds > 600
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.hostname }} heartbeat stale for {{ humanizeDuration $value }}"
+          description: "{{ $labels.hostname }} has not sent a heartbeat in {{ humanizeDuration $value }}. Node may be hung or offline."
+
+      - alert: SwarmGPUSlotsFull
+        expr: swarm_gpu_slots_used >= 2
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "All GPU slots claimed ({{ $value }}/2)"
+          description: "Both GPU slots are in use. Queue new GPU work or reduce active workloads."
+
+      - alert: SwarmHighDispatchCost
+        expr: rate(swarm_dispatch_cost_usd_total[1h]) > 5.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High dispatch cost rate: ${{ $value | humanize }}/hour"
+          description: "Dispatch costs are running at ${{ $value | humanize }}/hour — review recent dispatches."
+
+      - alert: SwarmDispatchCostByHost
+        expr: rate(swarm_dispatch_cost_by_host_usd_total[1h]) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.hostname }} dispatch cost high: ${{ $value | humanize }}/hour"
+          description: "{{ $labels.hostname }} is accruing dispatch costs at ${{ $value | humanize }}/hour."

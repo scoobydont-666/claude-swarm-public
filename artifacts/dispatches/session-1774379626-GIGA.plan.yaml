@@ -1,0 +1,12 @@
+complexity: moderate
+dispatch_id: session-1774379626-gpu-server-1
+estimated_minutes: 20
+host: gpu-server-1
+model: sonnet
+project_dir: /opt/examforge
+prompt: 'Implement ExamForge E3: Add JWT auth to backend (register/login endpoints,
+  token middleware, protect exam routes). Add tests in tests/test_jwt_auth.py. Then
+  add ExamPlayer.tsx and ResultsSummary.tsx React components in frontend/src/components/.
+  Run backend tests and commit everything.'
+reasoning: "straightforward task \u2014 one-shot dispatch is sufficient"
+strategy: remote_dispatch

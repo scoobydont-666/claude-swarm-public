@@ -1,0 +1,45 @@
+hostname: orchestration-node
+session_id: task-master-execution-2026-04-06c
+timestamp: "2026-04-06T18:50:00Z"
+project: hydra-project (multi-project — 2 repos touched)
+duration_minutes: 45
+
+key_decisions:
+  - "Engineering presentation: brutally honest, no aspirational features, 23 slides"
+  - "ComfyForge Phase 3: batch WebSocket + gallery UI shipped without waiting for ComfyUI"
+  - "NCA import: 1,042 questions imported despite validation type error (agent fixed it)"
+  - "QA review GPU contention: two phi4:14b jobs on same GPU caused 981 errors — re-run needed"
+  - "Josh added: ingest ds.nutanix.design + restyle all UIs + redo presentations"
+
+files_changed:
+  - "hydra-project: engineering presentation (md + pptx), master plan update"
+  - "comfyforge: api.py (batch/tracked, WebSocket, gallery, jobs), models.py, test_api.py"
+  - "nutantforge: 1,042 NCA questions imported to DB on gpu-server-1"
+
+test_delta:
+  - "comfyforge: 59→71 (+12: jobs, batch tracked, gallery, WebSocket)"
+
+artifacts_produced:
+  - "/opt/hydra-project/docs/nai-engineering-presentation-2026-04-06.md (23 slides)"
+  - "/opt/hydra-project/docs/nai-engineering-presentation-2026-04-06.pptx (dark theme)"
+  - "NutantForge DB: 2,110 questions (was 1,069)"
+  - "NCP-MCI generated: 170 questions on gpu-server-1 (needs import)"
+
+context_for_next: |
+  See checkpoint: /var/lib/swarm/artifacts/checkpoints/orchestration-node-current.yaml
+
+  NEXT SESSION PRIORITIES (Josh-specified order):
+  1. Ingest ds.nutanix.design — official Nutanix design system
+  2. /plan UI overhaul — restyle ALL NAI dashboards with real Nutanix design tokens
+  3. Redo engineering presentation + exec materials with Nutanix branding
+  4. Re-run NCA QA on gpu-server-1 exclusively (981 errors from GPU contention)
+  5. Import 170 NCP-MCI questions (fix nested path first)
+  6. Start ComfyUI on gpu-server-2, gpu-server-4 K3s, code quality audit
+
+  KEY STATE:
+  - NutantForge: 2,110 questions, 1,126 QA pass, 981 QA error (contention)
+  - ComfyForge: 71 tests, Phase 3 complete, deployed on gpu-server-2
+  - Engineering presentation exists but needs Nutanix DS rebrand
+  - Current UI plan uses HashiCorp+Sentry hybrid — Josh wants real Nutanix DS
+
+  ALL REPOS CLEAN AND PUSHED.

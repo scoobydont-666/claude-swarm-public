@@ -1,0 +1,55 @@
+hostname: orchestration-node
+session_id: gleaming-greeting-starlight
+timestamp: "2026-03-31T15:30:00Z"
+project: hydra (cross-project)
+duration_minutes: 150
+key_decisions:
+  - "15:00 hydra-pulse JSONL tokens confirmed broken (68% are 0/1) — fixed via statusline stdin capture"
+  - "15:10 claude-swarm S6 plan: 10 phases for resiliency + performance, executed all 10"
+  - "15:20 nai-swarm: forked claude-swarm for Nutanix NAI GPU scheduling (private repo)"
+  - "15:25 Killed duplicate swarm-health.service, fixed 189 spam alerts"
+files_changed:
+  - /var/lib/hydra-pulse/src/main.rs — statusline stdin capture, limits command
+  - /var/lib/hydra-pulse/src/db.rs — statusline_snapshots table
+  - /var/lib/hydra-pulse/src/transcript.rs — use snapshots as ground truth
+  - /opt/claude-swarm/src/remediations.py — atomic writes, kill hung tasks
+  - /opt/claude-swarm/src/crash_handler.py — atomic writes
+  - /opt/claude-swarm/src/registry.py — heartbeat hysteresis (STALE_MISS_COUNT=3)
+  - /opt/claude-swarm/src/health_monitor.py — parallel checks, prometheus self-monitoring
+  - /opt/claude-swarm/src/health_rules.py — prometheus_unavailable rule, miss_count
+  - /opt/claude-swarm/src/events.py — rotate + prune_archive
+  - /opt/claude-swarm/src/swarm_lib.py — TaskIndex cache, NFS fallback for tasks
+  - /opt/claude-swarm/src/swarm_metrics.py — dispatch cost TTL cache
+  - /opt/claude-swarm/src/sync_engine.py — parallel git sync (5 workers)
+  - /opt/claude-swarm/src/gpu_slots.py — priority queue + wait_for_slot
+  - /opt/claude-swarm/tests/conftest.py — NEW shared fixtures
+  - /opt/claude-swarm/tests/test_swarm_cli.py — NEW CLI tests
+  - /opt/claude-swarm/tests/test_pipeline_definitions.py — NEW pipeline tests
+  - /opt/nai-swarm/README.md — Nutanix NAI architecture
+  - /opt/nai-swarm/CLAUDE.md — project conventions
+artifacts_produced:
+  - claude-swarm S6.1-S6.10 (759→855 tests)
+  - hydra-pulse Phases 1-3 (29→31 tests, real rate limits)
+  - nai-swarm repo scaffolded (your-github-user/nai-swarm)
+context_for_next: |
+  COMPLETED THIS SESSION:
+  - hydra-pulse: JSONL token accuracy crisis fixed (Phases 1-3). Statusline now shows real rate limits from Claude Code stdin JSON.
+  - claude-swarm S6 complete: atomic writes, heartbeat hysteresis, hung task kill, NFS fallback, Prometheus self-monitoring, parallel health checks, event rotation, task index cache, parallel git sync, GPU slot queue, conftest.py, CLI tests, pipeline tests. 759→855 tests.
+  - nai-swarm: private repo scaffolded, README + CLAUDE.md for Nutanix NAI GPU scheduling.
+  - Health monitor: killed duplicate service, fixed noisy alerts, archived 189 spam messages.
+
+  NEXT SESSION PRIORITIES:
+  1. hydra-pulse Phase 4-5: new hook events (StopFailure, PreCompact) + remove broken calibration
+  2. ExamForge: import CKA QA-approved questions (when gpu-server-2 QA finishes)
+  3. ExamForge: Stripe payment pipeline (P0 for revenue)
+  4. Session Snitch rename (hydra-pulse → session-snitch)
+  5. nai-swarm Phase 1: NAI API client replacing SSH dispatch
+
+  BLOCKED ON JOSH:
+  - CPA TCP+REG review (48 Christi-flagged questions)
+  - API keys: STR Intel, Hydra Media, Solar Sentinel
+  - GPU purchase decision (RTX PRO 6000 for gpu-server-3)
+
+  DB STATUS:
+  - Tests: claude-swarm 855, hydra-pulse 31
+  - ExamForge: 3,667 questions, 9 certs

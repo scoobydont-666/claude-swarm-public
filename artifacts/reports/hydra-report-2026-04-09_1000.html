@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+body { font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; background: #1a1a2e; color: #eee; margin: 20px; }
+h1 { color: #00d2ff; font-size: 18px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+h2 { color: #7ec8e3; font-size: 14px; margin-top: 20px; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+th { background: #16213e; color: #00d2ff; text-align: left; padding: 6px 10px; font-size: 12px; }
+td { padding: 5px 10px; border-bottom: 1px solid #222; font-size: 12px; }
+tr:hover { background: #16213e; }
+.ok { color: #2ecc71; } .warn { color: #f39c12; } .err { color: #e74c3c; } .dim { color: #666; }
+.alert-box { background: #2c1010; border: 1px solid #e74c3c; border-radius: 6px; padding: 10px; margin: 10px 0; }
+.alert-box ul { margin: 5px 0; padding-left: 20px; }
+.good-box { background: #102c10; border: 1px solid #2ecc71; border-radius: 6px; padding: 10px; margin: 10px 0; color: #2ecc71; }
+</style></head><body>
+<h1>HYDRA STATUS REPORT &mdash; 2026-04-09 10:00 PDT</h1>
+<div class='alert-box'><strong>ALERTS</strong><ul><li style='color:#e74c3c'>gpu-server-3: HOST UNREACHABLE</li><li style='color:#e74c3c'>gpu-server-3: GPU unavailable</li></ul></div>
+<h2>Fleet Health</h2>
+<table><tr><th>Host</th><th>Uptime</th><th>Disk</th><th>Memory</th><th>Load</th></tr>
+<tr><td>gpu-server-1</td><td>up 50 minutes</td><td class='ok'>60%</td><td>50Gi/251Gi</td><td>10.31</td></tr>
+<tr><td>gpu-server-2</td><td>up 2 hours, 52 minutes</td><td class='ok'>12%</td><td>8.4Gi/62Gi</td><td>0.10</td></tr>
+<tr><td>gpu-server-3</td><td class='err' colspan='4'>UNREACHABLE</td></tr>
+<tr><td>gpu-server-4</td><td>up 2 hours, 55 minutes</td><td class='ok'>4%</td><td>2.0Gi/60Gi</td><td>0.00</td></tr>
+<tr><td>orchestration-node</td><td>up 1 week, 1 day, 10 hours, 46 minutes</td><td class='ok'>41%</td><td>19Gi/31Gi</td><td>1.41</td></tr>
+</table>
+<h2>K3s Cluster</h2>
+<table><tr><th>Node</th><th>Status</th><th>Roles</th><th>Version</th></tr>
+<tr><td>giga</td><td class='ok'>Ready</td><td>control-plane</td><td>v1.34.6+k3s1</td></tr>
+<tr><td>mecha</td><td class='ok'>Ready</td><td><none></td><td>v1.34.6+k3s1</td></tr>
+<tr><td>mega</td><td class='err'>NotReady</td><td><none></td><td>v1.34.6+k3s1</td></tr>
+<tr><td>mongo</td><td class='ok'>Ready</td><td><none></td><td>v1.34.6+k3s1</td></tr>
+</table>
+<table><tr><th>Pod</th><th>Ready</th><th>Status</th><th>Restarts</th></tr>
+<tr><td>chromadb-7b8f4854f5-ktzsd</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>23</td></tr>
+<tr><td>comfyui-85666cbf7b-n4t78</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>1</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-87zhk</td><td>0/1</td><td class='err'>ContainerStatusUnknown</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-96npg</td><td>0/1</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-9hnpp</td><td>1/1</td><td class='ok'>Running</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-hx7p6</td><td>0/1</td><td class='err'>Unknown</td><td class='warn'>2</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-lbkgt</td><td>0/1</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-lwfqf</td><td>0/1</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-rzwng</td><td>0/1</td><td class='err'>Unknown</td><td class='warn'>1</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-sfx6t</td><td>0/1</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-giga-79467bd9b8-sfxk5</td><td>0/1</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-mega-754c695f55-56777</td><td>0/1</td><td class='err'>Pending</td><td class='dim'>0</td></tr>
+<tr><td>comfyui-mega-754c695f55-pk79c</td><td>0/1</td><td class='err'>Terminating</td><td class='warn'>20</td></tr>
+<tr><td>context-bridge-7788765599-hwdpx</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>22</td></tr>
+<tr><td>examforge-db-6b975b854f-969jc</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>23</td></tr>
+<tr><td>grafana-56886b58dd-kmdbd</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>23</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-2pthn</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-769mg</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-7fptx</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-946h9</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-bzc8v</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-cvndj</td><td>0/2</td><td class='err'>ContainerStatusUnknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-g2hg4</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-hqhh9</td><td>0/2</td><td class='err'>Unknown</td><td class='warn'>3</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-jrflh</td><td>0/2</td><td class='err'>Unknown</td><td class='warn'>1</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-kmgtw</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-pgml2</td><td>0/2</td><td class='err'>Unknown</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-qrv2p</td><td>2/2</td><td class='ok'>Running</td><td class='dim'>0</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-rfjm2</td><td>0/2</td><td class='err'>Unknown</td><td class='warn'>13</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-tbj6q</td><td>0/2</td><td class='err'>Unknown</td><td class='warn'>4</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-v9zdq</td><td>0/2</td><td class='err'>Unknown</td><td class='warn'>2</td></tr>
+<tr><td>ollama-giga-gpu0-5fb465b694-zrp27</td><td>0/2</td><td class='err'>Unknown</td><td class='warn'>2</td></tr>
+<tr><td>ollama-mecha-gpu0-86d665c5b6-l59d7</td><td>2/2</td><td class='ok'>Running</td><td class='warn'>2</td></tr>
+<tr><td>ollama-mega-gpu0-7f84cb5499-p7qxx</td><td>0/2</td><td class='err'>Pending</td><td class='dim'>0</td></tr>
+<tr><td>ollama-mega-gpu0-7f84cb5499-sp2dv</td><td>2/2</td><td class='err'>Terminating</td><td class='warn'>8</td></tr>
+<tr><td>ollama-mega-gpu1-594c87c45c-bknk9</td><td>0/2</td><td class='err'>Pending</td><td class='dim'>0</td></tr>
+<tr><td>ollama-mega-gpu1-594c87c45c-zvqbr</td><td>2/2</td><td class='err'>Terminating</td><td class='warn'>8</td></tr>
+<tr><td>openwebui-5cbb755648-2bnm7</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>51</td></tr>
+<tr><td>prometheus-5d48c7db5f-fv9bn</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>23</td></tr>
+<tr><td>searxng-f595db57c-s6wbz</td><td>1/1</td><td class='ok'>Running</td><td class='warn'>23</td></tr>
+</table>
+<h2>GPU Status</h2>
+<table><tr><th>Host</th><th>GPU</th><th>VRAM Used</th><th>VRAM Total</th><th>Utilization</th></tr>
+<tr><td>gpu-server-1</td><td>NVIDIA RTX PRO 6000 Blackwell Workstation Edition</td><td>48779 MiB</td><td>97887 MiB</td><td>0 %</td></tr>
+<tr><td>gpu-server-2</td><td>NVIDIA GeForce RTX 5060 Ti</td><td>5978 MiB</td><td>16311 MiB</td><td>0 %</td></tr>
+<tr><td>gpu-server-3</td><td class='err' colspan='4'>UNAVAILABLE</td></tr>
+<tr><td>gpu-server-4</td><td>NVIDIA GeForce RTX 5080</td><td>22 MiB</td><td>16303 MiB</td><td>0 %</td></tr>
+</table>
+<h2>Ollama</h2>
+<table><tr><th>Host</th><th>Version</th><th>Loaded Models</th></tr>
+<tr><td>gpu-server-1</td><td class='ok'>0.20.0</td><td>deepseek-r1:32b: 98.5GB VRAM</td></tr>
+<tr><td>gpu-server-2</td><td class='ok'>0.20.0</td><td>qwen3:8b: 6.0GB VRAM</td></tr>
+<tr><td>gpu-server-3</td><td class='err'>DOWN</td><td>N/A
+N/A</td></tr>
+<tr><td>gpu-server-4</td><td class='err'>DOWN</td><td>N/A
+N/A</td></tr>
+</table>
+<h2>Services</h2>
+<table><tr><th>Service</th><th>Status</th></tr>
+<tr><td>Grafana</td><td class='ok'>OK (302)</td></tr>
+<tr><td>Prometheus</td><td class='ok'>OK (302)</td></tr>
+<tr><td>OpenWebUI</td><td class='ok'>OK (200)</td></tr>
+<tr><td>ComfyUI</td><td class='ok'>OK (200)</td></tr>
+<tr><td>Tempo</td><td class='ok'>OK (200)</td></tr>
+<tr><td>Flower</td><td class='ok'>OK (200)</td></tr>
+<tr><td>ExamForge</td><td class='ok'>OK (000000)</td></tr>
+<tr><td>Redis</td><td class='ok'>OK (1781 keys, 4.02M)</td></tr>
+</table>
+<h2>GPU Jobs</h2>
+<table><tr><th>Host</th><th>Runtime</th><th>Command</th></tr>
+<tr><td colspan='3' class='dim'>No active generation/validation jobs</td></tr>
+</table>
+<h2>Monero Farm</h2>
+<table><tr><th>Component</th><th>Status</th></tr>
+<tr><td>monerod</td><td class='ok'>Height 3648838 (100.0% synced) &mdash; 0in/32out peers</td></tr>
+<tr><td>XMRig (gpu-server-3)</td><td class='err'>DOWN</td></tr>
+</table>
+<h2>ExamForge</h2>
+<p>Total: <strong>7748</strong> questions (6161 active)</p>
+<table><tr><th>Certification</th><th>Active Questions</th></tr>
+<tr><td>k8s-ckad</td><td>845</td></tr>
+<tr><td>aws-clf-c02</td><td>845</td></tr>
+<tr><td>ea-see-part2</td><td>795</td></tr>
+<tr><td>k8s-cka</td><td>721</td></tr>
+<tr><td>comptia-secplus</td><td>500</td></tr>
+<tr><td>ea-see-part1</td><td>449</td></tr>
+<tr><td>ea-see-part3</td><td>398</td></tr>
+<tr><td>cpa-far</td><td>300</td></tr>
+<tr><td>cpa-aud</td><td>297</td></tr>
+<tr><td>cpa-tcp</td><td>271</td></tr>
+<tr><td>cpa-isc</td><td>264</td></tr>
+<tr><td>cpa-reg</td><td>238</td></tr>
+<tr><td>cpa-bar</td><td>238</td></tr>
+</table>
+<h2>Git Status</h2>
+<table><tr><th>Repo</th><th>Changed Files</th></tr>
+<tr><td>hydra-project</td><td class='warn'>13</td></tr>
+<tr><td>monero-farm</td><td class='warn'>1</td></tr>
+<tr><td>taxprep-project</td><td class='warn'>1</td></tr>
+<tr><td>hydra-media</td><td class='warn'>1</td></tr>
+<tr><td>nutantforge</td><td class='warn'>1</td></tr>
+</table>
+<hr><p class='dim'>Generated by hydra-report.sh on orchestration-node at 2026-04-09 10:00 PDT</p>
+</body></html>

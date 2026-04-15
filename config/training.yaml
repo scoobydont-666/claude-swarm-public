@@ -1,0 +1,189 @@
+# Training/Distillation Platform Configuration
+# Used by: claude-swarm pipelines, ntnx-codeforge training, hydra-sentinel monitoring
+
+artifact_paths:
+  root: /var/lib/swarm/training
+  runs: /var/lib/swarm/training/runs
+  datasets: /var/lib/swarm/training/datasets
+  checkpoints: /var/lib/swarm/training/checkpoints
+  exports: /var/lib/swarm/training/exports
+  promotions: /var/lib/swarm/training/promotions
+
+# Model ladder — teacher to student
+model_ladder:
+  T0:
+    name: Qwen3-32B-AWQ
+    params: 32b
+    quant: awq_marlin
+    node: giga
+    vram_gb: 44
+    role: teacher
+    endpoint: http://10.0.0.1:8000/v1
+  T1:
+    name: Qwen3-14B-AWQ
+    params: 14b
+    quant: awq_marlin
+    node: mega
+    vram_gb: 16
+    role: fast_teacher
+    endpoint: http://10.0.0.3:8000/v1
+  S1:
+    name: Qwen3-14B
+    params: 14b
+    quant: qlora_4bit
+    node: giga
+    vram_gb: 28
+    role: student
+    base_model: Qwen/Qwen3-14B
+  S2:
+    name: Qwen2.5-Coder-7B
+    params: 7b
+    quant: qlora_4bit
+    node: giga
+    vram_gb: 12
+    role: student
+    base_model: Qwen/Qwen2.5-Coder-7B-Instruct
+  S3:
+    name: Qwen2.5-Coder-3B
+    params: 3b
+    quant: qlora_4bit
+    node: giga
+    vram_gb: 6
+    role: student
+    base_model: Qwen/Qwen2.5-Coder-3B-Instruct
+
+# QLoRA hyperparameters — hard rules from hydra-forge learnings
+# CRITICAL: r=16 caused degeneration in Christi v3/v4 — always use r=8
+training_defaults:
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.0
+  max_epochs: 3
+  scheduler: cosine
+  optimizer: adamw_8bit
+  packing: false
+  warmup_ratio: 0.05
+
+# Per-size training profiles
+training_profiles:
+  14b:
+    batch_size: 1
+    gradient_accumulation: 4
+    learning_rate: 0.0001
+    max_seq_len: 4096
+  7b:
+    batch_size: 1
+    gradient_accumulation: 8
+    learning_rate: 0.0002
+    max_seq_len: 4096
+  3b:
+    batch_size: 2
+    gradient_accumulation: 4
+    learning_rate: 0.0002
+    max_seq_len: 2048
+
+# Generation settings
+# Data sources — all available code for training
+data_sources:
+  hydra_repos:
+    description: "All 44 Hydra project repos"
+    base_path: /opt
+    repos:
+      - hydra-project
+      - ai-project
+      - christi-project
+      - monero-farm
+      - str-project
+      - taxprep-project
+      - examforge
+      - hydra-pulse
+      - context-bridge-mcp-server
+      - fast-tools-mcp-server
+      - claude-swarm
+      - audit-sentinel
+      - clausehound
+      - prompt-forge
+      - hashrate-hedger
+      - documint
+      - solar-sentinel
+      - hydra-media
+      - comfyforge
+      - hydra-forge
+      - claude-code-costguard
+      - cco
+      - nutantforge
+      - nai-swarm
+      - nai-reserve
+      - ntnx-codeforge
+      - ntnx-sentinel
+      - ntnx-promptforge
+      - ntnx-cursor-env
+      - nai-agent
+      - nai-control-center
+      - nai-sentinel
+      - prism-mcp-server
+      - hydra-sentinel
+      - ntnx-common
+      - cb-embedder
+      - turboquant
+      - hydra-control-center
+      - comfyconfig
+      - ntnx-codeforge
+  gitcrawl_repos:
+    description: "200+ external repos crawled weekly for quality patterns"
+    base_path: /data/gitcrawl/repos
+    manifest: /data/gitcrawl/CRAWL-MANIFEST.yaml
+    filter: "quality_score >= 3"  # Only high-quality repos
+  local_code:
+    description: "Convention-heavy code and infrastructure configs"
+    paths:
+      - /opt/claude-configs/claude-config  # Skills, hooks, agents
+      - /opt/ai-project/ansible           # Ansible roles and playbooks
+      - /opt/ai-project/k8s               # K3s manifests
+
+# Quality filters for data extraction
+data_quality:
+  min_file_lines: 10          # Skip trivially small files
+  max_file_lines: 2000        # Skip generated/vendor files
+  require_docstrings: false   # Include all code, not just documented
+  languages: [python, rust, go, yaml, bash, typescript, javascript]
+  exclude_patterns:
+    - "node_modules/"
+    - ".venv/"
+    - "__pycache__/"
+    - "*.min.js"
+    - "*.lock"
+    - "migrations/"
+
+generation:
+  giga_concurrency: 4      # Concurrent requests to gpu-server-1 vLLM
+  mega_concurrency: 8      # Concurrent requests to gpu-server-3 vLLM
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 2048
+  target_raw_examples: 3000
+  target_filtered_examples: 2000
+
+# Benchmark gates — student must pass ALL to promote
+benchmark_gates:
+  opencode_min_pct: 80
+  convention_min_pct: 95
+  teacher_ratio_min: 0.85   # Must be >= 85% of teacher score
+  degeneration_max_repeat_ratio: 0.05
+
+# Node roles for training platform
+node_roles:
+  giga:
+    primary: training_anchor
+    secondary: teacher_serving
+    vllm_port: 8000
+  mega:
+    primary: teacher_generation
+    vllm_port: 8000
+    tensor_parallel: 2
+  mongo:
+    primary: evaluation
+    secondary: small_student_training
+  mecha:
+    primary: preprocessing
+    secondary: utility

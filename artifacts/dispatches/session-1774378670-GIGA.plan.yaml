@@ -1,0 +1,10 @@
+complexity: trivial
+dispatch_id: session-1774378670-gpu-server-1
+estimated_minutes: 2
+host: gpu-server-1
+model: haiku
+project_dir: ''
+prompt: list all Ollama models currently loaded and their sizes
+reasoning: "needs gpu-server-1 resources (GPU/Ollama/Docker); straightforward task \u2014\
+  \ one-shot dispatch is sufficient"
+strategy: remote_dispatch

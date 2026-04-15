@@ -1,0 +1,15 @@
+complexity: moderate
+dispatch_id: session-1774385319-gpu-server-1
+estimated_cost_usd: 0.0
+estimated_minutes: 20
+host: gpu-server-1
+model: sonnet
+project_dir: /opt/examforge
+prompt: 'You are on gpu-server-1. Implement ExamForge backend JWT auth: (1) Create src/examforge/auth.py
+  with JWT token generation (PyJWT), register and login endpoints returning access+refresh
+  tokens. (2) Add auth dependency to protect exam attempt endpoints. Keep health and
+  certification list public. (3) Create tests/test_jwt_auth.py with 10+ tests. (4)
+  Also create src/examforge/payments.py with Stripe skeleton: SubscriptionTier enum
+  (FREE/PRO/CPA_COMPLETE), create_checkout_session, handle_webhook, tier enforc'
+reasoning: "straightforward task \u2014 one-shot dispatch is sufficient"
+strategy: remote_dispatch

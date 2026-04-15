@@ -1,0 +1,16 @@
+complexity: moderate
+dispatch_id: session-1774389652-gpu-server-1
+estimated_cost_usd: 0.0
+estimated_minutes: 20
+host: gpu-server-1
+model: sonnet
+project_dir: /opt/examforge
+prompt: "Wire ExamForge frontend into working exam routes. The components exist in\
+  \ frontend/src/components/ (ExamPlayer.tsx, ResultsSummary.tsx, QuestionNav.tsx,\
+  \ Timer.tsx). Create: (1) frontend/src/app/exam/page.tsx \u2014 exam selection (pick\
+  \ certification + section), (2) frontend/src/app/exam/[id]/page.tsx \u2014 active\
+  \ exam using ExamPlayer, (3) frontend/src/app/exam/[id]/results/page.tsx \u2014\
+  \ post-exam results using ResultsSummary, (4) frontend/src/lib/api.ts \u2014 API\
+  \ client connecting to backend at 127.0.0.1:8010 "
+reasoning: "straightforward task \u2014 one-shot dispatch is sufficient"
+strategy: remote_dispatch

@@ -1,0 +1,113 @@
+# Model-size routing configuration — NAI Swarm backport
+# Maps model sizes to GPU requirements for intelligent dispatch routing.
+#
+# Used by hydra_dispatch.py to determine GPU count and host requirements
+# when dispatching inference workloads.
+
+# Model registry: model name/pattern → resource requirements
+models:
+  # Small models (1 GPU, any node)
+  "7b":
+    gpu_count: 1
+    min_vram_gb: 8
+    hosts: [gpu-server-1, gpu-server-2, gpu-server-3, gpu-server-4, orchestration-node]
+    examples: [qwen2.5-coder-7b, llama3.1-8b, mistral-7b, glm-4.9b]
+
+  "13b":
+    gpu_count: 1
+    min_vram_gb: 12
+    hosts: [gpu-server-1, gpu-server-2, gpu-server-3, gpu-server-4, orchestration-node]
+    examples: [codellama-13b, llama2-13b]
+
+  "14b":
+    gpu_count: 1
+    min_vram_gb: 12
+    hosts: [gpu-server-1, gpu-server-3, gpu-server-4, orchestration-node]
+    examples: [qwen2.5-14b, deepseek-coder-v2-16b]
+
+  # Medium models (1 GPU, needs 32GB+ VRAM)
+  "32b":
+    gpu_count: 1
+    min_vram_gb: 24
+    hosts: [gpu-server-1, gpu-server-3]
+    examples: [qwen3-32b, deepseek-r1-32b, codestral-22b]
+
+  # Large models (1 GPU on gpu-server-1 96GB, or 2 GPUs on gpu-server-3)
+  "70b":
+    gpu_count: 1
+    min_vram_gb: 48
+    hosts: [gpu-server-1]
+    examples: [llama3.3-70b, qwen2.5-72b, deepseek-r1-70b]
+
+  # Very large models (need tensor parallelism)
+  "405b":
+    gpu_count: 4
+    min_vram_gb: 96
+    tensor_parallel: true
+    hosts: []  # No single node can run this yet
+    examples: [llama3.1-405b]
+
+# Fleet GPU inventory (for routing decisions)
+fleet_gpus:
+  gpu-server-1:
+    count: 1
+    model: RTX PRO 6000 Blackwell
+    vram_gb: 96
+  gpu-server-2:
+    count: 1
+    model: RTX 5060 Ti
+    vram_gb: 16
+  gpu-server-3:
+    count: 2
+    model: RTX 5080
+    vram_gb: 16  # per GPU
+  gpu-server-4:
+    count: 1
+    model: RTX 5080
+    vram_gb: 16
+  orchestration-node:
+    count: 1
+    model: RTX 4080 Laptop (AD104M, Ada Lovelace, 58 SMs)
+    vram_gb: 12
+    compute_cap: "8.9"
+    peak_mem_bw_gbps: 432
+    measured_d2d_gbps: 182
+    pcie_note: "Root port Gen4 x4, negotiated Gen2 x2 — BIOS update needed (AMI v1.00 2026-01-15)"
+    pcie_h2d_gbps: 2.9
+    pcie_d2h_gbps: 3.0
+
+# Routing rules: pattern-based model classification
+rules:
+  - name: code-analysis
+    pattern: "^(fix|refactor|debug|security|performance)"
+    default_model: sonnet
+    gpu_required: false
+
+  - name: inference-small
+    pattern: "(7b|8b|mistral|phi)"
+    default_model: null  # local model
+    gpu_required: true
+    model_size: "7b"
+
+  - name: inference-medium
+    pattern: "(13b|14b|16b|qwen.*14)"
+    default_model: null
+    gpu_required: true
+    model_size: "13b"
+
+  - name: inference-large
+    pattern: "(32b|33b|deepseek.*32|qwen.*32)"
+    default_model: null
+    gpu_required: true
+    model_size: "32b"
+
+  - name: inference-xlarge
+    pattern: "(70b|72b|llama.*70|qwen.*72)"
+    default_model: null
+    gpu_required: true
+    model_size: "70b"
+
+# Default: if no rule matches, use standard dispatch
+default:
+  gpu_required: false
+  model_size: null

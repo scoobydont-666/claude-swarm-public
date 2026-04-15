@@ -1,0 +1,102 @@
+---
+timestamp: "2026-04-11T07:01:00Z"
+host: orchestration-node
+session_id: "fleet-bootstrap-hcc-deploy"
+model: claude-opus-4-6
+branch: main
+
+completed:
+  - id: mega-ollama-bootstrap
+    description: "Created systemd service for Ollama on gpu-server-3. Both RTX 5080 GPUs detected (31.8 GiB). Removed stale port override (11435→11434). Pulled phi4:14b + qwen3:14b. gpu-server-3 went offline mid-session after successful setup."
+    timestamp: "2026-04-11T05:20:00Z"
+
+  - id: claude-config-template-update
+    description: "Updated CLAUDE.md template: Docker Swarm→K3s, gpu-server-1 RTX PRO 6000 96GB, gpu-server-3 2x RTX 5080, added gpu-server-4 to fleet. Template uses HOST_NAME/HOST_PERSONA from .env.local for host-specific identity."
+    commit: "a81da0d"
+    repo: claude-config
+    timestamp: "2026-04-11T05:25:00Z"
+
+  - id: claude-config-fleet-deploy
+    description: "Collected configs, committed, deployed to gpu-server-3/gpu-server-2/orchestration-node via install.sh. Each host gets '# I am {hostname}' with correct persona. Verified gpu-server-3 shows 'I am gpu-server-3' with Workhorse persona."
+    commit: "a81da0d"
+    repo: claude-config
+    timestamp: "2026-04-11T05:30:00Z"
+
+  - id: fleet-repo-sync
+    description: "Pulled all 11 repos on gpu-server-3 to latest: hydra-project, claude-swarm, context-bridge, fast-tools, hydra-pulse, examforge, ai-project, hydra-forge, hydra-media, nai-swarm, costguard."
+    timestamp: "2026-04-11T05:22:00Z"
+
+  - id: redis-protected-mode-fix
+    description: "Disabled Redis protected-mode on orchestration-node. Was blocking celery swarm workers from connecting. One-liner fix."
+    timestamp: "2026-04-11T05:18:00Z"
+
+  - id: hydra-pulse-clean
+    description: "Stashed dirty Cargo.lock in hydra-pulse repo (380-line diff from version pinning changes)."
+    timestamp: "2026-04-11T05:18:00Z"
+
+  - id: service-version-audit
+    description: "Full fleet audit via haiku subagent. Context Bridge + Fast Tools at HEAD on orchestration-node. Claude-swarm aligned across hosts. gpu-server-2 Ollama was K3s pod (qwen3:8b). gpu-server-4 had 3 models."
+    timestamp: "2026-04-11T05:15:00Z"
+
+  - id: hydra-control-center-phase6
+    description: "Deployed HCC Phase 6: enabled Next.js standalone output, added gpu-server-4 to fleet-config.ts, built and deployed dashboard systemd service on orchestration-node:3300, fleet agents on orchestration-node/gpu-server-2/gpu-server-4:8591. Generated HYDRA_AGENT_KEY. 24 agent tests pass. Dashboard health OK."
+    commit: "eb1cc1f"
+    repo: hydra-control-center
+    timestamp: "2026-04-11T05:50:00Z"
+
+  - id: examforge-secplus-generation
+    description: "Generated 410 Security+ SY0-701 questions via phi4:14b on gpu-server-4 Ollama. 544→954 questions (target 750 exceeded). All 5 domains covered. Script committed as generate_securityplus.py. Two crashes from malformed JSON handled gracefully."
+    commit: "44bcada"
+    repo: examforge
+    timestamp: "2026-04-11T06:15:00Z"
+
+  - id: mecha-ollama-native-install
+    description: "Installed Ollama 0.20.5 natively on gpu-server-2 via install.sh (was K3s pod only). Diagnosed and fixed K3s CNI-HOSTPORT-DNAT iptables rule redirecting port 11434 to dead pod IP 10.42.1.132. Removed stale rule, Ollama now responds on IPv4. Pulled phi4:14b."
+    timestamp: "2026-04-11T06:30:00Z"
+
+  - id: master-plan-updates
+    description: "Updated hydra-master-execution-order.md with fleet bootstrap section and HCC Phase 6 completion."
+    commit: "42a0ecd"
+    repo: hydra-project
+    timestamp: "2026-04-11T06:40:00Z"
+
+blocked:
+  - id: mega-fleet-agent
+    description: "gpu-server-3 went offline mid-session. Ollama configured and models pulled, but fleet agent not deployed."
+    blocker: "gpu-server-3 network unreachable (intermittent hardware issue)"
+
+  - id: nai-suite-launch
+    description: "Start 5+ NAI services, verify health"
+    blocker: "gpu-server-1 down until tomorrow (K3s control plane required)"
+
+  - id: giga-session-snitch
+    description: "Session Snitch v4 install on gpu-server-1"
+    blocker: "gpu-server-1 offline"
+
+  - id: creative-llm-eval
+    description: "Quality test uncensored LLMs (Anubis 70B, etc)"
+    blocker: "Needs gpu-server-1 96GB VRAM"
+
+  - id: presentations
+    description: "3 decks: 2 Nutanix updates + 1 personal portfolio"
+    blocker: "Needs live dashboard screenshots, Josh input on content"
+
+decisions:
+  - "Installed Ollama natively on gpu-server-2 via systemd rather than relying on K3s pod — K3s control plane (gpu-server-1) is down, pod can't be restarted"
+  - "Removed K3s CNI iptables DNAT rule for port 11434 on gpu-server-2 — stale rule from dead pod was intercepting traffic. Will regenerate when gpu-server-1 K3s comes back"
+  - "Used gpu-server-4 phi4:14b for Security+ gen instead of gpu-server-2 qwen3:8b — gpu-server-2 Ollama was hung, gpu-server-4 responded instantly"
+  - "Ran Security+ gen beyond 750 target — script kept generating through all domains, ended at 954. Extra questions increase coverage quality"
+  - "Created aisvc user on orchestration-node but ran services as josh — aisvc doesn't own the venv, simpler for now"
+
+state_changes:
+  - "gpu-server-3: Ollama systemd service created (/etc/systemd/system/ollama.service), enabled, both GPUs configured"
+  - "gpu-server-3: Stale override.conf removed from ollama.service.d (was forcing port 11435)"
+  - "gpu-server-2: Ollama 0.20.5 installed natively via install.sh (replaces K3s pod for inference)"
+  - "gpu-server-2: K3s CNI-HOSTPORT-DNAT iptables rule for port 11434 removed (was redirecting to dead pod 10.42.1.132)"
+  - "orchestration-node: Redis protected-mode disabled (CONFIG SET protected-mode no)"
+  - "orchestration-node: hydra-fleet-agent.service deployed and enabled (port 8591)"
+  - "orchestration-node: hydra-control-center.service deployed and enabled (port 3300, standalone Next.js)"
+  - "gpu-server-2: hydra-fleet-agent.service deployed and enabled (port 8591)"
+  - "gpu-server-4: hydra-fleet-agent.service deployed and enabled (port 8591)"
+  - "CLAUDE.md template updated with K3s refs, correct GPU specs, gpu-server-4 added"
+  - "ExamForge DB: 7,883 total questions (was 7,473). Security+ 954 (was 544)"

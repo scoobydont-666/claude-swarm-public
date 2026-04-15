@@ -1,0 +1,9 @@
+# claude-swarm pinned dependencies
+# Update via Ansible: ansible-playbook site.yml --tags swarm_venv
+celery==5.6.3
+redis==6.4.0
+typer==0.24.1
+rich==14.3.4
+prometheus-client==0.25.0
+PyYAML==6.0.3
+fakeredis==2.34.1

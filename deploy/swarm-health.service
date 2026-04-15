@@ -1,0 +1,25 @@
+[Unit]
+Description=claude-swarm Health Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=josh
+ExecStart=/usr/bin/python3 /opt/claude-swarm/src/health_monitor.py
+Restart=on-failure
+RestartSec=30
+
+# Hardening
+ProtectSystem=strict
+ReadWritePaths=/var/lib/swarm /opt/claude-swarm/data
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=swarm-health
+
+[Install]
+WantedBy=multi-user.target

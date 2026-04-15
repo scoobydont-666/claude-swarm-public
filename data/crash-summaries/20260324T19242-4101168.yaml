@@ -1,0 +1,7 @@
+hostname: orchestration-node
+pid: 4101168
+exit_time: '2026-03-24T19:24:29Z'
+exit_signal: null
+session_info:
+  current_task: task-001
+  model: opus

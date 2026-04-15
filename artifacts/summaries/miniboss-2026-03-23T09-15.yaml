@@ -1,0 +1,51 @@
+hostname: orchestration-node
+session_id: session-2026-03-23-full-work-loop
+timestamp: '2026-03-23T09:15:00Z'
+project: /opt/hydra-project
+duration_minutes: 120
+key_decisions:
+- "07:00 — Skill audit: 38 skills checked, ai-cluster-knowledge driver fix (590→580)"
+- "07:05 — CPA tax OBBBA rewrite: all 12 TODO:OBBBA markers resolved in 2 reference files"
+- "07:10 — ExamForge: wrote 3 loaders (AICPA, drafts, explanations), loaded 609 questions into DB"
+- "07:15 — Prompt Forge: fixed 2 test failures (template inheritance + CLI exit code)"
+- "07:20 — gpu-server-1 came online, GPU passthrough broken, fixed by container restart"
+- "07:25 — Audit Sentinel M3: 1,273 IRS chunks ingested into ChromaDB (73s)"
+- "07:26 — ClauseHound C3: 20 regulation chunks ingested into ChromaDB"
+- "07:30 — ExamForge explanation generation: 581/609 via qwen3:14b + phi4:14b on GPU"
+- "07:35 — Ollama model pruning: 12 models deleted (167GB freed), added phi4:14b + qwen3.5:9b"
+- "07:45 — Ollama upgraded 0.17.0 → 0.18.2, qwen3.5:9b pulled successfully"
+- "08:00 — Full model evaluation doc: mapped all 10 projects to optimal models"
+- "08:30 — Audit Sentinel M3: RAG enrichment module + pipeline integration (98 tests)"
+- "08:45 — ClauseHound C3: RAG regulation context module (96 tests)"
+files_changed:
+- "ai-cluster-knowledge/SKILL.md: driver version fix"
+- "cpa-tax-specialist/references/tcp-blueprint-federal.md: 10 OBBBA TODOs"
+- "cpa-tax-specialist/references/california-tax.md: 7 OBBBA TODOs"
+- "examforge: load_aicpa.py, load_drafts.py, generate_explanations.py, .gitignore"
+- "prompt-forge: templates.py, test_cli.py"
+- "audit-sentinel: rag.py, test_rag.py, models.py (irs_citation), pipeline.py"
+- "clausehound: rag.py, test_rag.py"
+- "hydra-project: docs/model-evaluation-2026-03-23.md"
+issues_found:
+- "Ollama GPU passthrough breaks on gpu-server-1 reboot — container must be restarted after boot"
+- "ExamForge 28 questions consistently fail explanation gen (both qwen3 and phi4) — likely very long stems"
+- "Ollama 0.17 couldn't pull qwen3.5 — needed upgrade to 0.18.2"
+- "qwen3.5 needs Ollama 0.18+ — upgraded successfully"
+artifacts_produced:
+- "609 questions in ExamForge DB, 581 with explanations (95%)"
+- "1,273 IRS pub chunks in ChromaDB sentinel_irs_pubs"
+- "20 STR regulation chunks in ChromaDB clausehound_str_regs"
+- "Model evaluation doc with per-project model assignments"
+- "Ollama: 10 models, 74GB (was 21 models, 235GB)"
+context_for_next: >
+  ExamForge: 28 questions still need explanations. Copy final DB from gpu-server-1 /tmp/examforge.db.
+  72 AI-generated drafts still need Josh CPA review (human gate).
+  Audit Sentinel M3 slice 5: citation tracking persistence (store which IRS sections cited per flag).
+  ClauseHound C3: wire RAG context into LLM classifier prompts.
+  Christi Kin re-index: task-001 still pending (low priority).
+  gpu-server-1: Ollama container needs --restart unless-stopped after GPU fix (DONE in this session).
+  Dual GPU: when 2nd CPU arrives, pull qwen3:30b-a3b MoE.
+  Consider removing qwen3:8b (superseded by qwen3.5:9b) and qwen3:14b (once phi4 proves out).
+  gpu-server-1 GitHub push auth still BLOCKED.
+  Solar Sentinel: Firewalla rule + JWT token BLOCKED.
+  Rainbow: physical access BLOCKED.

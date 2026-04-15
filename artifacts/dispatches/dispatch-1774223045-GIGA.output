@@ -1,0 +1,8 @@
+Poll log confirms it — objects held steady at 29,172 for ~12 minutes while kin finalized the graph, then ticked to 29,276 right before the process exited at 17:09 PDT.
+
+**Summary:**
+- `kin init` + `kin commit -m 'Initial semantic index'` — complete
+- Commit hash: `8f5b82d9b6f6b3eedb9363afafaa4362b9b0caadc03e09c972ff2bde3f1c3d8a`
+- **Entity count: 1,142,527**
+- Objects in store: 29,276
+- Duration: ~3 hours (large initial index, HTTPS semantic API calls)

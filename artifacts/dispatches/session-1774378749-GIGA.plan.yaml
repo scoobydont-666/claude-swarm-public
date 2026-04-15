@@ -1,0 +1,11 @@
+complexity: moderate
+dispatch_id: session-1774378749-gpu-server-1
+estimated_minutes: 20
+host: gpu-server-1
+model: sonnet
+project_dir: ''
+prompt: 'Run: curl -s http://127.0.0.1:11434/api/tags | python3 -c ''import json,sys;
+  [print(f"{m["name"]:30s} {m["size"]/1e9:.1f}GB") for m in json.load(sys.stdin)["models"]]'''
+reasoning: "needs gpu-server-1 resources (GPU/Ollama/Docker); straightforward task \u2014\
+  \ one-shot dispatch is sufficient"
+strategy: remote_dispatch

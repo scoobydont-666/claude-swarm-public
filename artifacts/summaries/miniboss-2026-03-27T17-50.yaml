@@ -1,0 +1,47 @@
+hostname: orchestration-node
+session_id: project-management-session8
+timestamp: "2026-03-27T17:50:00Z"
+project: claude-swarm + comfyforge + hydra-forge (3 new initiatives)
+duration_minutes: 90
+key_decisions:
+  - "2026-03-27T16:00Z — hydra-pulse: snapshot-delta calibration model (fixed 78% display)"
+  - "2026-03-27T16:36Z — MAX 200 plan: budget updated to 10B weekly, 1B 5hr burst"
+  - "2026-03-27T17:00Z — claude-swarm: performance rating system — scored job routing, 30 new tests (750 total)"
+  - "2026-03-27T17:20Z — ComfyForge: Head #11 scaffolded — FastAPI wrapper, presets, CLI, 39 tests"
+  - "2026-03-27T17:40Z — Hydra Forge: coding LLM pipeline scaffolded — 1,977 code records extracted, 15 tests"
+  - "Containerized Claude assessment: DEFERRED — K8s overhead disproportionate for 3-4 nodes"
+files_changed:
+  - "hydra-pulse: src/main.rs (calibration rewrite)"
+  - "claude-code-costguard: analytics/costguard-pulse/src/main.rs (same)"
+  - "claude-swarm: src/performance_rating.py (NEW), src/hydra_dispatch.py, src/swarm_cli.py, tests/test_performance_rating.py (NEW)"
+  - "comfyforge: entire project (NEW Head #11) — 20 files"
+  - "hydra-forge: entire project (NEW) — 7 files"
+  - "hydra-project: CLAUDE.md, docs/port-registry.md, projects/ symlinks"
+  - "christi-project: CLAUDE.md (updated by background agent)"
+  - "ai-project: CLAUDE.md (updated by background agent)"
+issues_found:
+  - "Old calibration model was fundamentally wrong: 78% actual vs 44% displayed"
+  - "OpenWebUI COMFYUI_BASE_URL still points to gpu-server-1 instead of gpu-server-2 (ComfyForge Phase 2 fix)"
+artifacts_produced:
+  - "hydra-pulse v3: snapshot-delta calibration, MAX 200 budget"
+  - "claude-swarm: performance rating system (750 tests, scored routing)"
+  - "ComfyForge Head #11: API wrapper, 3 presets, CLI, Prometheus (39 tests)"
+  - "Hydra Forge: dataset pipeline extracting 1,977 code records from 13 projects (15 tests)"
+  - "3 new GitHub repos: comfyforge, hydra-forge, + claude-swarm update"
+  - "Total new repos: 21 (was 19)"
+context_for_next: >
+  THREE NEW INITIATIVES SCAFFOLDED:
+  1. claude-swarm perf rating: COMPLETE Phase 1. scored_host_selection() replaces first-match.
+     750 tests green. Ratings, benchmarks, metrics CLI commands added.
+  2. ComfyForge (Head #11): Phase 1 COMPLETE (API wrapper + presets + CLI). Port 8508.
+     Phase 2 TODO: deploy hardening (hotfix scripts, systemd, fix OpenWebUI URL).
+     Phase 3 TODO: Hydra Media integration (replace broll_suggestion with AI images).
+  3. Hydra Forge (coding LLM): Phase 1 dataset pipeline COMPLETE. 1,977 code records extracted.
+     Phase 2 TODO: Claude API instruction synthesis (500 ChatML examples), then train on gpu-server-1.
+     Phase 3 TODO: token-miser LOCAL tier integration.
+  DEFERRED: Containerized Claude (K8s overhead not worth it for 3-4 nodes).
+  BUDGET: MAX 200 plan — 10B weekly, 1B 5hr. Currently at ~4% 5hr.
+  BLOCKED: ExamForge 3a.7 (Josh CPA), Solar Sentinel (Enphase dev reg),
+  Hydra Media M2/M5 (API keys), Rainbow (physical access).
+  STILL TODO from previous session: modern-python reference files (9),
+  insecure-defaults reference (1), ai-cluster-knowledge skill split.

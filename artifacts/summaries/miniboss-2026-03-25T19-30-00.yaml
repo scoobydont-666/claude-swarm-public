@@ -1,0 +1,40 @@
+hostname: orchestration-node
+session_id: plan-and-execute-evening
+timestamp: "2026-03-25T19:30:00Z"
+project: hydra-project (ExamForge Phase 5 + Christi RAG)
+duration_minutes: 90
+key_decisions:
+  - AWS CLF-C02 confirmed as first non-CPA cert for ExamForge
+  - All blocked items deferred (Solar Sentinel JWT, Google OAuth2, ExamForge DNS, Rainbow)
+  - Christi RAG pipeline proven working — RAG+v1 produces coherent grounded answers
+  - DocuMint D6 verified green (326 tests)
+  - claude-swarm 9 commits pushed (Phase 5 operational maturity)
+files_changed:
+  - examforge: Phase 5 CLF-C02 foundation — seed YAML (cert, config, 118 topics), AWS validator (60+ facts), registry wired, generation script, 29 new tests = 328 total
+  - examforge: 6 preflight draft questions generated and committed
+  - examforge: production batch (100 questions) running in background via qwen3:14b
+  - christi: RAG ingest completed — 2,669 IRS publication chunks in ChromaDB
+issues_found:
+  - Question gen has ~33% parse error rate with qwen3:14b (YAML extraction from reasoning model output) — FIXED with think-tag stripping + retry logic
+  - First production batch (100q) launched with old code, restarted with fixed code
+  - SSH to gpu-server-1 commands frequently background themselves in claude-code shell — investigate
+  - Christi v2 fine-tune confirmed unusable (overfit, gibberish output)
+  - ChromaDB on port 8100 (not 8000) — rag scripts already configured correctly
+artifacts_produced:
+  - AWS CLF-C02 complete onboarding package (seed/, validator, topics, generation script)
+  - 6 verified high-quality CLF-C02 draft questions
+  - 2,669 IRS publication chunks in ChromaDB christi_tax_knowledge collection
+  - RAG+v1 tested and producing coherent tax answers
+context_for_next: >
+  EXAMFORGE (P0): Phase 5 CLF-C02 foundation COMPLETE. Production batch (100 questions)
+  running in background on gpu-server-1 Ollama (qwen3:14b). Check seed/aws-clf-c02-drafts/ for
+  results. Parse error rate ~33% — consider switching to qwen3:8b or adding retry logic.
+  After batch completes: run QA pipeline on all drafts, Josh spot-checks 50 questions.
+  CHRISTI: RAG pipeline PROVEN. 2,669 docs in ChromaDB. RAG+v1 produces coherent answers.
+  Next: (1) combine all training data (414+132+1946) into one set, train v3 at 3 epochs,
+  (2) test RAG+v3, (3) wire RAG into the LangGraph pipeline properly.
+  DOCUMINT: D6 verified green (326 tests). Ready for D7 planning.
+  BLOCKED: Solar Sentinel (Enphase JWT), Hydra Media M5 (Google OAuth2), ExamForge DNS,
+  Rainbow (physical access).
+  INFRASTRUCTURE: claude-swarm pushed (Phase 5, 518 tests). Monero farm healthy (synced
+  at 3638090, P2Pool main+mini active).

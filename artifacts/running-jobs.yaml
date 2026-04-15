@@ -1,0 +1,23 @@
+timestamp: "2026-04-08T10:45:00Z"
+jobs:
+  - host: orchestration-node
+    service: nai-reserve
+    port: 8530
+    pid_cmd: "ss -tlnp | grep 8530"
+  - host: orchestration-node
+    service: cco
+    port: 8510
+    pid_cmd: "ss -tlnp | grep 8510"
+  - host: orchestration-node
+    service: nai-swarm-dashboard
+    port: 9192
+    pid_cmd: "ss -tlnp | grep 9192"
+  - host: orchestration-node
+    service: nutantforge
+    port: 8012
+    pid_cmd: "docker ps | grep nutantforge"
+  - host: orchestration-node
+    service: nai-control-center
+    port: 3000
+    pid_cmd: "ss -tlnp | grep 3000"
+note: "5 NAI services running on orchestration-node. Fleet GPUs idle."
