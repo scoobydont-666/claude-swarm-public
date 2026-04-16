@@ -53,6 +53,13 @@ class RouteDecision:
     fallback_model: str
     local_model: str = ""
     reason: str = ""
+    # Opus 4.7 extras — populated when the resolved model is 4.7-family.
+    # Downstream API callers should forward these verbatim to messages.create.
+    # beta_headers: list of beta header values (e.g. "task-budgets-2026-03-13")
+    # task_budget: dict to splat into output_config (e.g. {"task_budget":
+    #   {"type":"tokens","total":128000}}). Empty when not applicable.
+    beta_headers: list[str] = field(default_factory=list)
+    task_budget: dict = field(default_factory=dict)
 
 
 # ── Default Rules ─────────────────────────────────────────────────────────────
@@ -60,9 +67,9 @@ class RouteDecision:
 
 DEFAULT_RULES = [
     # OPUS tier — complex reasoning
-    RoutingRule("architecture", r"architect|design.*system|security.*audit|threat.*model", "opus", "claude-opus-4-6", "claude-sonnet-4-6"),
-    RoutingRule("deep_reasoning", r"complex.*debug|root.*cause|deep.*dive|explain.*why|reason.*about", "opus", "claude-opus-4-6", "claude-sonnet-4-6"),
-    RoutingRule("planning", r"plan|strategy|roadmap|evaluate.*tradeoff", "opus", "claude-opus-4-6", "claude-sonnet-4-6"),
+    RoutingRule("architecture", r"architect|design.*system|security.*audit|threat.*model", "opus", "claude-opus-4-7", "claude-sonnet-4-6"),
+    RoutingRule("deep_reasoning", r"complex.*debug|root.*cause|deep.*dive|explain.*why|reason.*about", "opus", "claude-opus-4-7", "claude-sonnet-4-6"),
+    RoutingRule("planning", r"plan|strategy|roadmap|evaluate.*tradeoff", "opus", "claude-opus-4-7", "claude-sonnet-4-6"),
 
     # SONNET tier — standard code work
     RoutingRule("code_gen", r"implement|build|create|add.*feature|write.*code|refactor", "sonnet", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"),
@@ -95,9 +102,22 @@ LOCAL_MODELS = {
 class ModelRouter:
     """Unified model router with configurable rules."""
 
-    def __init__(self, config_path: str | Path | None = None, prefer_local: bool = False):
+    # Opus 4.7 task_budget defaults — conservative ceiling for long-horizon
+    # agent runs so the model self-regulates reasoning + tool-call spend.
+    # Min is 20k per Anthropic spec; override via config["task_budget_total"].
+    TASK_BUDGET_BETA_HEADER = "task-budgets-2026-03-13"
+    DEFAULT_TASK_BUDGET_TOTAL = 128_000
+    _OPUS_4_7_RE = re.compile(r"^claude-(?:opus|sonnet|haiku)-4-7\b")
+
+    def __init__(
+        self,
+        config_path: str | Path | None = None,
+        prefer_local: bool = False,
+        task_budget_total: int | None = None,
+    ):
         self.rules: list[RoutingRule] = []
         self.prefer_local = prefer_local
+        self.task_budget_total = task_budget_total or self.DEFAULT_TASK_BUDGET_TOTAL
 
         if config_path and Path(config_path).exists():
             self._load_yaml(Path(config_path))
@@ -154,13 +174,22 @@ class ModelRouter:
                     decision.reason += " [escalated: context > 100K tokens]"
                 elif context_tokens > 200_000 and decision.tier == "sonnet":
                     decision.tier = "opus"
-                    decision.model = "claude-opus-4-6"
+                    decision.model = "claude-opus-4-7"
                     decision.reason += " [escalated: context > 200K tokens]"
 
                 # Local preference
                 if self.prefer_local and decision.tier in LOCAL_MODELS:
                     decision.model = LOCAL_MODELS[decision.tier]
                     decision.reason += " [prefer_local: using Ollama]"
+
+                # Opus 4.7 task_budget — populate beta header + payload so
+                # downstream API callers can self-regulate long-horizon runs.
+                if self._OPUS_4_7_RE.match(decision.model):
+                    decision.beta_headers = [self.TASK_BUDGET_BETA_HEADER]
+                    decision.task_budget = {
+                        "type": "tokens",
+                        "total": self.task_budget_total,
+                    }
 
                 return decision
 

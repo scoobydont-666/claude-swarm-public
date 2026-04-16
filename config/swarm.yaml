@@ -325,3 +325,10 @@ health_monitor:
     stale_node_seconds: 600
     dirty_repo_minutes: 480
     gpu_vram_percent: 95
+
+# Opus 4.7 task_budget — advisory token budget the model sees and self-regulates
+# against for long-horizon agent runs. Min 20_000 per Anthropic spec.
+# Requires beta header `task-budgets-2026-03-13`; ModelRouter adds both to the
+# RouteDecision for any 4.7-family resolution.
+routing:
+  task_budget_total: 128000
