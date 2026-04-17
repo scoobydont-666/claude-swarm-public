@@ -1,5 +1,11 @@
 # claude-swarm — Distributed Claude Code Coordination
 
+## Status
+- `status: PRODUCTION-INTERNAL`
+- `last_verified: 2026-04-17`
+- `owner: josh`
+- `tier: infra`
+
 ## Project Location
 /opt/claude-swarm/
 
