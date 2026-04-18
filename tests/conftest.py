@@ -13,6 +13,11 @@ import yaml
 os.environ.setdefault("HYDRA_ENV", "dev")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+# Add conformance test harness to path
+conformance_dir = Path(__file__).resolve().parent / "conformance"
+if str(conformance_dir) not in sys.path:
+    sys.path.insert(0, str(conformance_dir))
 import swarm_lib as lib
 
 
