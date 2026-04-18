@@ -10,33 +10,33 @@ models:
   "7b":
     gpu_count: 1
     min_vram_gb: 8
-    hosts: [GIGA, MECHA, MEGA, MONGO, miniboss]
+    hosts: [node_gpu, node_reserve2, node_reserve1, node_mongo, node_primary]
     examples: [qwen2.5-coder-7b, llama3.1-8b, mistral-7b, glm-4.9b]
 
   "13b":
     gpu_count: 1
     min_vram_gb: 12
-    hosts: [GIGA, MECHA, MEGA, MONGO, miniboss]
+    hosts: [node_gpu, node_reserve2, node_reserve1, node_mongo, node_primary]
     examples: [codellama-13b, llama2-13b]
 
   "14b":
     gpu_count: 1
     min_vram_gb: 12
-    hosts: [GIGA, MEGA, MONGO, miniboss]
+    hosts: [node_gpu, node_reserve1, node_mongo, node_primary]
     examples: [qwen2.5-14b, deepseek-coder-v2-16b]
 
   # Medium models (1 GPU, needs 32GB+ VRAM)
   "32b":
     gpu_count: 1
     min_vram_gb: 24
-    hosts: [GIGA, MEGA]
+    hosts: [node_gpu, node_reserve1]
     examples: [qwen3-32b, deepseek-r1-32b, codestral-22b]
 
-  # Large models (1 GPU on GIGA 96GB, or 2 GPUs on MEGA)
+  # Large models (1 GPU on node_gpu 96GB, or 2 GPUs on node_reserve1)
   "70b":
     gpu_count: 1
     min_vram_gb: 48
-    hosts: [GIGA]
+    hosts: [node_gpu]
     examples: [llama3.3-70b, qwen2.5-72b, deepseek-r1-70b]
 
   # Very large models (need tensor parallelism)
@@ -49,23 +49,23 @@ models:
 
 # Fleet GPU inventory (for routing decisions)
 fleet_gpus:
-  GIGA:
+  node_gpu:
     count: 1
     model: RTX PRO 6000 Blackwell
     vram_gb: 96
-  MECHA:
+  node_reserve2:
     count: 1
     model: RTX 5060 Ti
     vram_gb: 16
-  MEGA:
+  node_reserve1:
     count: 2
     model: RTX 5080
     vram_gb: 16  # per GPU
-  MONGO:
+  node_mongo:
     count: 1
     model: RTX 5080
     vram_gb: 16
-  miniboss:
+  node_primary:
     count: 1
     model: RTX 4080 Laptop (AD104M, Ada Lovelace, 58 SMs)
     vram_gb: 12
@@ -131,26 +131,26 @@ tier_ladder:
     models: [hydracoder:3bv1]
     slot_size: "3b"
     min_vram_gb: 4
-    hosts: [miniboss, MECHA, MONGO, GIGA, MEGA]
+    hosts: [node_primary, node_reserve2, node_mongo, node_gpu, node_reserve1]
   - tier: "1b"
     label: "local-7b"
     models: [hydracoder:7bv4, hydra-coder:v3]
     slot_size: "7b"
     min_vram_gb: 8
-    hosts: [miniboss, MECHA, MONGO, GIGA, MEGA]
+    hosts: [node_primary, node_reserve2, node_mongo, node_gpu, node_reserve1]
   - tier: "2"
     label: "local-14b"
     models: [phi4:14b, hydracoder:v5, hydra-coder-14b]
     slot_size: "14b"
     min_vram_gb: 12
-    hosts: [miniboss, GIGA, MEGA, MECHA, MONGO]
-    default_for: [codegen_lane_1]  # phi4:14b on miniboss, keep_alive=-1
+    hosts: [node_primary, node_gpu, node_reserve1, node_reserve2, node_mongo]
+    default_for: [codegen_lane_1]  # phi4:14b on node_primary, keep_alive=-1
   - tier: "3"
     label: "local-32b"
     models: [hydracoder:32bv2, qwen2.5-coder:32b]
     slot_size: "32b"
     min_vram_gb: 24
-    hosts: [GIGA]
+    hosts: [node_gpu]
   - tier: "4"
     label: "cloud-haiku"
     models: [claude-haiku-4-5-20251001]
@@ -196,9 +196,9 @@ dispatch_override:
 
 # Host preference — where to send heavy work by default
 host_preference:
-  coordinator_latency_local: miniboss   # inline + small dispatches
-  primary_heavy: GIGA                    # bulk dispatch target (62 CPU + 8 GPU slots)
-  overflow: [MEGA, MECHA, MONGO]
+  coordinator_latency_local: node_primary   # inline + small dispatches
+  primary_heavy: node_gpu                    # bulk dispatch target (62 CPU + 8 GPU slots)
+  overflow: [node_reserve1, node_reserve2, node_mongo]
 
 # Slot accounting — coarse-grain, keyed by model name → size
 slot_accounting:
@@ -208,23 +208,23 @@ slot_accounting:
 
 # Per-host slot capacity (physical audit 2026-04-18)
 host_slots:
-  miniboss:
+  node_primary:
     cpu_slots: 10            # 12 cores - 2 reserve
     gpu_slots: { "7b": 1 }   # phi4:14b quantized is tight but fits
     vram_gb: 12
-  GIGA:
+  node_gpu:
     cpu_slots: 62            # 64 cores - 2 reserve (128 threads available)
     gpu_slots: { "3b": 8, "7b": 4, "14b": 2, "32b": 1 }
     vram_gb: 96
-  MEGA:
+  node_reserve1:
     cpu_slots: 62
     gpu_slots: { "7b": 4, "14b": 2 }   # 2× RTX 5080, single-pool default
     vram_gb: 32              # 2× 16GB pooled
-  MECHA:
+  node_reserve2:
     cpu_slots: 22            # 24 cores - 2
     gpu_slots: { "7b": 2, "14b": 1 }
     vram_gb: 16
-  MONGO:
+  node_mongo:
     cpu_slots: 10
     gpu_slots: { "7b": 2, "14b": 1 }
     vram_gb: 16

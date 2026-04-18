@@ -53,7 +53,7 @@ model_ladder:
     base_model: Qwen/Qwen2.5-Coder-3B-Instruct
 
 # QLoRA hyperparameters — hard rules from hydra-forge learnings
-# CRITICAL: r=16 caused degeneration in Christi v3/v4 — always use r=8
+# CRITICAL: r=16 caused degeneration in ProjectA v3/v4 — always use r=8
 training_defaults:
   lora_r: 8
   lora_alpha: 16
@@ -91,7 +91,7 @@ data_sources:
     repos:
       - hydra-project
       - ai-project
-      - christi-project
+      - project-a-project
       - monero-farm
       - str-project
       - taxprep-project
@@ -156,8 +156,8 @@ data_quality:
     - "migrations/"
 
 generation:
-  giga_concurrency: 4      # Concurrent requests to GIGA vLLM
-  mega_concurrency: 8      # Concurrent requests to MEGA vLLM
+  giga_concurrency: 4      # Concurrent requests to node_gpu vLLM
+  mega_concurrency: 8      # Concurrent requests to node_reserve1 vLLM
   temperature: 0.7
   top_p: 0.9
   max_tokens: 2048

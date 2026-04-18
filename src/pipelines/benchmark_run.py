@@ -17,7 +17,7 @@ BENCHMARK_RUN = Pipeline(
             host="mongo",  # Evaluation node
             requires=["gpu"],
             depends_on=[],
-            prompt_template="""Deploy the candidate model for benchmarking on MONGO.
+            prompt_template="""Deploy the candidate model for benchmarking on node_mongo.
 Run:
   # Create Ollama model from GGUF
   ollama create {input.model_name} -f /opt/swarm/training/exports/{input.run_id}/Modelfile

@@ -8,10 +8,10 @@ Distributed Claude Code coordination — multi-instance awareness and task shari
 
 ## Topology
 
-- **Primary NFS export**: GIGA (`<primary-node-ip>`) serves `/opt/swarm/`
-- **Replica**: miniboss (`<orchestration-node-ip>`) mounts + mirrors to `/opt/swarm-replica/`
-- **Orchestrator**: miniboss hosts the 6 systemd units (dashboard, metrics exporter, health monitor, celery worker/beat/flower)
-- **Workers**: all fleet members (GIGA, MECHA, MEGA, MONGO) register into the swarm registry
+- **Primary NFS export**: node_gpu (`<primary-node-ip>`) serves `/opt/swarm/`
+- **Replica**: node_primary (`<orchestration-node-ip>`) mounts + mirrors to `/opt/swarm-replica/`
+- **Orchestrator**: node_primary hosts the 6 systemd units (dashboard, metrics exporter, health monitor, celery worker/beat/flower)
+- **Workers**: all fleet members (node_gpu, node_reserve2, node_reserve1, node_mongo) register into the swarm registry
 
 ## Subsystems
 
@@ -34,7 +34,7 @@ Distributed Claude Code coordination — multi-instance awareness and task shari
 ## Data Flow
 
 ```
-claude-code hook  →  swarm-heartbeat  →  Redis Streams (miniboss:6379)
+claude-code hook  →  swarm-heartbeat  →  Redis Streams (node_primary:6379)
                                         ↓
                                  agent_registry (Redis)
                                         ↓
@@ -55,7 +55,7 @@ claude-swarm is the parent of `/opt/nai-swarm/` (forked 2026-03-22 for Nutanix N
 
 ## Persistence
 
-- **Hot**: Redis (miniboss:6379) — agent registry, task queue, event streams
+- **Hot**: Redis (node_primary:6379) — agent registry, task queue, event streams
 - **Warm**: SQLite (`data/agents.db`, `data/health-events.db`) — historical queryability
 - **Cold**: NFS artifacts (`/opt/swarm/artifacts/`) — session handoffs, checkpoints, dispatch records
 - **Durable**: git (`claude-config` repo) — cron-synced every 15 min

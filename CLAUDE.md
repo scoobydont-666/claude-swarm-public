@@ -30,9 +30,9 @@ Multi-instance Claude Code awareness and task sharing via NFS + git.
 Advisory coordination system — never forces action, human in the loop.
 
 ## Architecture
-- NFS primary: GIGA (<primary-node-ip>) exports /opt/swarm/
-- NFS replica: miniboss (<orchestration-node-ip>) mirrors to /opt/swarm-replica/ and re-exports
-- Git: claude-config repo (scoobydont-666/claude-config) for remote sync + durability
+- NFS primary: node_gpu (<primary-node-ip>) exports /opt/swarm/
+- NFS replica: node_primary (<orchestration-node-ip>) mirrors to /opt/swarm-replica/ and re-exports
+- Git: claude-config repo (your-github-user/claude-config) for remote sync + durability
 - Local instances: instant coordination via NFS mount at /opt/swarm/
 - Remote instances: git sync every 60s or on-demand
 

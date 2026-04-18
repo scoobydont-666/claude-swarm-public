@@ -181,7 +181,7 @@ class WorkGenerator:
         tasks: list[dict] = []
         for project_name, project_cfg in self.projects.items():
             project_path = Path(project_cfg.get("path", f"/opt/{project_name}"))
-            host = project_cfg.get("host", "miniboss")
+            host = project_cfg.get("host", "node_primary")
             plans_dir = project_path / "plans"
             if not plans_dir.is_dir():
                 continue
@@ -200,7 +200,7 @@ class WorkGenerator:
                 text = item["text"]
                 requires = infer_requires(text)
                 # Override requires based on project host capabilities
-                if host == "GIGA":
+                if host == "node_gpu":
                     if "gpu" not in requires:
                         requires.append("gpu")
 
@@ -519,7 +519,7 @@ class WorkGenerator:
                         source="scheduled_daily",
                     ),
                     self._make_task(
-                        title="Check for package updates on miniboss and GIGA",
+                        title="Check for package updates on node_primary and node_gpu",
                         description="Daily: apt/pip update check across fleet",
                         project="",
                         priority="low",
@@ -553,7 +553,7 @@ class WorkGenerator:
             tasks.extend(
                 [
                     self._make_task(
-                        title="Full security audit of GIGA",
+                        title="Full security audit of node_gpu",
                         description="Weekly: comprehensive security audit of primary GPU host",
                         project="",
                         priority="high",

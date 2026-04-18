@@ -62,15 +62,15 @@ echo "Pending: ${PENDING}, Claimed: ${CLAIMED}, Completed: ${COMPLETED}"
 echo ""
 echo "--- NFS Connectivity ---"
 if ping -c 1 -W 2 <primary-node-ip> &>/dev/null; then
-    echo "[OK] GIGA (<primary-node-ip>) reachable"
+    echo "[OK] node_gpu (<primary-node-ip>) reachable"
 else
-    echo "[FAIL] GIGA (<primary-node-ip>) unreachable"
+    echo "[FAIL] node_gpu (<primary-node-ip>) unreachable"
 fi
 
 if ping -c 1 -W 2 <orchestration-node-ip> &>/dev/null; then
-    echo "[OK] miniboss (<orchestration-node-ip>) reachable"
+    echo "[OK] node_primary (<orchestration-node-ip>) reachable"
 else
-    echo "[FAIL] miniboss (<orchestration-node-ip>) unreachable"
+    echo "[FAIL] node_primary (<orchestration-node-ip>) unreachable"
 fi
 
 # Summary

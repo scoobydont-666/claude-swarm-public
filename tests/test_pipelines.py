@@ -131,8 +131,8 @@ class TestSecurityAuditPipeline:
     def test_scan_stages_pinned_to_hosts(self):
         scan_mb = next(s for s in SECURITY_AUDIT.stages if s.name == "scan_miniboss")
         scan_giga = next(s for s in SECURITY_AUDIT.stages if s.name == "scan_giga")
-        assert scan_mb.host == "miniboss"
-        assert scan_giga.host == "GIGA"
+        assert scan_mb.host == "node_primary"
+        assert scan_giga.host == "node_gpu"
 
     def test_analyze_uses_opus(self):
         s = next(s for s in SECURITY_AUDIT.stages if s.name == "analyze")
@@ -160,7 +160,7 @@ class TestQuestionGenPipeline:
 
     def test_both_stages_pinned_to_miniboss(self):
         for s in QUESTION_GEN.stages:
-            assert s.host == "miniboss"
+            assert s.host == "node_primary"
 
     def test_validate_depends_on_generate(self):
         s = next(s for s in QUESTION_GEN.stages if s.name == "validate")

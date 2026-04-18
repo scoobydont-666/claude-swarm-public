@@ -27,7 +27,7 @@ import redis
 logger = logging.getLogger(__name__)
 
 # Redis connection config
-REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")  # miniboss
+REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")  # node_primary
 REDIS_PORT = int(os.environ.get("SWARM_REDIS_PORT", "6379"))
 REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "")
 REDIS_DB = int(os.environ.get("SWARM_REDIS_DB", "0"))
@@ -341,10 +341,10 @@ def discover_fleet_warm_models(fleet_ips: dict[str, str] | None = None) -> dict[
     """
     if fleet_ips is None:
         fleet_ips = {
-            "GIGA": "<primary-node-ip>",
-            "MECHA": "<gpu-worker-ip>",
-            "MEGA": "<gpu-node-ip>",
-            "MONGO": "192.168.201.85",
+            "node_gpu": "<primary-node-ip>",
+            "node_reserve2": "<gpu-worker-ip>",
+            "node_reserve1": "<gpu-node-ip>",
+            "node_mongo": "192.168.201.85",
         }
 
     result = {}

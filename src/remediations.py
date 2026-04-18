@@ -30,7 +30,7 @@ class RemediationEngine:
     def __init__(
         self,
         ssh_user: str = "josh",
-        email_to: str = "r.josh.jones@gmail.com",
+        email_to: str = "admin@example.com",
         replica_sync_script: str = "/usr/local/bin/swarm-replica-sync.sh",
     ) -> None:
         self.ssh_user = ssh_user
@@ -90,8 +90,8 @@ class RemediationEngine:
         except ImportError:
             # Fallback table — env vars override hardcoded defaults
             _FALLBACK = {
-                "miniboss": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
-                "GIGA": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
+                "node_primary": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
+                "node_gpu": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
             }
             return _FALLBACK.get(host)
 

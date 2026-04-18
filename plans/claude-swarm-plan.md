@@ -15,8 +15,8 @@ Distributed Claude Code coordination system using NFS + git for multi-instance a
 - [x] Skill file for Claude Code integration
 
 ## Phase 2: NFS Deployment (manual)
-- [ ] Run setup-primary.sh on GIGA (requires sudo)
-- [ ] Run setup-replica.sh on miniboss (requires sudo)
+- [ ] Run setup-primary.sh on node_gpu (requires sudo)
+- [ ] Run setup-replica.sh on node_primary (requires sudo)
 - [ ] Run setup-client.sh on any additional hosts
 - [ ] Verify NFS mounts and replication
 

@@ -15,7 +15,7 @@ Five reliability features implemented to improve swarm resilience and task manag
 
 **Storage:** `/opt/swarm/gpu/slot-{N}.lock` lockfiles
 
-**GIGA Configuration:**
+**node_gpu Configuration:**
 - GPU 0: Reserved for Ollama (permanently claimed)
 - GPU 1: Workload allocation (dynamically allocated)
 

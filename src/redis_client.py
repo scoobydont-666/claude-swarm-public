@@ -1,7 +1,7 @@
 """Redis client for claude-swarm task orchestration.
 
 Replaces NFS + fcntl locks with atomic Redis operations.
-Redis runs on miniboss (<orchestration-node-ip>:6379).
+Redis runs on node_primary (<orchestration-node-ip>:6379).
 
 Data model:
   tasks:pending     — Sorted set (score = priority×1000 + timestamp)

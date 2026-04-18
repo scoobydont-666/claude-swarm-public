@@ -222,7 +222,7 @@ class TestGitPush:
                 "branch": branch,
                 "commit_message": "add new_file",
                 "author_name": "Hydra Bot",
-                "author_email": "hydra@miniboss",
+                "author_email": "hydra@node_primary",
             },
         )
         assert resp["ok"] is True, resp.get("error")
