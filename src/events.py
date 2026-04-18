@@ -51,7 +51,7 @@ def emit(
 ) -> Path:
     """Emit an event to the event bus.
 
-    Event types:
+    Event types (see events_schema.py for dataclass definitions):
       - session_start, session_end
       - task_claimed, task_completed, task_failed
       - commit (git commit + push)
@@ -60,7 +60,24 @@ def emit(
       - context_handoff
       - config_sync
       - rate_limit
+
+    B2: ``details`` is validated against the registered schema before write.
+    Unknown fields are dropped with a WARN; unregistered event_types pass
+    through with a WARN (lax mode). Strict mode is opt-in for callers that
+    want hard rejection of drift — set env SWARM_EVENT_SCHEMA_STRICT=1.
     """
+    # B2 schema validation — lax by default (drops unknown + logs WARN),
+    # strict opt-in via env. Preserves backward-compat for ad-hoc callers.
+    # Absolute import (not relative) because src/ is sometimes imported
+    # as a top-level package (tests use `from src.events import emit`).
+    try:
+        from src import events_schema  # package-style import
+    except ImportError:
+        import events_schema  # type: ignore[no-redef]  # fallback when src/ is on sys.path directly
+
+    strict = os.environ.get("SWARM_EVENT_SCHEMA_STRICT", "").lower() in ("1", "true", "yes")
+    validated_details = events_schema.validate(event_type, details, strict=strict)
+
     EVENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     aid = agent_id or f"{socket.gethostname()}-{os.getpid()}"
@@ -72,7 +89,8 @@ def emit(
         "agent_id": aid,
         "sequence": _next_sequence(),
         "project": project,
-        "details": details or {},
+        "schema_version": events_schema.EVENT_SCHEMA_VERSION,
+        "details": validated_details,
     }
 
     path = EVENTS_DIR / _event_filename()

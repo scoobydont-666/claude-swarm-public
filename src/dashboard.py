@@ -61,6 +61,53 @@ log = logging.getLogger("swarm.dashboard")
 app = FastAPI(title="claude-swarm Dashboard")
 
 
+# ---------------------------------------------------------------------------
+# E4: Bearer-token auth middleware (opt-in)
+# ---------------------------------------------------------------------------
+# If SWARM_API_KEY is set in the environment, require callers to pass
+# X-Swarm-API-Key: <token> on every /api/* request. /health, /live,
+# /ready, /, and /metrics remain unauthenticated (k8s probes + dashboard HTML
+# + Prometheus scraping).
+#
+# When SWARM_API_KEY is unset, middleware is a no-op — preserves the current
+# loopback-only operational model (127.0.0.1:9192). Opt-in prevents lockout
+# during rollout; flip the env only after the token is distributed to
+# callers (monitoring scripts, reverse proxies).
+
+import os as _os
+import hmac as _hmac
+
+from fastapi import Request  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+
+_AUTH_EXEMPT_PATHS = {"/", "/health", "/live", "/ready", "/metrics"}
+
+
+@app.middleware("http")
+async def _require_api_key(request: Request, call_next):
+    """E4: enforce X-Swarm-API-Key on /api/* when SWARM_API_KEY is set."""
+    expected = _os.environ.get("SWARM_API_KEY")
+    if not expected:
+        # Opt-out: middleware no-op. Loopback operation preserved.
+        return await call_next(request)
+
+    path = request.url.path
+    if path in _AUTH_EXEMPT_PATHS or not path.startswith("/api/"):
+        return await call_next(request)
+
+    presented = request.headers.get("X-Swarm-API-Key", "")
+    # Timing-safe compare — prevents leaking key length via response timing
+    if not presented or not _hmac.compare_digest(presented, expected):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "unauthorized",
+                "message": "Missing or invalid X-Swarm-API-Key header",
+            },
+        )
+    return await call_next(request)
+
+
 def _read_dispatch_yaml(path: Path) -> dict[str, Any]:
     """Read a dispatch YAML file safely."""
     try:

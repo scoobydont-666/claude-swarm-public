@@ -75,15 +75,47 @@ class Task:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Task":
+    def from_dict(cls, data: dict, *, strict: bool = False) -> "Task":
         """Reconstruct Task from dict (e.g., from YAML/Redis).
 
         Args:
             data: Dict with task fields. Handles string requires list.
+            strict: If True, raise ValueError on (a) non-dict input,
+                (b) missing required fields (id or title), (c) invalid
+                state. If False (default), silently default as before —
+                preserves backward-compat for legacy files that omit
+                optional fields.
 
         Returns:
             Task instance.
+
+        Raises:
+            ValueError: in strict mode on malformed input.
         """
+        # E3: strict-mode input validation. Non-dict => reject.
+        if not isinstance(data, dict):
+            msg = f"Task.from_dict expected dict, got {type(data).__name__}"
+            if strict:
+                raise ValueError(msg)
+
+        data = data if isinstance(data, dict) else {}
+
+        # E3 strict: required fields = id + title. In lax mode these get
+        # defaulted (uuid4 + empty string) for backward compat.
+        if strict:
+            if not data.get("id"):
+                raise ValueError("Task requires 'id' field (strict mode)")
+            if not data.get("title"):
+                raise ValueError("Task requires 'title' field (strict mode)")
+
+        # E3 strict: state must be in the known set.
+        _VALID_STATES = {"pending", "claimed", "running", "completed", "failed"}
+        state = data.get("state", "pending")
+        if strict and state not in _VALID_STATES:
+            raise ValueError(
+                f"Task state '{state}' not in allowed set {sorted(_VALID_STATES)}"
+            )
+
         # Handle requires as string (from YAML/Redis)
         requires = data.get("requires", [])
         if isinstance(requires, str):
@@ -95,7 +127,7 @@ class Task:
             project=data.get("project", ""),
             priority=_normalize_priority(data.get("priority", 3)),
             requires=requires,
-            state=data.get("state", "pending"),
+            state=state,
             created_by=data.get("created_by", ""),
             created_at=float(data.get("created_at", 0)),
             claimed_by=data.get("claimed_by", ""),

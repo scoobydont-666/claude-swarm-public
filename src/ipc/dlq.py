@@ -104,6 +104,42 @@ def dlq_depth() -> int:
     return transport.stream_len(_DLQ_KEY)
 
 
+def prune_old_messages(hours: int = 24) -> int:
+    """E5: Remove DLQ entries older than `hours`. Returns count pruned.
+
+    XADD caps at _DLQ_MAXLEN=5000 entries, but without age-based pruning
+    a burst of failed messages can sit in the DLQ indefinitely, slowing
+    XRANGE scans on the dashboard /api/ipc_events endpoint. Call this on
+    health_monitor startup or from a cron job.
+
+    Args:
+        hours: Messages with stream_id older than now - hours are removed.
+
+    Returns:
+        Number of entries removed.
+    """
+    r = transport.get_client()
+    # Redis stream IDs are millis + sequence. Compute cutoff millis.
+    cutoff_ms = int((time.time() - hours * 3600) * 1000)
+    cutoff_id = f"{cutoff_ms}-0"
+
+    # XTRIM with MINID: O(N) in removed entries, cheaper than range+delete.
+    # approximate=True lets Redis batch the trim for lower tail latency.
+    try:
+        removed = r.xtrim(_DLQ_KEY, minid=cutoff_id, approximate=True)
+        return int(removed or 0)
+    except Exception:
+        # Best-effort: fall back to explicit XRANGE + XDEL if XTRIM minid
+        # isn't supported (very old Redis).
+        entries = r.xrange(_DLQ_KEY, "-", f"({cutoff_id}")
+        if not entries:
+            return 0
+        ids = [stream_id for stream_id, _ in entries]
+        for i in range(0, len(ids), 100):
+            r.xdel(_DLQ_KEY, *ids[i : i + 100])
+        return len(ids)
+
+
 def sweep_pending(agent_id: str | None = None) -> int:
     """Check for stuck pending messages and move them to DLQ.
 
