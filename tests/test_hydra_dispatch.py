@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -126,7 +126,7 @@ class TestDispatch:
             patch("hydra_dispatch.FLEET", fleet),
             patch("hydra_dispatch.DISPATCH_DIR", dispatch_dir),
             patch("subprocess.Popen") as mock_popen,
-            patch("hydra_dispatch.swarm") as mock_swarm,
+            patch("hydra_dispatch.swarm"),
         ):
             mock_popen.return_value = MagicMock(pid=12345)
             result = dispatch(host="GIGA", task="run tests", background=True)
@@ -156,7 +156,7 @@ class TestDispatch:
             patch("hydra_dispatch.FLEET", fleet),
             patch("hydra_dispatch.DISPATCH_DIR", dispatch_dir),
             patch("subprocess.Popen") as mock_popen,
-            patch("hydra_dispatch.swarm") as mock_swarm,
+            patch("hydra_dispatch.swarm"),
         ):
             mock_popen.return_value = MagicMock(pid=12345)
             result = dispatch(host="GIGA", task="security audit of codebase")

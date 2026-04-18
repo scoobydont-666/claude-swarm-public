@@ -36,7 +36,7 @@ class TestStartCollaborative:
         assert session.context_dir.exists()
 
     def test_start_writes_context(self, tmp_collab_root):
-        from collaborative import start_collaborative, read_context
+        from collaborative import read_context, start_collaborative
 
         session = start_collaborative(
             task="Test task",
@@ -51,7 +51,7 @@ class TestStartCollaborative:
 
 class TestContextExchange:
     def test_write_and_read_context(self, tmp_collab_root):
-        from collaborative import write_context, read_context
+        from collaborative import read_context, write_context
 
         session_id = "test-session-001"
         context = {
@@ -72,7 +72,7 @@ class TestContextExchange:
         assert result is None
 
     def test_context_includes_timestamp(self, tmp_collab_root):
-        from collaborative import write_context, read_context
+        from collaborative import read_context, write_context
 
         write_context("test-session", {"task": "x"})
         context = read_context("test-session")
@@ -81,7 +81,7 @@ class TestContextExchange:
 
 class TestProgressTracking:
     def test_write_and_read_progress(self, tmp_collab_root):
-        from collaborative import write_progress, read_progress
+        from collaborative import read_progress, write_progress
 
         session_id = "test-session-002"
         progress = {
@@ -95,7 +95,7 @@ class TestProgressTracking:
         assert read_back["current_step"] == "Analyzing code"
 
     def test_progress_includes_timestamp(self, tmp_collab_root):
-        from collaborative import write_progress, read_progress
+        from collaborative import read_progress, write_progress
 
         write_progress("test-session", {"step": 1})
         progress = read_progress("test-session")
@@ -108,7 +108,7 @@ class TestProgressTracking:
         assert result is None
 
     def test_progress_updates_overwrite(self, tmp_collab_root):
-        from collaborative import write_progress, read_progress
+        from collaborative import read_progress, write_progress
 
         session_id = "test-session-003"
         write_progress(session_id, {"step": 1})
@@ -120,7 +120,7 @@ class TestProgressTracking:
 
 class TestBlockerFlow:
     def test_write_blocker(self, tmp_collab_root):
-        from collaborative import write_blocker, read_blockers, Blocker
+        from collaborative import Blocker, read_blockers, write_blocker
 
         session_id = "test-session-004"
         blocker = Blocker(
@@ -136,7 +136,7 @@ class TestBlockerFlow:
         assert blockers[0]["description"] == "Cannot find required file"
 
     def test_multiple_blockers(self, tmp_collab_root):
-        from collaborative import write_blocker, read_blockers, Blocker
+        from collaborative import Blocker, read_blockers, write_blocker
 
         session_id = "test-session-005"
         for i in range(3):
@@ -150,7 +150,7 @@ class TestBlockerFlow:
         assert len(blockers) == 3
 
     def test_resolve_blocker(self, tmp_collab_root):
-        from collaborative import write_blocker, resolve_blocker, read_blockers, Blocker
+        from collaborative import Blocker, read_blockers, resolve_blocker, write_blocker
 
         session_id = "test-session-006"
         blocker = Blocker(
@@ -172,10 +172,10 @@ class TestBlockerFlow:
 class TestPolling:
     def test_poll_for_resolution_found(self, tmp_collab_root):
         from collaborative import (
-            write_blocker,
-            resolve_blocker,
-            poll_for_resolution,
             Blocker,
+            poll_for_resolution,
+            resolve_blocker,
+            write_blocker,
         )
 
         session_id = "test-session-007"
@@ -204,9 +204,9 @@ class TestPolling:
 class TestSessionStatus:
     def test_update_session_status(self, tmp_collab_root):
         from collaborative import (
+            get_session_status,
             start_collaborative,
             update_session_status,
-            get_session_status,
         )
 
         session = start_collaborative("Task", "GIGA")
@@ -234,7 +234,8 @@ class TestListSessions:
 
     def test_list_multiple_sessions(self, tmp_collab_root):
         import time
-        from collaborative import start_collaborative, list_sessions
+
+        from collaborative import list_sessions, start_collaborative
 
         s1 = start_collaborative("Task 1", "GIGA", "miniboss")
         time.sleep(0.01)  # Ensure different timestamps
@@ -249,7 +250,7 @@ class TestListSessions:
 
 class TestCleanup:
     def test_cleanup_session(self, tmp_collab_root):
-        from collaborative import start_collaborative, cleanup_session, list_sessions
+        from collaborative import cleanup_session, list_sessions, start_collaborative
 
         session = start_collaborative("Task", "GIGA")
         assert len(list_sessions()) == 1

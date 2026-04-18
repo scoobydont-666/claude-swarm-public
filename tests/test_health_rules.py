@@ -3,10 +3,9 @@
 import sys
 from pathlib import Path
 
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from health_rules import RULES, ALLOWED_SERVICES, get_rule, rules_by_check_type
+from health_rules import ALLOWED_SERVICES, RULES, get_rule, rules_by_check_type
 
 
 class TestRuleStructure:
@@ -46,9 +45,7 @@ class TestRuleStructure:
         valid_severities = {"high", "medium", "low", "critical"}
         for rule in RULES:
             sev = rule.get("severity", "medium")
-            assert sev in valid_severities, (
-                f"Rule '{rule['name']}' has invalid severity '{sev}'"
-            )
+            assert sev in valid_severities, f"Rule '{rule['name']}' has invalid severity '{sev}'"
 
     def test_auto_remediate_is_bool(self):
         for rule in RULES:
@@ -130,9 +127,7 @@ class TestAllowlist:
             "grafana-server",
         ]
         for svc in required:
-            assert svc in ALLOWED_SERVICES["miniboss"], (
-                f"{svc} missing from miniboss allowlist"
-            )
+            assert svc in ALLOWED_SERVICES["miniboss"], f"{svc} missing from miniboss allowlist"
 
     def test_giga_has_required_services(self):
         required = ["docker", "fail2ban", "crowdsec"]

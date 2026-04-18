@@ -98,9 +98,7 @@ def swarm_tmpdir(tmp_path):
 
     with (
         patch.object(lib, "_swarm_root", return_value=tmp_path),
-        patch.object(
-            lib, "_config_path", return_value=tmp_path / "config" / "swarm.yaml"
-        ),
+        patch.object(lib, "_config_path", return_value=tmp_path / "config" / "swarm.yaml"),
         patch.object(lib, "_hostname", return_value="testhost"),
     ):
         yield tmp_path

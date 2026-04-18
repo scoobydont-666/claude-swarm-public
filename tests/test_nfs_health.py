@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
@@ -28,15 +28,13 @@ class TestNFSHealthCheck:
             mock_path.is_dir.return_value = True
             mock_path_class.return_value = mock_path
 
-            with patch("builtins.open", mock_open()) as mock_file:
+            with patch("builtins.open", mock_open()):
                 triggered = monitor._check_nfs_health(rule)
 
                 # If no timeout/error, triggered should be empty
                 if triggered:
                     # Either timeout or content mismatch
-                    assert (
-                        "write_time_seconds" in triggered[0] or "error" in triggered[0]
-                    )
+                    assert "write_time_seconds" in triggered[0] or "error" in triggered[0]
 
     def test_check_nfs_health_timeout(self, tmp_path):
         """Test NFS health check with slow response (timeout)."""
@@ -52,7 +50,7 @@ class TestNFSHealthCheck:
             mock_path.is_dir.return_value = True
             mock_path_class.return_value = mock_path
 
-            with patch("builtins.open", mock_open()) as mock_file:
+            with patch("builtins.open", mock_open()):
                 with patch("health_monitor.time.time") as mock_time:
                     # Simulate slow file operations
                     call_count = [0]
@@ -102,16 +100,12 @@ class TestNFSHealthCheck:
             mock_path.is_dir.return_value = True
             mock_path_class.return_value = mock_path
 
-            with patch(
-                "builtins.open", mock_open(read_data="WRONG_CONTENT")
-            ) as mock_file:
+            with patch("builtins.open", mock_open(read_data="WRONG_CONTENT")):
                 triggered = monitor._check_nfs_health(rule)
 
                 # Should detect content mismatch
                 if triggered:
-                    assert any(
-                        "content verification failed" in str(t) for t in triggered
-                    )
+                    assert any("content verification failed" in str(t) for t in triggered)
 
     def test_check_nfs_health_write_error(self):
         """Test NFS health check with write failure."""
@@ -193,7 +187,7 @@ class TestNFSGracefulDegradation:
             mock_status_dir.side_effect = OSError("NFS unavailable")
 
             with patch("swarm_lib._is_nfs_healthy", return_value=False):
-                with patch("swarm_lib._atomic_write_json") as mock_write:
+                with patch("swarm_lib._atomic_write_json"):
                     with patch("swarm_lib.Path.home", return_value=tmp_path):
                         # Should not raise even when NFS fails
                         result = update_status(state="active")
@@ -211,13 +205,13 @@ class TestNFSGracefulDegradation:
                 raise OSError("NFS temporarily unavailable")
             # Second call succeeds
 
-        with patch("swarm_lib._status_dir") as mock_status_dir:
+        with patch("swarm_lib._status_dir"):
             with patch("swarm_lib._atomic_write_json", side_effect=side_effect):
                 with patch("swarm_lib._is_nfs_healthy", return_value=True):
                     with patch("swarm_lib.Path.home", return_value=tmp_path):
                         # Should handle the error gracefully
                         try:
-                            result = update_status(state="active")
+                            update_status(state="active")
                         except OSError:
                             # Expected on first call when NFS healthy but write still fails
                             pass
@@ -245,10 +239,8 @@ class TestNFSHealthMonitorIntegration:
             "action": "alert_email",
         }
 
-        with patch.object(
-            monitor, "_check_nfs_health", return_value=[{"error": "timeout"}]
-        ):
-            with patch.object(monitor, "_handle_triggered") as mock_handle:
+        with patch.object(monitor, "_check_nfs_health", return_value=[{"error": "timeout"}]):
+            with patch.object(monitor, "_handle_triggered"):
                 triggered = monitor._run_check(rule)
                 assert len(triggered) > 0
 

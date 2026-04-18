@@ -1,10 +1,9 @@
 """Tests for event_log.py — persistence, query, cooldown."""
 
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
-
 
 # Ensure src/ is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -76,7 +75,7 @@ class TestEventLogQuery:
 
     def test_filter_by_timerange(self, tmp_path):
         log, el = _make_event_log(tmp_path)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         past = (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
         future = (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
 

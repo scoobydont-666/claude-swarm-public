@@ -1,10 +1,16 @@
 # claude-swarm — Deployment
 
-> Skeleton seeded in P1. Full content populated in P5 (includes final deploy decision from P4).
+## Deploy Model (locked 2026-04-18 — P4 of DoD plan)
 
-## Current State (2026-04-18)
+**systemd on miniboss — Option A.** claude-swarm is the orchestrator for the K3s
+cluster, so placing it ON that cluster is topologically circular. miniboss is
+the command-center host by design; it runs the swarm coordinator, which routes
+work TO the K3s cluster. The prior `k8s/deployment.yaml` was never applied and
+has been removed.
 
-Deployed as **6 systemd units on miniboss**. K3s manifest (`k8s/deployment.yaml`) exists but is NOT applied. The deploy model will be finalized in Phase 4 of the DoD plan (Option A systemd-only vs Option B K3s migration).
+## Current State
+
+Deployed as **6 systemd units on miniboss**.
 
 ## Systemd Units (miniboss)
 

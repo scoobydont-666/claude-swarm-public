@@ -2,16 +2,12 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from hydra_dispatch import (
+    _load_routing_config,
     classify_model_size,
     get_model_gpu_requirements,
-    get_routing_config,
-    _load_routing_config,
 )
 
 

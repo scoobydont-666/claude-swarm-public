@@ -1,7 +1,8 @@
 """Tests for unified model router."""
 
 import pytest
-from src.model_router import ModelRouter, RouteDecision, route_task, DEFAULT_RULES
+
+from src.model_router import ModelRouter, RouteDecision, route_task
 
 
 @pytest.fixture
@@ -68,7 +69,9 @@ class TestLocalPreference:
     def test_prefer_local_uses_ollama(self):
         router = ModelRouter(prefer_local=True)
         decision = router.route("Implement a new feature")
-        assert "devstral" in decision.model or "qwen" in decision.model or "deepseek" in decision.model
+        assert (
+            "devstral" in decision.model or "qwen" in decision.model or "deepseek" in decision.model
+        )
 
 
 class TestConvenience:

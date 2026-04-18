@@ -27,9 +27,7 @@ def dispatch_dir(tmp_path, monkeypatch):
 
 class TestRegister:
     def test_register_creates_task(self, tmp_registry):
-        task = tmp_registry.register(
-            "dispatch-001", host="GIGA", description="test task"
-        )
+        task = tmp_registry.register("dispatch-001", host="GIGA", description="test task")
         assert task.dispatch_id == "dispatch-001"
         assert task.host == "GIGA"
         assert task.status == "running"
@@ -70,13 +68,13 @@ class TestActive:
 
 class TestPoll:
     def test_poll_detects_dead_process(self, tmp_registry):
-        task = tmp_registry.register("d-1", host="GIGA", pid=99999999)
+        tmp_registry.register("d-1", host="GIGA", pid=99999999)
         completed = tmp_registry.poll()
         assert len(completed) == 1
         assert completed[0].status == "completed"
 
     def test_poll_ignores_live_process(self, tmp_registry):
-        task = tmp_registry.register("d-1", host="GIGA", pid=os.getpid())
+        tmp_registry.register("d-1", host="GIGA", pid=os.getpid())
         completed = tmp_registry.poll()
         assert len(completed) == 0
         assert tmp_registry._tasks["d-1"].status == "running"
@@ -133,9 +131,7 @@ class TestCleanup:
     def test_cleanup_keeps_recent(self, tmp_registry):
         tmp_registry.register("d-1", host="GIGA")
         tmp_registry._tasks["d-1"].status = "completed"
-        tmp_registry._tasks["d-1"].completed_at = time.strftime(
-            "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
-        )
+        tmp_registry._tasks["d-1"].completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         removed = tmp_registry.cleanup(max_age_hours=1)
         assert removed == 0
 

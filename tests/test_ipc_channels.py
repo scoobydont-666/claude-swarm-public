@@ -45,7 +45,7 @@ class TestChannels:
     def test_subscribe_and_list(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.channels import create, subscribe, get_subscribers
+        from ipc.channels import create, get_subscribers, subscribe
 
         create("dev-chat")
 
@@ -61,7 +61,7 @@ class TestChannels:
     def test_publish_and_consume(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.channels import create, subscribe, publish, consume
+        from ipc.channels import consume, create, publish, subscribe
 
         create("updates")
         agent_mod._current_agent_id = id_a
@@ -83,7 +83,7 @@ class TestChannels:
     def test_unsubscribe(self, ipc_pair):
         fake, id_a, _ = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.channels import create, subscribe, unsubscribe, get_subscribers
+        from ipc.channels import create, get_subscribers, subscribe, unsubscribe
 
         create("temp")
         agent_mod._current_agent_id = id_a
@@ -106,7 +106,7 @@ class TestChannels:
     def test_string_payload(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.channels import create, subscribe, publish, consume
+        from ipc.channels import consume, create, publish, subscribe
 
         create("chat")
         agent_mod._current_agent_id = id_a

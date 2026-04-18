@@ -56,7 +56,7 @@ swarm sync                        # Force git sync
 | Phase 2 | Task board (create, claim, complete) |
 | Phase 3 | Messaging (direct + broadcast) |
 | Phase 4 | Artifact sharing + health checks |
-| Phase 5 | ✅ Complete — 691 tests |
+| Phase 5 | ✅ Complete — 1,270 tests, 69% coverage (2026-04-18 DoD pass) |
 | v2 S1-S5 | ✅ Complete — registry, events, worktrees, GPU slots, auto-dispatch, auto-scale, rate-limit detection |
 
 ## Hooks

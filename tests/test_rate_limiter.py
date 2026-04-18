@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from rate_limiter import (
     RateLimitEvent,
     RateLimitTracker,
-    detect_rate_limit,
     _classify_limit,
+    detect_rate_limit,
 )
 
 

@@ -66,6 +66,7 @@ def _tier_of(model: str) -> str:
         return "opus"
     return low  # local models or unknown — return as-is
 
+
 # Dead-man switch: max seconds since last human session before pausing
 DEADMAN_THRESHOLD_SECONDS = 86400  # 24 hours
 
