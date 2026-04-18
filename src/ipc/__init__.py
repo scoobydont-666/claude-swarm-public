@@ -26,6 +26,7 @@ Public API:
     ipc.status()
 """
 
+from . import channels, dlq, metrics, rpc
 from .agent import (
     cleanup_stale,
     deregister,
@@ -39,8 +40,6 @@ from .agent import (
 from .direct import broadcast, inbox_depth, recv, recv_iter, send
 from .envelope import Envelope
 from .rpc import RPCError, RPCTimeout
-
-from . import channels, dlq, metrics, rpc
 
 __all__ = [
     # Registration

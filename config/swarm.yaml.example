@@ -1,126 +1,95 @@
+# claude-swarm — swarm.yaml structural template
+#
+# The real config/swarm.yaml is gitignored (contains private fleet IPs and
+# alert email). Deployed hosts render it via Ansible:
+#
+#     ansible-playbook -i inventory site.yml --tags claude_swarm_config
+#
+# For local development, use scripts/render-swarm-config.sh (reads .env +
+# falls back to 127.0.0.1 for fleet IPs).
+#
+# See /opt/hydra-project/ansible/roles/claude_swarm_config/ for the template.
+
 swarm:
   name: hydra-swarm
   version: 1
+
 nodes:
   node-1:
-    ip: 10.0.0.1
+    ip: 10.0.0.1         # replaced by inventory.hostvars[<name>].ansible_host
     role: replica
-    cpu: "CPU description"
-    ram: "RAM description"
-    gpu: "GPU description"
-    capabilities:
-    - docker
-    - cpu
-    - gpu
-    - ollama
-    projects:
-    - project-a
+    capabilities: [docker, tailscale, cpu, gpu, ollama]
+    projects: [project-a]
   node-2:
     ip: 10.0.0.2
     role: primary
-    capabilities:
-    - docker
-    - gpu
-    - ollama
-    - cpu
-    projects:
-    - project-a
-    - project-b
-  node-3:
-    ip: 10.0.0.3
-    role: worker
-    capabilities:
-    - cpu
-    - gpu
-    - ollama
-    - docker
-    projects:
-    - project-a
+    capabilities: [docker, gpu, ollama, tailscale, cpu]
+    projects: [project-a, project-b]
+
 nfs:
   primary: 10.0.0.2:/opt/swarm
   replica: 10.0.0.1:/opt/swarm-replica
   mount_point: /opt/swarm
   sync_interval_seconds: 30
+
 git:
   repo: your-org/your-config-repo
   branch: main
   sync_interval_seconds: 60
   sync_on_task_complete: true
+
 heartbeat:
   interval_seconds: 60
   stale_threshold_seconds: 300
+
 tasks:
   auto_claim: false
   notify_on_new: true
+
 decomposition:
   enabled: true
   auto_suggest: true
   capability_routing:
-    ollama:
-    - node-1
-    - node-2
-    - node-3
-    gpu:
-    - node-1
-    - node-2
-    - node-3
-    cpu:
-    - node-1
-    - node-2
-    - node-3
-    docker:
-    - node-1
-    - node-2
-    - node-3
+    ollama: [node-2, node-1]
+    gpu:    [node-2, node-1]
+    cpu:    [node-1, node-2]
+    docker: [node-1, node-2]
+
 worktrees:
   enabled: true
   base_path: /tmp/swarm-worktrees
   auto_cleanup_hours: 24
   branch_prefix: swarm
+
 summaries:
   enabled: true
   auto_generate: true
   max_decisions: 10
   max_files: 20
   retention_days: 30
+
 work_generator:
   enabled: true
   scan_interval_minutes: 30
   prometheus_url: http://127.0.0.1:9090
   max_pending_tasks: 10
-  projects:
-    project-a:
-      path: /opt/project-a
-      host: node-1
-    project-b:
-      path: /opt/project-b
-      host: node-2
+  projects: {}
+
 auto_dispatch:
   enabled: true
-  mode: full
+  mode: advisory        # full | advisory | off
   max_concurrent_dispatches: 3
+
 scheduled_maintenance:
   daily_hour: 6
   weekly_day: 0
+
 health_monitor:
   enabled: true
   check_interval_seconds: 60
   prometheus_url: http://127.0.0.1:9090
-  email_alerts: admin@example.com
-  hosts:
-    node-1:
-      ip: 10.0.0.1
-      services:
-      - prometheus
-      - grafana-server
-    node-2:
-      ip: 10.0.0.2
-      services:
-      - docker
-    node-3:
-      ip: 10.0.0.3
-      services:
-      - docker
+  email_alerts: ops@example.com   # override per host via Ansible var swarm_email_alerts
+  hosts: {}
   cooldowns:
     restart_service: 600
     force_sync_replica: 300
@@ -130,3 +99,8 @@ health_monitor:
     stale_node_seconds: 600
     dirty_repo_minutes: 480
     gpu_vram_percent: 95
+
+# Opus 4.7 task_budget — advisory token budget the model sees and self-regulates.
+# Min 20_000 per Anthropic spec.
+routing:
+  task_budget_total: 128000

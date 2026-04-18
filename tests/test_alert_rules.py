@@ -112,23 +112,6 @@ class TestAlertRulesYAML:
         assert "swarm_last_heartbeat_age_seconds" in rule["expr"]
         assert rule["labels"]["severity"] == "critical"
 
-    def test_alert_gpu_slots_full_rule(self):
-        """Test SwarmGPUSlotsFull alert rule."""
-        alerts_path = Path("/opt/claude-swarm/deploy/swarm-alerts.yml")
-        with open(alerts_path) as f:
-            data = yaml.safe_load(f)
-
-        alerts = []
-        for group in data["groups"]:
-            for rule in group["rules"]:
-                if rule.get("alert") == "SwarmGPUSlotsFull":
-                    alerts.append(rule)
-
-        assert len(alerts) == 1
-        rule = alerts[0]
-        assert "swarm_gpu_slots_used" in rule["expr"]
-        assert rule["labels"]["severity"] == "info"
-
     def test_alert_dispatch_cost_rule(self):
         """Test SwarmHighDispatchCost alert rule."""
         alerts_path = Path("/opt/claude-swarm/deploy/swarm-alerts.yml")

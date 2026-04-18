@@ -1,0 +1,259 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "claude-swarm Dashboard",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Get Dashboard Html",
+        "description": "Serve the dashboard HTML.",
+        "operationId": "get_dashboard_html__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "summary": "Get Status Api",
+        "description": "Return all node statuses from status JSON files.",
+        "operationId": "get_status_api_api_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Status Api Api Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "summary": "Get Tasks Api",
+        "description": "Return all tasks with stage counts.",
+        "operationId": "get_tasks_api_api_tasks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Tasks Api Api Tasks Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dispatches": {
+      "get": {
+        "summary": "Get Dispatches Api",
+        "description": "Return recent dispatches \u2014 reads from Redis IPC stream first, NFS fallback.",
+        "operationId": "get_dispatches_api_api_dispatches_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Dispatches Api Api Dispatches Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Get Health Api",
+        "description": "Return latest health/infra events \u2014 Redis IPC first, SQLite fallback.",
+        "operationId": "get_health_api_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Health Api Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "summary": "Get Metrics Api",
+        "description": "Return current metrics from swarm state.",
+        "operationId": "get_metrics_api_api_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Metrics Api Api Metrics Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "summary": "Get Events Api",
+        "description": "Return recent health events from SQLite.",
+        "operationId": "get_events_api_api_events_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Events Api Api Events Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpu": {
+      "get": {
+        "summary": "Get Gpu Api",
+        "description": "Return GPU allocation status across the fleet.",
+        "operationId": "get_gpu_api_api_gpu_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Gpu Api Api Gpu Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/warm_models": {
+      "get": {
+        "summary": "Get Warm Models Api",
+        "description": "Return warm (loaded) Ollama models across the fleet.",
+        "operationId": "get_warm_models_api_api_warm_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Warm Models Api Api Warm Models Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ipc_events": {
+      "get": {
+        "summary": "Get Ipc Events Api",
+        "description": "Return recent IPC events from Redis Streams (read-only, no ACK).",
+        "operationId": "get_ipc_events_api_api_ipc_events_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Ipc Events Api Api Ipc Events Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/costs": {
+      "get": {
+        "summary": "Get Costs Api",
+        "description": "Return dispatch cost data from Hydra Pulse.",
+        "operationId": "get_costs_api_api_costs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Costs Api Api Costs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routing": {
+      "get": {
+        "summary": "Get Routing Api",
+        "description": "Return model routing rules and recent decisions.",
+        "operationId": "get_routing_api_api_routing_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Routing Api Api Routing Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

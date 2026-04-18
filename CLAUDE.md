@@ -2,9 +2,10 @@
 
 ## Status
 - `status: PRODUCTION-INTERNAL`
-- `last_verified: 2026-04-17`
+- `last_verified: 2026-04-18`
 - `owner: josh`
 - `tier: infra`
+- `peer_fork: nai-swarm (Nutanix-track, diverged 2026-03-22 — DO NOT conflate; see /home/josh/.claude/projects/-opt-hydra-project/memory/feedback_claude_swarm_vs_nai_swarm.md)`
 
 ## Project Location
 /opt/claude-swarm/

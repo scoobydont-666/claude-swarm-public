@@ -1,11 +1,16 @@
 """Shared pytest fixtures for claude-swarm tests."""
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import yaml
+
+# Mark test environment as dev so config_validation / celery_app don't
+# fail-closed on empty SWARM_REDIS_PASSWORD (fakeredis doesn't use auth).
+os.environ.setdefault("HYDRA_ENV", "dev")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import swarm_lib as lib

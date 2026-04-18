@@ -1,0 +1,97 @@
+[project]
+name = "claude-swarm"
+version = "1.0.0"
+description = "Distributed Claude Code coordination — NFS + git + Redis Streams"
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Josh Jones", email = "r.josh.jones@gmail.com" }]
+
+dependencies = [
+    "celery==5.6.3",
+    "redis==6.4.0",
+    "typer==0.24.1",
+    "rich==14.3.4",
+    "prometheus-client==0.25.0",
+    "PyYAML==6.0.3",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "httpx>=0.28.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "pytest-benchmark>=4.0.0",
+    "fakeredis[lua]==2.34.1",
+    "ruff>=0.8.0",
+]
+codeforge = [
+    # Optional: pipeline benchmark + export_promote helpers. Installed via local editable:
+    # uv pip install -e /opt/ntnx-codeforge
+]
+
+[project.scripts]
+swarm = "src.swarm_cli:app"
+hydra-ipc = "src.ipc.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = [
+    "E501",   # line too long — diagnostic messages and URLs exceed limit
+    "E741",   # ambiguous var name — loop vars like `l` used in list comprehensions
+    "N806",   # mixed case local var — e.g., _FALLBACK = {...} dispatch table
+    "N815",   # mixed case class scope — JSON schema fields
+    "N818",   # exception name should end in Error — RPCTimeout is load-bearing public API
+    "UP042",  # replace-str-enum — StrEnum usage is intentional
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/*.py" = ["E402"]  # conditional imports after sys.path manipulation
+"src/backend.py" = ["F401"]  # intentional conditional imports for backend probing
+"src/events_redis.py" = ["F401"]  # conditional import of util.now_iso
+"src/hydra_dispatch.py" = ["F401"]  # fallback import of model_router
+"src/session.py" = ["F401"]  # fallback import of events_redis.query
+"src/work_generator.py" = ["F401"]  # fallback import of backend.lib
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: fast isolated unit tests",
+    "integration: tests that require live infrastructure (Redis, NFS)",
+    "slow: long-running tests (>5s)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "tests/*",
+    "*/conftest.py",
+    "src/orchestrator.py",  # deleted in P0 — safety net
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

@@ -19,9 +19,8 @@ import shlex
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -33,12 +32,12 @@ try:
     from backend import lib as swarm
 except ImportError:
     import swarm_lib as swarm
-from util import fleet_from_config
-
 import re
 
+from util import fleet_from_config
 
 # ── Model-Size Routing ──────────────────────────────────────────────────────
+
 
 def _load_routing_config() -> dict:
     """Load config/routing.yaml for model-size-aware dispatch."""
@@ -200,13 +199,13 @@ class DispatchSpec:
     """
 
     task: str
-    host: Optional[str] = None
-    model: Optional[str] = None
-    project_dir: Optional[str] = None
+    host: str | None = None
+    model: str | None = None
+    project_dir: str | None = None
     timeout_minutes: int = 30
     background: bool = True
     requires: list[str] = field(default_factory=list)
-    task_id: Optional[str] = None
+    task_id: str | None = None
     track: bool = True
 
 
@@ -275,7 +274,7 @@ def _model_for_task(task_description: str) -> str:
     return "sonnet"
 
 
-def _find_best_host(requires: list[str], task_complexity: str = "") -> Optional[str]:
+def _find_best_host(requires: list[str], task_complexity: str = "") -> str | None:
     """Find the best host for a task using scored performance-based routing.
 
     Uses model-size routing (if task involves GPU inference) + performance ratings
@@ -313,8 +312,8 @@ def _find_best_host(requires: list[str], task_complexity: str = "") -> Optional[
 def dispatch(
     host: str,
     task: str,
-    model: Optional[str] = None,
-    project_dir: Optional[str] = None,
+    model: str | None = None,
+    project_dir: str | None = None,
     timeout_minutes: int = 30,
     background: bool = True,
 ) -> DispatchResult:
@@ -342,12 +341,14 @@ def dispatch(
     if model is None:
         try:
             from model_router import get_model_for_task, route_task
+
             decision = route_task(task)
             model = decision.model
             logger.info(f"Model router: {decision.tier} → {model} (rule: {decision.rule_name})")
             # Emit routing decision via IPC
             try:
                 from ipc_bridge import emit_routing_decision
+
                 emit_routing_decision(task[:200], decision.tier, model, decision.rule_name)
             except Exception:
                 pass
@@ -360,14 +361,18 @@ def dispatch(
     gpu_allocation = None
     try:
         from gpu_scheduler_v2 import GpuScheduler
+
         scheduler = GpuScheduler(exclude_hosts=os.environ.get("SWARM_EXCLUDE_HOSTS", "").split(","))
         # Check if model needs GPU
-        model_needs_gpu = any(kw in model.lower() for kw in ["qwen", "devstral", "deepseek", "llama", "christi"])
+        model_needs_gpu = any(
+            kw in model.lower() for kw in ["qwen", "devstral", "deepseek", "llama", "christi"]
+        )
         if model_needs_gpu or "gpu" in task.lower() or "inference" in task.lower():
             # KV-cache-aware routing: prefer host with model already warm
             prefer = host
             try:
                 from ipc_bridge import find_host_with_warm_model
+
                 warm_host = find_host_with_warm_model(model)
                 if warm_host:
                     logger.info(f"KV-cache hit: {model} warm on {warm_host}")
@@ -380,10 +385,14 @@ def dispatch(
                 prefer_host=prefer,
             )
             if gpu_allocation.success:
-                logger.info(f"GPU allocated: {gpu_allocation.host} GPU {gpu_allocation.gpu_indices} for {model}")
+                logger.info(
+                    f"GPU allocated: {gpu_allocation.host} GPU {gpu_allocation.gpu_indices} for {model}"
+                )
                 # Route to the host with the allocated GPU
                 if gpu_allocation.host != host and gpu_allocation.host in FLEET:
-                    logger.info(f"Re-routing dispatch from {host} to {gpu_allocation.host} (GPU available)")
+                    logger.info(
+                        f"Re-routing dispatch from {host} to {gpu_allocation.host} (GPU available)"
+                    )
                     host = gpu_allocation.host
                     config = FLEET[host]
             else:
@@ -398,13 +407,16 @@ def dispatch(
     if project_dir:
         try:
             from worktree_dispatch import create_worktree
+
             worktree_info = create_worktree(
                 repo_path=project_dir,
                 dispatch_id=dispatch_id,
                 host=host,
             )
             if worktree_info:
-                logger.info(f"Worktree created: {worktree_info.path} (branch {worktree_info.branch})")
+                logger.info(
+                    f"Worktree created: {worktree_info.path} (branch {worktree_info.branch})"
+                )
                 project_dir = worktree_info.path  # redirect dispatch to worktree
         except ImportError:
             pass
@@ -490,6 +502,7 @@ def dispatch(
         # v3: Emit IPC event (primary coordination layer)
         try:
             from ipc_bridge import emit_dispatch_started
+
             emit_dispatch_started(dispatch_id, host, model, task)
         except Exception:
             pass  # IPC is best-effort; NFS is the fallback
@@ -528,9 +541,7 @@ def dispatch(
                 task_id=dispatch_id,
                 hostname=host,
                 success=(result.status == "completed"),
-                error_type="timeout"
-                if "Timeout" in result.error
-                else result.error[:100],
+                error_type="timeout" if "Timeout" in result.error else result.error[:100],
             )
         except ImportError:
             pass
@@ -541,6 +552,7 @@ def dispatch(
             scheduler.release(gpu_allocation.host, gpu_allocation.gpu_indices)
             logger.info(f"GPU released: {gpu_allocation.host} GPU {gpu_allocation.gpu_indices}")
             from ipc_bridge import emit_gpu_released
+
             for idx in gpu_allocation.gpu_indices:
                 emit_gpu_released(gpu_allocation.host, idx, dispatch_id)
         except Exception as e:
@@ -550,28 +562,35 @@ def dispatch(
     if worktree_info:
         try:
             from worktree_dispatch import merge_worktree
+
             merged = merge_worktree(worktree_info, host=host)
             if merged:
                 logger.info(f"Worktree merged: {worktree_info.branch} → main")
             else:
-                logger.warning(f"Worktree merge failed — branch {worktree_info.branch} preserved for manual review")
+                logger.warning(
+                    f"Worktree merge failed — branch {worktree_info.branch} preserved for manual review"
+                )
         except Exception as e:
             logger.warning(f"Worktree merge error: {e}")
 
     # ── Query cost on completion (v3) ─────────────────────────────────────
     try:
         from cost_tracker import get_task_cost
+
         cost = get_task_cost(dispatch_id)
         if cost and cost.total_cost_usd > 0:
             result.actual_cost_usd = cost.total_cost_usd
-            logger.info(f"Dispatch cost: ${cost.total_cost_usd:.4f} ({cost.total_input_tokens}+{cost.total_output_tokens} tokens)")
+            logger.info(
+                f"Dispatch cost: ${cost.total_cost_usd:.4f} ({cost.total_input_tokens}+{cost.total_output_tokens} tokens)"
+            )
     except Exception:
         pass
 
     # ── Emit dispatch completion IPC event ─────────────────────────────────
     try:
         from ipc_bridge import emit_dispatch_completed
-        cost_usd = getattr(result, 'actual_cost_usd', 0.0)
+
+        cost_usd = getattr(result, "actual_cost_usd", 0.0)
         emit_dispatch_completed(dispatch_id, host, result.status, cost_usd=cost_usd)
     except Exception:
         pass
@@ -630,7 +649,7 @@ def dispatch_from_spec(spec: DispatchSpec) -> DispatchResult:
     return result
 
 
-def dispatch_swarm_task(task_id: str, model: Optional[str] = None) -> DispatchResult:
+def dispatch_swarm_task(task_id: str, model: str | None = None) -> DispatchResult:
     """Dispatch a swarm task to the best-matching host."""
     # Read the task
     pending_path = Path("/opt/swarm/tasks/pending") / f"{task_id}.yaml"
@@ -720,16 +739,10 @@ def main() -> None:
     dp.add_argument("--host", help="Target host (auto-selects if not specified)")
     dp.add_argument("--task", required=True, help="Task description / prompt")
     dp.add_argument("--task-id", help="Claim and dispatch a swarm task by ID")
-    dp.add_argument(
-        "--model", choices=["haiku", "sonnet", "opus"], help="Override model"
-    )
+    dp.add_argument("--model", choices=["haiku", "sonnet", "opus"], help="Override model")
     dp.add_argument("--project", help="Working directory on remote host")
-    dp.add_argument(
-        "--sync", action="store_true", help="Run synchronously (wait for result)"
-    )
-    dp.add_argument(
-        "--timeout", type=int, default=30, help="Timeout in minutes (sync only)"
-    )
+    dp.add_argument("--sync", action="store_true", help="Run synchronously (wait for result)")
+    dp.add_argument("--timeout", type=int, default=30, help="Timeout in minutes (sync only)")
 
     # status
     sub.add_parser("status", help="Show all dispatches")

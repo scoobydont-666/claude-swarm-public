@@ -21,13 +21,13 @@ import os
 import sqlite3
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Ensure src/ imports resolve when run directly
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prometheus_client import Gauge, Counter, start_http_server
+from prometheus_client import Counter, Gauge, start_http_server
 
 # ---------------------------------------------------------------------------
 # Config
@@ -127,7 +127,7 @@ def _collect_node_metrics() -> tuple[dict[str, int], int, list[tuple[str, float]
         log.warning("STATUS_DIR does not exist: %s", STATUS_DIR)
         return state_counts, active_sessions, heartbeat_ages
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     for path in STATUS_DIR.glob("*.json"):
         try:
@@ -175,9 +175,7 @@ def _collect_task_metrics() -> dict[str, int]:
         state_dir = TASKS_DIR / state
         if state_dir.is_dir():
             try:
-                counts[state] = sum(
-                    1 for name in os.listdir(state_dir) if name.endswith(".yaml")
-                )
+                counts[state] = sum(1 for name in os.listdir(state_dir) if name.endswith(".yaml"))
             except OSError:
                 counts[state] = 0
 

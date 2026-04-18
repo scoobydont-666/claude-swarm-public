@@ -17,8 +17,8 @@ Usage in .mcp.json:
 """
 
 import json
-import sys
 import logging
+import sys
 from pathlib import Path
 
 # Add swarm source to path
@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 logger = logging.getLogger(__name__)
 
 # ── MCP Protocol Helpers ──────────────────────────────────────────────────────
+
 
 def send_response(id, result=None, error=None):
     """Send a JSON-RPC response to stdout."""
@@ -121,6 +122,7 @@ TOOLS = [
 
 # ── Tool Implementations ──────────────────────────────────────────────────────
 
+
 def handle_tool_call(name, arguments):
     """Handle a tool call and return the result."""
     try:
@@ -139,9 +141,16 @@ def handle_tool_call(name, arguments):
         elif name == "swarm_route_model":
             return _route_model(arguments)
         else:
-            return {"content": [{"type": "text", "text": json.dumps({"error": f"Unknown tool: {name}"})}]}
+            return {
+                "content": [
+                    {"type": "text", "text": json.dumps({"error": f"Unknown tool: {name}"})}
+                ]
+            }
     except Exception as e:
-        return {"content": [{"type": "text", "text": json.dumps({"error": str(e)})}], "isError": True}
+        return {
+            "content": [{"type": "text", "text": json.dumps({"error": str(e)})}],
+            "isError": True,
+        }
 
 
 def _text_result(data):
@@ -151,6 +160,7 @@ def _text_result(data):
 def _task_create(args):
     try:
         from backend import lib as swarm
+
         task_id = swarm.create_task(
             title=args.get("title", ""),
             description=args.get("description", ""),
@@ -166,6 +176,7 @@ def _task_create(args):
 def _task_list(args):
     try:
         from backend import lib as swarm
+
         state = args.get("state", "pending")
         limit = args.get("limit", 20)
         tasks = swarm.list_tasks(state=state if state != "all" else None)
@@ -177,18 +188,21 @@ def _task_list(args):
 def _dispatch(args):
     try:
         from hydra_dispatch import dispatch
+
         result = dispatch(
             host=args.get("host", "MEGA"),
             task=args["task"],
             model=args.get("model"),
             project_dir=args.get("project_dir"),
         )
-        return _text_result({
-            "dispatch_id": result.dispatch_id,
-            "host": result.host,
-            "model": result.model,
-            "status": result.status,
-        })
+        return _text_result(
+            {
+                "dispatch_id": result.dispatch_id,
+                "host": result.host,
+                "model": result.model,
+                "status": result.status,
+            }
+        )
     except Exception as e:
         return _text_result({"error": str(e)})
 
@@ -196,6 +210,7 @@ def _dispatch(args):
 def _status():
     try:
         from backend import lib as swarm
+
         nodes = swarm.get_all_statuses()
         return _text_result({"nodes": nodes})
     except Exception as e:
@@ -205,6 +220,7 @@ def _status():
 def _gpu_status():
     try:
         from gpu_scheduler_v2 import GpuScheduler
+
         scheduler = GpuScheduler()
         return _text_result(scheduler.get_status())
     except Exception as e:
@@ -219,19 +235,23 @@ def _pipeline_run(args):
 
         # Dynamic pipeline import
         import importlib
+
         mod = importlib.import_module(f"pipelines.{pipeline_name}")
         pipeline = mod.create(project_dir=project_dir)
 
         from pipeline import PipelineExecutor
+
         executor = PipelineExecutor()
         result = executor.execute(pipeline, {"input": input_text, "project_dir": project_dir})
 
-        return _text_result({
-            "pipeline": pipeline_name,
-            "pipeline_id": result.pipeline_id,
-            "status": result.status,
-            "stages_completed": len(result.stage_results),
-        })
+        return _text_result(
+            {
+                "pipeline": pipeline_name,
+                "pipeline_id": result.pipeline_id,
+                "status": result.status,
+                "stages_completed": len(result.stage_results),
+            }
+        )
     except Exception as e:
         return _text_result({"error": str(e)})
 
@@ -239,19 +259,23 @@ def _pipeline_run(args):
 def _route_model(args):
     try:
         from model_router import route_task
+
         decision = route_task(args["task_description"])
-        return _text_result({
-            "rule": decision.rule_name,
-            "tier": decision.tier,
-            "model": decision.model,
-            "fallback": decision.fallback_model,
-            "reason": decision.reason,
-        })
+        return _text_result(
+            {
+                "rule": decision.rule_name,
+                "tier": decision.tier,
+                "model": decision.model,
+                "fallback": decision.fallback_model,
+                "reason": decision.reason,
+            }
+        )
     except Exception as e:
         return _text_result({"error": str(e)})
 
 
 # ── MCP Server Main Loop ─────────────────────────────────────────────────────
+
 
 def main():
     """stdio MCP server main loop."""
@@ -270,11 +294,14 @@ def main():
         params = request.get("params", {})
 
         if method == "initialize":
-            send_response(req_id, {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {"tools": {"listChanged": False}},
-                "serverInfo": {"name": "swarm-mcp", "version": "3.0.0"},
-            })
+            send_response(
+                req_id,
+                {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {"listChanged": False}},
+                    "serverInfo": {"name": "swarm-mcp", "version": "3.0.0"},
+                },
+            )
         elif method == "initialized":
             pass  # notification, no response
         elif method == "tools/list":

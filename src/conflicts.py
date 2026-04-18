@@ -8,16 +8,16 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
 import subprocess
+from datetime import UTC, datetime
 from typing import Any
 
 LOG = logging.getLogger(__name__)
 
 try:
-    from registry_redis import list_agents, AgentInfo, SWARM_ROOT
+    from registry_redis import SWARM_ROOT, AgentInfo, list_agents
 except (ImportError, Exception):
-    from registry import list_agents, AgentInfo, SWARM_ROOT
+    from registry import SWARM_ROOT, AgentInfo, list_agents
 
 GPU_SLOTS_FILE = SWARM_ROOT / "gpu_slots.json"
 
@@ -38,9 +38,7 @@ def check_project_conflict(project: str, my_agent_id: str = "") -> dict[str, Any
         {"conflict": bool, "agents": [...], "safe": bool}
     """
     agents_by_project = get_working_agents_by_project()
-    others = [
-        a for a in agents_by_project.get(project, []) if a.agent_id != my_agent_id
-    ]
+    others = [a for a in agents_by_project.get(project, []) if a.agent_id != my_agent_id]
 
     return {
         "conflict": len(others) > 0,
@@ -115,7 +113,7 @@ def claim_gpu_slot(gpu_index: int, agent_id: str, model: str = "") -> bool:
     data["slots"][slot_key] = {
         "agent_id": agent_id,
         "model": model,
-        "claimed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "claimed_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     _write_gpu_slots(data)
     return True

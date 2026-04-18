@@ -18,9 +18,9 @@ import signal
 import socket
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import requests
 import yaml
@@ -31,7 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from event_log import EventLog
 from health_rules import RULES
 from remediations import RemediationEngine
-from util import now_iso as _now_iso, now_ts as _now_ts, projects_for_host
+from util import now_iso as _now_iso
+from util import now_ts as _now_ts
+from util import projects_for_host
 
 # ---------------------------------------------------------------------------
 # Logging setup
@@ -121,15 +123,13 @@ def _merge_config(base: dict, override: dict) -> dict:
 class HealthMonitor:
     """Watches Prometheus, services, NFS, and git state. Auto-remediates or escalates."""
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: dict | None = None) -> None:
         yaml_cfg = _load_swarm_config()
         self.config: dict[str, Any] = _merge_config(DEFAULT_CONFIG, yaml_cfg)
         if config:
             self.config = _merge_config(self.config, config)
 
-        self.prometheus_url: str = self.config.get(
-            "prometheus_url", "http://127.0.0.1:9090"
-        )
+        self.prometheus_url: str = self.config.get("prometheus_url", "http://127.0.0.1:9090")
         self.check_interval: int = int(self.config.get("check_interval_seconds", 60))
         self.hosts: dict[str, Any] = self.config.get("hosts", {})
         self.cooldowns_cfg: dict[str, int] = self.config.get("cooldowns", {})
@@ -293,7 +293,7 @@ class HealthMonitor:
             from swarm_lib import get_all_status
 
             stale = []
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             for status in get_all_status():
                 updated = status.get("updated_at", "")
                 if not updated:
@@ -355,9 +355,7 @@ class HealthMonitor:
                     for line in result.stdout.strip().splitlines():
                         # git status --porcelain format: XY filename
                         filepath = line[3:].strip().strip('"')
-                        if not any(
-                            fnmatch.fnmatch(filepath, pat) for pat in exclude_patterns
-                        ):
+                        if not any(fnmatch.fnmatch(filepath, pat) for pat in exclude_patterns):
                             dirty_lines.append(line)
 
                     if not dirty_lines:
@@ -377,9 +375,7 @@ class HealthMonitor:
                             last_commit_ts = float(age_result.stdout.strip())
                         except ValueError:
                             pass
-                    age_minutes = (
-                        (_now_ts() - last_commit_ts) / 60 if last_commit_ts else 9999
-                    )
+                    age_minutes = (_now_ts() - last_commit_ts) / 60 if last_commit_ts else 9999
                     if age_minutes >= threshold_minutes:
                         triggered.append(
                             {
@@ -440,7 +436,7 @@ class HealthMonitor:
 
             # Read it back
             start = time.time()
-            with open(test_file, "r") as f:
+            with open(test_file) as f:
                 content = f.read()
             read_time = time.time() - start
 
@@ -469,7 +465,7 @@ class HealthMonitor:
                     }
                 )
 
-        except (OSError, IOError, TimeoutError) as exc:
+        except (OSError, TimeoutError) as exc:
             triggered.append(
                 {
                     "host": socket.gethostname(),
@@ -494,7 +490,7 @@ class HealthMonitor:
         if not claimed_dir.is_dir():
             return triggered
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         for task_file in claimed_dir.glob("*.yaml"):
             try:
@@ -509,10 +505,8 @@ class HealthMonitor:
                     continue
 
                 try:
-                    claimed_dt = datetime.fromisoformat(
-                        claimed_at_str.replace("Z", "+00:00")
-                    )
-                    deadline = claimed_dt.replace(tzinfo=timezone.utc) + timedelta(
+                    claimed_dt = datetime.fromisoformat(claimed_at_str.replace("Z", "+00:00"))
+                    deadline = claimed_dt.replace(tzinfo=UTC) + timedelta(
                         minutes=estimated_minutes * 2
                     )
 
@@ -577,7 +571,7 @@ class HealthMonitor:
 
         # Build email subject with hostname convention
         hostname = socket.gethostname()
-        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date_str = datetime.now(UTC).strftime("%Y-%m-%d")
         email_subject = f"{hostname}-health-alert-{rule['name']}-{date_str}"
 
         # Build readable body
@@ -629,8 +623,7 @@ class HealthMonitor:
                     if not success and rule.get("escalate") == "email":
                         _, email_detail = self.remediation.send_alert_email(
                             subject=kwargs["subject"],
-                            body=kwargs["body"]
-                            + f"\nRemediation result: {action_result}",
+                            body=kwargs["body"] + f"\nRemediation result: {action_result}",
                         )
                         escalated_to = f"email: {email_detail}"
                         log.warning("Escalated to email: %s", email_detail)
@@ -656,9 +649,7 @@ class HealthMonitor:
                     log.error("Notification failed: %s", exc)
         else:
             if self._in_cooldown(rule, host):
-                log.debug(
-                    "Rule '%s' host '%s' is in cooldown — skipping", rule_name, host
-                )
+                log.debug("Rule '%s' host '%s' is in cooldown — skipping", rule_name, host)
             action_result = "skipped (cooldown or no action configured)"
 
         # Always record in event log
@@ -686,9 +677,7 @@ class HealthMonitor:
         if available:
             self._prom_consecutive_failures = 0
         else:
-            self._prom_consecutive_failures = (
-                getattr(self, "_prom_consecutive_failures", 0) + 1
-            )
+            self._prom_consecutive_failures = getattr(self, "_prom_consecutive_failures", 0) + 1
 
         return available
 
@@ -736,9 +725,7 @@ class HealthMonitor:
         # Pre-check Prometheus once per cycle to avoid repeated failures
         prom_ok = self._prometheus_available()
         if not prom_ok:
-            log.debug(
-                "Prometheus unreachable — skipping prometheus_query rules this cycle"
-            )
+            log.debug("Prometheus unreachable — skipping prometheus_query rules this cycle")
 
         futures: dict[concurrent.futures.Future, dict] = {}
         for rule in self.rules:

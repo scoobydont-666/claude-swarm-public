@@ -4,7 +4,7 @@ import json
 import os
 import socket
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -13,12 +13,12 @@ import yaml
 
 def now_iso() -> str:
     """Return current UTC time as ISO 8601 string."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def now_ts() -> float:
     """Return current UTC time as Unix timestamp."""
-    return datetime.now(timezone.utc).timestamp()
+    return datetime.now(UTC).timestamp()
 
 
 def hostname() -> str:
@@ -35,7 +35,7 @@ def relative_time(ts) -> str:
             age = time.time() - ts
         else:
             dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
-            age = (datetime.now(timezone.utc) - dt).total_seconds()
+            age = (datetime.now(UTC) - dt).total_seconds()
         if age < 0:
             return "just now"
         if age < 60:
