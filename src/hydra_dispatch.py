@@ -36,6 +36,42 @@ import re
 
 from util import fleet_from_config
 
+# ── Worker Context Assembly (CB delta mode) ────────────────────────────────
+try:
+    from worker_context_assembly import build_worker_dispatch_prompt
+    WORKER_CONTEXT_ASSEMBLY_AVAILABLE = True
+except ImportError:
+    WORKER_CONTEXT_ASSEMBLY_AVAILABLE = False
+    logger.warning("worker_context_assembly not available; worker CB assembly disabled")
+
+# Try to import metrics
+try:
+    from prom_boilerplate import make_gauge
+    _prom_registry = None
+    def _get_metrics():
+        global _prom_registry
+        if _prom_registry is None:
+            from prom_boilerplate import make_registry
+            _prom_registry = make_registry()
+        return {
+            "worker_context_bytes": make_gauge(
+                "routing_worker_context_bytes",
+                "Worker dispatch assembled context size in bytes",
+                labelnames=["dispatch_id", "worker_tier"],
+                registry=_prom_registry,
+            ),
+            "worker_context_savings": make_gauge(
+                "routing_worker_context_savings_pct",
+                "Worker dispatch context size savings percentage",
+                labelnames=["dispatch_id", "worker_tier"],
+                registry=_prom_registry,
+            ),
+        }
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+    logger.debug("prom_boilerplate not available; metrics disabled")
+
 # ── Model-Size Routing ──────────────────────────────────────────────────────
 
 
@@ -274,6 +310,75 @@ def _model_for_task(task_description: str) -> str:
     return "sonnet"
 
 
+def _assemble_worker_context(
+    task: str,
+    target_files: list[str] | None = None,
+    repo_name: str | None = None,
+    language: str = "python",
+    worker_tier: str | None = None,
+    context_mode: str = "delta",
+) -> tuple[str, dict]:
+    """Assemble worker dispatch prompt using CB context assembly.
+
+    Args:
+        task: Task description
+        target_files: Optional list of file paths to include
+        repo_name: Repository name for CB scoping
+        language: Programming language
+        worker_tier: Worker tier (auto-selects if None)
+        context_mode: "delta" (CB-assembled, default) or "full" (legacy, opt-out)
+
+    Returns:
+        Tuple of (assembled_prompt, metadata_dict) for metrics emission.
+        Falls back to original task on any error.
+    """
+    if not WORKER_CONTEXT_ASSEMBLY_AVAILABLE:
+        return task, {}
+
+    try:
+        # Auto-select worker tier based on task complexity
+        if worker_tier is None:
+            if "small" in task.lower() or "quick" in task.lower():
+                worker_tier = "worker-sm"
+            elif "large" in task.lower() or "complex" in task.lower():
+                worker_tier = "worker-lg"
+            else:
+                worker_tier = "worker-md"  # default
+
+        result = build_worker_dispatch_prompt(
+            task_description=task,
+            target_files=target_files,
+            repo_name=repo_name,
+            language=language,
+            worker_tier=worker_tier,
+            context_mode=context_mode,
+        )
+
+        # Emit metrics if available
+        if METRICS_AVAILABLE and "dispatch_id" in globals():
+            try:
+                metrics = _get_metrics()
+                meta = result.get("metadata", {})
+                dispatch_id = globals().get("current_dispatch_id", "unknown")
+                metrics["worker_context_bytes"].labels(
+                    dispatch_id=dispatch_id, worker_tier=worker_tier
+                ).set(meta.get("assembled_context_bytes", 0))
+                metrics["worker_context_savings"].labels(
+                    dispatch_id=dispatch_id, worker_tier=worker_tier
+                ).set(meta.get("context_savings_pct", 0))
+            except Exception as e:
+                logger.debug("Failed to emit worker context metrics: %s", e)
+
+        # Return assembled system+user prompt
+        assembled_task = (
+            result.get("system", "") + "\n\n---\n\n" + result.get("user", "")
+        )
+        return assembled_task, result.get("metadata", {})
+    except Exception as e:
+        logger.warning("Worker context assembly failed (falling back to original task): %s", e)
+        return task, {}
+
+
 def _find_best_host(requires: list[str], task_complexity: str = "") -> str | None:
     """Find the best host for a task using scored performance-based routing.
 
@@ -336,6 +441,26 @@ def dispatch(
     config = FLEET[host]
     dispatch_id = f"dispatch-{int(time.time())}-{host}"
     output_file = str(DISPATCH_DIR / f"{dispatch_id}.output")
+
+    # ── Worker Context Assembly (routing-protocol-v1 §5) ──────────────────
+    # Assemble CB-augmented context for worker dispatch (delta mode by default)
+    # Pass context_mode="full" to opt-out and use legacy full-file dispatch
+    worker_context_mode = os.environ.get("SWARM_WORKER_CONTEXT_MODE", "delta")
+    if worker_context_mode != "disabled":
+        task, wca_metadata = _assemble_worker_context(
+            task=task,
+            target_files=None,  # workers get inline context, not file references
+            repo_name=project_dir.split("/")[-1] if project_dir else "unknown",
+            language="python",  # default; could be inferred from task
+            context_mode=worker_context_mode,
+        )
+        if wca_metadata:
+            logger.info(
+                "Worker context assembled: %d bytes, %d%% savings, tier=%s",
+                wca_metadata.get("assembled_context_bytes", 0),
+                wca_metadata.get("context_savings_pct", 0),
+                wca_metadata.get("worker_tier", "unknown"),
+            )
 
     # Auto-select model using unified model router (v3)
     if model is None:
