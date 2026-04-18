@@ -1,10 +1,9 @@
 """Tests for sync engine — git sync and config propagation."""
 
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
-import subprocess
-
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -58,9 +57,7 @@ class TestGitPull:
         (tmp_path / ".git").mkdir()
         from sync_engine import git_pull
 
-        with patch(
-            "sync_engine._run", return_value=_completed(stdout="Already up to date.")
-        ):
+        with patch("sync_engine._run", return_value=_completed(stdout="Already up to date.")):
             result = git_pull(str(tmp_path))
         assert result["status"] == "ok"
 
@@ -68,9 +65,7 @@ class TestGitPull:
         (tmp_path / ".git").mkdir()
         from sync_engine import git_pull
 
-        with patch(
-            "sync_engine._run", return_value=_completed(returncode=1, stderr="error")
-        ):
+        with patch("sync_engine._run", return_value=_completed(returncode=1, stderr="error")):
             result = git_pull(str(tmp_path))
         assert result["status"] == "error"
 
@@ -125,9 +120,7 @@ class TestPullAllProjects:
     def test_skips_nonexistent_projects(self):
         from sync_engine import pull_all_projects
 
-        with patch(
-            "sync_engine.projects_for_host", return_value=["/nonexistent/project"]
-        ):
+        with patch("sync_engine.projects_for_host", return_value=["/nonexistent/project"]):
             results = pull_all_projects()
         assert results == {}
 
@@ -140,9 +133,7 @@ class TestGetDirtyRepos:
         from sync_engine import get_dirty_repos
 
         with patch("sync_engine.projects_for_host", return_value=[str(proj)]):
-            with patch(
-                "sync_engine._run", return_value=_completed(stdout="M file.py\n")
-            ):
+            with patch("sync_engine._run", return_value=_completed(stdout="M file.py\n")):
                 result = get_dirty_repos()
         assert len(result) == 1
         assert result[0]["project"] == str(proj)
@@ -183,9 +174,7 @@ class TestPullAllProjectsParallel:
 
         from sync_engine import pull_all_projects
 
-        with patch(
-            "sync_engine.projects_for_host", return_value=[str(proj1), str(proj2)]
-        ):
+        with patch("sync_engine.projects_for_host", return_value=[str(proj1), str(proj2)]):
             with patch("sync_engine.git_pull", side_effect=slow_pull):
                 start = _time.monotonic()
                 results = pull_all_projects()
@@ -212,9 +201,7 @@ class TestPullAllProjectsParallel:
 
         from sync_engine import pull_all_projects
 
-        with patch(
-            "sync_engine.projects_for_host", return_value=[str(proj_ok), str(proj_bad)]
-        ):
+        with patch("sync_engine.projects_for_host", return_value=[str(proj_ok), str(proj_bad)]):
             with patch("sync_engine.git_pull", side_effect=selective_pull):
                 results = pull_all_projects()
 

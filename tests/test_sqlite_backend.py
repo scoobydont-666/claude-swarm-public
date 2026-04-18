@@ -1,6 +1,5 @@
 """Tests for SQLite task backend — NAI Swarm backport."""
 
-import os
 import sys
 import time
 from pathlib import Path
@@ -51,7 +50,7 @@ class TestClaim:
         assert claimed["claimed_by"] == "agent-1"
 
     def test_claim_specific(self, db):
-        t1 = db.create("Task 1")
+        db.create("Task 1")
         t2 = db.create("Task 2")
         claimed = db.claim("agent-1", task_id=t2["id"])
         assert claimed["id"] == t2["id"]

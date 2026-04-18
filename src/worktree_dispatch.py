@@ -9,6 +9,7 @@ Patterns from Cursor Background Agents and Claude Code Agent Teams.
 
 import logging
 import shlex
+import socket
 import subprocess
 import time
 from dataclasses import dataclass
@@ -17,6 +18,26 @@ logger = logging.getLogger(__name__)
 
 WORKTREE_BASE = "/tmp/swarm-worktrees"
 BRANCH_PREFIX = "swarm"
+
+
+def _is_localhost(host: str) -> bool:
+    """Socket-based localhost detection (audit remediation #3).
+
+    Handles hostname synonyms and DNS aliases via resolution.
+    """
+    if not host:
+        return False
+    norm = host.strip().lower()
+    if norm in ("localhost", "127.0.0.1", "::1", socket.gethostname().lower()):
+        return True
+    if norm in ("mega", "$(hostname)"):
+        # Legacy script-artifact values that mean "run locally".
+        return True
+    try:
+        resolved = socket.gethostbyname(norm)
+        return resolved in ("127.0.0.1", "::1")
+    except (socket.gaierror, socket.herror):
+        return False
 
 
 @dataclass
@@ -62,7 +83,7 @@ def create_worktree(
     full_cmd = " && ".join(cmds)
 
     try:
-        if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
+        if _is_localhost(host):
             result = subprocess.run(
                 ["bash", "-c", full_cmd],
                 capture_output=True,
@@ -131,7 +152,7 @@ def merge_worktree(
     full_cmd = " && ".join(cmds)
 
     try:
-        if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
+        if _is_localhost(host):
             result = subprocess.run(
                 ["bash", "-c", full_cmd],
                 capture_output=True,
@@ -174,7 +195,7 @@ def cleanup_worktree(
     full_cmd = " && ".join(cmds)
 
     try:
-        if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
+        if _is_localhost(host):
             subprocess.run(["bash", "-c", full_cmd], capture_output=True, timeout=15)
         else:
             subprocess.run(
@@ -193,7 +214,7 @@ def list_worktrees(repo_path: str, host: str = "localhost") -> list[str]:
     """List active worktrees for a repo."""
     cmd = f"cd {shlex.quote(repo_path)} && git worktree list --porcelain"
     try:
-        if host == "localhost":
+        if _is_localhost(host):
             result = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True, timeout=10)
         else:
             result = subprocess.run(

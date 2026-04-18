@@ -3,9 +3,9 @@
 import json
 import sqlite3
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import yaml
 
@@ -16,7 +16,7 @@ class TestCollectNodeMetrics:
     def test_counts_by_state(self, tmp_path):
         status_dir = tmp_path / "status"
         status_dir.mkdir()
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         (status_dir / "miniboss.json").write_text(
             json.dumps(
                 {
@@ -85,9 +85,7 @@ class TestCollectNodeMetrics:
     def test_heartbeat_age_calculation(self, tmp_path):
         status_dir = tmp_path / "status"
         status_dir.mkdir()
-        old_time = (datetime.now(timezone.utc) - timedelta(minutes=5)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        old_time = (datetime.now(UTC) - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
         (status_dir / "node.json").write_text(
             json.dumps(
                 {
@@ -159,9 +157,7 @@ class TestCollectDispatchCosts:
     def test_sums_costs(self, tmp_path, monkeypatch):
         dispatches_dir = tmp_path / "dispatches"
         dispatches_dir.mkdir()
-        for i, (host, cost) in enumerate(
-            [("GIGA", 0.50), ("miniboss", 0.25), ("GIGA", 0.75)]
-        ):
+        for i, (host, cost) in enumerate([("GIGA", 0.50), ("miniboss", 0.25), ("GIGA", 0.75)]):
             (dispatches_dir / f"d{i}.plan.yaml").write_text(
                 yaml.dump(
                     {
@@ -170,10 +166,8 @@ class TestCollectDispatchCosts:
                     }
                 )
             )
-        import swarm_metrics
 
         # Monkeypatch the hardcoded path inside the function
-        original_func = swarm_metrics._collect_dispatch_costs
 
         def patched():
             total = 0.0

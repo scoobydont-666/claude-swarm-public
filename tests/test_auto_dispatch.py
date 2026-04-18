@@ -12,7 +12,6 @@ from auto_dispatch import AutoDispatcher, _tier_of
 from model_router import get_model_for_task
 from work_generator import infer_model  # noqa: F401  (legacy; used by other tests)
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -298,7 +297,7 @@ class TestHostMatching:
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
             patch("auto_dispatch._find_best_host", return_value="GIGA") as mock_host,
-            patch("auto_dispatch.dispatch", return_value=fake_result) as mock_dispatch,
+            patch("auto_dispatch.dispatch", return_value=fake_result),
         ):
             dispatched = dispatcher.process_pending_tasks()
 

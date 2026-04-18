@@ -3,8 +3,8 @@
 Uses fakeredis — no real Redis needed.
 """
 
-import sys
 import os
+import sys
 
 import fakeredis
 import pytest
@@ -12,8 +12,7 @@ import pytest
 # Ensure src is on path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from src import redis_client
-from src import swarm_redis
+from src import redis_client, swarm_redis
 
 
 @pytest.fixture(autouse=True)
@@ -62,7 +61,7 @@ class TestTaskOperations:
         assert len(pending) == 2
 
     def test_claim_task(self):
-        from src.swarm_redis import create_task, claim_task, list_tasks
+        from src.swarm_redis import claim_task, create_task, list_tasks
 
         task = create_task("Claimable task")
         claimed = claim_task(task["id"])
@@ -77,7 +76,7 @@ class TestTaskOperations:
             claim_task("task-9999")
 
     def test_claim_next_task(self):
-        from src.swarm_redis import create_task, claim_next_task
+        from src.swarm_redis import claim_next_task, create_task
 
         create_task("Low prio", priority="low")
         create_task("High prio", priority="high")
@@ -91,11 +90,11 @@ class TestTaskOperations:
         assert claim_next_task() is None
 
     def test_complete_task(self):
-        from src.swarm_redis import create_task, claim_task, complete_task, list_tasks
+        from src.swarm_redis import claim_task, complete_task, create_task, list_tasks
 
         task = create_task("Completable")
         claim_task(task["id"])
-        result = complete_task(task["id"], result_artifact="/tmp/output.txt")
+        complete_task(task["id"], result_artifact="/tmp/output.txt")
         assert len(list_tasks("completed")) == 1
         assert len(list_tasks("claimed")) == 0
 
@@ -119,7 +118,7 @@ class TestTaskOperations:
 
 class TestStatusOperations:
     def test_update_and_get_status(self):
-        from src.swarm_redis import update_status, get_status
+        from src.swarm_redis import get_status, update_status
 
         update_status(state="busy", task_id="task-001")
         status = get_status("test-host")
@@ -128,7 +127,7 @@ class TestStatusOperations:
         assert status["task_id"] == "task-001"
 
     def test_get_all_status(self):
-        from src.swarm_redis import update_status, get_all_status
+        from src.swarm_redis import get_all_status, update_status
 
         update_status(state="idle")
         all_status = get_all_status()
@@ -136,7 +135,7 @@ class TestStatusOperations:
         assert "test-host" in hostnames
 
     def test_health_check(self):
-        from src.swarm_redis import health_check, create_task
+        from src.swarm_redis import create_task, health_check
 
         create_task("Pending task")
         hc = health_check()
@@ -146,7 +145,7 @@ class TestStatusOperations:
 
 class TestMessaging:
     def test_send_and_read(self):
-        from src.swarm_redis import send_message, read_inbox
+        from src.swarm_redis import read_inbox, send_message
 
         send_message("test-host", {"action": "deploy"})
         msgs = read_inbox("test-host")
@@ -182,11 +181,11 @@ class TestDecomposition:
 
     def test_check_parent_completion(self):
         from src.swarm_redis import (
-            create_task,
-            decompose_task,
+            check_parent_completion,
             claim_task,
             complete_task,
-            check_parent_completion,
+            create_task,
+            decompose_task,
         )
 
         parent = create_task("Parent")
@@ -205,11 +204,11 @@ class TestDecomposition:
 
     def test_parent_not_complete_if_subtask_pending(self):
         from src.swarm_redis import (
-            create_task,
-            decompose_task,
+            check_parent_completion,
             claim_task,
             complete_task,
-            check_parent_completion,
+            create_task,
+            decompose_task,
         )
 
         parent = create_task("Parent")

@@ -1,7 +1,7 @@
 """Tests for cost tracker module."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from src.cost_tracker import TaskCost, check_budget, format_cost, get_task_cost
 
 

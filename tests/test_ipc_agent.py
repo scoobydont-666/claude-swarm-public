@@ -20,6 +20,7 @@ def fake_redis():
     with patch("ipc.transport.get_client", return_value=fake):
         # Reset module state between tests
         import ipc.agent as agent_mod
+
         agent_mod._current_agent_id = None
         agent_mod._heartbeat_thread = None
         yield fake
@@ -27,7 +28,7 @@ def fake_redis():
 
 class TestRegistration:
     def test_register_creates_agent(self, fake_redis):
-        from ipc.agent import register, get_current_agent_id
+        from ipc.agent import get_current_agent_id, register
 
         agent_id = register(
             project="/opt/test",
@@ -65,11 +66,9 @@ class TestRegistration:
         assert agent_id == "host:1:abcd"
 
     def test_deregister_cleans_up(self, fake_redis):
-        from ipc.agent import register, deregister, get_current_agent_id
+        from ipc.agent import deregister, get_current_agent_id, register
 
-        agent_id = register(
-            project="/opt/test", hostname="host", pid=1, auto_heartbeat=False
-        )
+        agent_id = register(project="/opt/test", hostname="host", pid=1, auto_heartbeat=False)
         assert get_current_agent_id() == agent_id
 
         deregister(agent_id)
@@ -80,7 +79,7 @@ class TestRegistration:
         assert not fake_redis.sismember("ipc:agents:project:/opt/test", agent_id)
 
     def test_deregister_preserves_inbox(self, fake_redis):
-        from ipc.agent import register, deregister
+        from ipc.agent import deregister, register
 
         agent_id = register(hostname="host", pid=1, auto_heartbeat=False)
         inbox_key = f"ipc:inbox:{agent_id}"
@@ -96,7 +95,7 @@ class TestRegistration:
 
 class TestHeartbeat:
     def test_refresh_updates_ttl(self, fake_redis):
-        from ipc.agent import register, refresh_heartbeat
+        from ipc.agent import refresh_heartbeat, register
 
         agent_id = register(hostname="host", pid=1, auto_heartbeat=False)
         time.sleep(0.1)
@@ -113,7 +112,7 @@ class TestHeartbeat:
 
 class TestPresence:
     def test_list_agents(self, fake_redis):
-        from ipc.agent import register, list_agents
+        from ipc.agent import list_agents, register
 
         register(hostname="a", pid=1, auto_heartbeat=False)
         register(hostname="b", pid=2, auto_heartbeat=False)
@@ -124,10 +123,10 @@ class TestPresence:
         assert hostnames == {"a", "b"}
 
     def test_list_agents_by_project(self, fake_redis):
-        from ipc.agent import register, list_agents
-
         # Reset between registrations
         import ipc.agent as mod
+        from ipc.agent import list_agents, register
+
         mod._current_agent_id = None
         register(project="/opt/a", hostname="x", pid=1, auto_heartbeat=False)
         mod._current_agent_id = None
@@ -138,7 +137,7 @@ class TestPresence:
         assert a_agents[0]["hostname"] == "x"
 
     def test_cleanup_stale(self, fake_redis):
-        from ipc.agent import register, cleanup_stale
+        from ipc.agent import cleanup_stale, register
 
         agent_id = register(hostname="host", pid=1, auto_heartbeat=False)
         # Delete the agent hash (simulating TTL expiry)
@@ -149,11 +148,9 @@ class TestPresence:
         assert not fake_redis.sismember("ipc:agents:index", agent_id)
 
     def test_get_agent(self, fake_redis):
-        from ipc.agent import register, get_agent
+        from ipc.agent import get_agent, register
 
-        agent_id = register(
-            hostname="host", pid=1, model="sonnet", auto_heartbeat=False
-        )
+        agent_id = register(hostname="host", pid=1, model="sonnet", auto_heartbeat=False)
         data = get_agent(agent_id)
         assert data is not None
         assert data["model"] == "sonnet"
@@ -165,7 +162,7 @@ class TestPresence:
         assert get_agent("nope:0:0000") is None
 
     def test_update_status(self, fake_redis):
-        from ipc.agent import register, update_status, get_agent
+        from ipc.agent import get_agent, register, update_status
 
         agent_id = register(hostname="host", pid=1, auto_heartbeat=False)
         update_status(agent_id, status="busy", project="/opt/new")

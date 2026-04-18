@@ -83,6 +83,42 @@ def get_dashboard_html() -> str:
     return DASHBOARD_HTML
 
 
+@app.get("/health")
+def get_liveness_health() -> dict[str, Any]:
+    """K8s-style liveness probe. degradation_reason pattern (P1 backport #4).
+
+    Returns HTTP 200 always; status field signals health. Kubernetes probes
+    and the Dockerfile healthcheck hit this endpoint.
+    """
+    import os
+
+    checks: dict[str, Any] = {}
+    degradation_reasons: list[str] = []
+
+    # NFS mount check (primary coordination surface)
+    swarm_nfs = os.path.ismount("/opt/swarm") or os.path.isdir("/opt/swarm/artifacts")
+    checks["nfs_swarm"] = swarm_nfs
+    if not swarm_nfs:
+        degradation_reasons.append("nfs /opt/swarm not mounted")
+
+    # Redis ping (Celery broker + IPC substrate)
+    try:
+        from redis_client import get_client
+
+        get_client().ping()
+        checks["redis"] = True
+    except Exception as e:
+        checks["redis"] = False
+        degradation_reasons.append(f"redis unreachable: {type(e).__name__}")
+
+    degraded = bool(degradation_reasons)
+    return {
+        "status": "degraded" if degraded else "ok",
+        "degradation_reason": "; ".join(degradation_reasons) if degraded else None,
+        "checks": checks,
+    }
+
+
 @app.get("/api/status")
 def get_status_api() -> dict[str, Any]:
     """Return all node statuses from status JSON files."""
@@ -275,8 +311,8 @@ def get_metrics_api() -> dict[str, Any]:
         "completed": len(all_tasks["completed"]),
     }
 
-    # Calculate cache hit rate if available (mock for now)
-    # Get real cache hit rate from Context Bridge
+    # Real cache hit rate from Context Bridge /stats endpoint
+    # (falls through to 0.0 if CB unreachable — handled in the try block below).
     try:
         import subprocess as _sp
 

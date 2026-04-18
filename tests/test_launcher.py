@@ -11,6 +11,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from datetime import UTC
+
 from launcher import AutoScaler, SpawnResult
 
 
@@ -51,20 +53,20 @@ class TestGetActiveAgentCount:
         assert AutoScaler.get_active_agent_count(swarm_root) == 0
 
     def test_live_agent(self, swarm_root):
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         agent_data = {
             "hostname": "test",
             "pid": 1234,
-            "last_heartbeat": datetime.now(timezone.utc).isoformat(),
+            "last_heartbeat": datetime.now(UTC).isoformat(),
         }
         (swarm_root / "agents" / "test-1234.json").write_text(json.dumps(agent_data))
         assert AutoScaler.get_active_agent_count(swarm_root) == 1
 
     def test_stale_agent_not_counted(self, swarm_root):
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta
 
-        old_time = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+        old_time = (datetime.now(UTC) - timedelta(minutes=10)).isoformat()
         agent_data = {
             "hostname": "test",
             "pid": 1234,
@@ -94,9 +96,7 @@ class TestShouldScale:
     def test_all_profiles_limited(self, scaler):
         tracker = MagicMock()
         tracker.get_available_profiles.return_value = []
-        should, reason = scaler.should_scale(
-            pending_count=5, active_agents=1, rate_tracker=tracker
-        )
+        should, reason = scaler.should_scale(pending_count=5, active_agents=1, rate_tracker=tracker)
         assert should is False
         assert "rate-limited" in reason
 
@@ -140,9 +140,7 @@ class TestSpawnInstance:
     def test_spawn_failure(self, scaler):
         with (
             patch("launcher.shutil.which", return_value="/usr/bin/claude"),
-            patch(
-                "launcher.subprocess.Popen", side_effect=OSError("permission denied")
-            ),
+            patch("launcher.subprocess.Popen", side_effect=OSError("permission denied")),
         ):
             result = scaler.spawn_instance()
 

@@ -233,7 +233,7 @@ Key settings:
 
 ```bash
 cd /opt/claude-swarm
-pytest tests/ -v                 # 914 tests
+pytest tests/ -v                 # 1,270 tests (69% coverage, gate ≥65%)
 pytest tests/ -k "gpu"           # filter by keyword
 pytest tests/ --tb=short         # compact failure output
 ```
@@ -280,7 +280,7 @@ Test files mirror source modules (e.g., `test_gpu_slots.py` → `gpu_slots.py`).
 │       ├── question_generation.py  # ExamForge question gen pipeline
 │       └── security_audit.py   # security audit pipeline
 │
-├── tests/                    # 914 tests (42 test files)
+├── tests/                    # 1,270 tests (69% coverage, gate ≥65%) (42 test files)
 ├── hooks/                    # Claude Code hook scripts
 │   ├── swarm-session-start.sh
 │   ├── swarm-session-end.sh
@@ -346,7 +346,7 @@ GPU slot utilization, rate-limit events.
 | v2 S6 | Parallel sync, priority queues, metrics | Complete |
 | v2 S7 | Redis backend, Celery integration | Complete |
 | v2 S8 | Performance rating, scored dispatch | Complete |
-| v2 S9 | Backend parity polish — 914 tests | Complete |
+| v2 S9 | Backend parity polish — 1,270 tests (69% coverage, gate ≥65%) | Complete |
 
 ## Related Projects
 

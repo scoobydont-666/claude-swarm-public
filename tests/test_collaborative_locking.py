@@ -5,10 +5,9 @@ import threading
 from pathlib import Path
 from unittest.mock import patch
 
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from collaborative import write_blocker, read_blockers, resolve_blocker, Blocker
+from collaborative import Blocker, read_blockers, resolve_blocker, write_blocker
 
 
 class TestBlockerLocking:
@@ -16,9 +15,7 @@ class TestBlockerLocking:
 
     def test_write_blocker_creates_file(self, tmp_path):
         with patch("collaborative.COLLAB_ROOT", tmp_path):
-            b = Blocker(
-                blocker_id="b1", description="stuck", reported_at="2026-04-02T00:00:00Z"
-            )
+            b = Blocker(blocker_id="b1", description="stuck", reported_at="2026-04-02T00:00:00Z")
             write_blocker("sess-1", b)
 
             blockers = read_blockers("sess-1")

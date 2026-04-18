@@ -65,6 +65,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "src/*.py" = ["E402"]  # conditional imports after sys.path manipulation
+"tests/*.py" = ["E402"]  # sys.path.insert for src/ resolution
 "src/backend.py" = ["F401"]  # intentional conditional imports for backend probing
 "src/events_redis.py" = ["F401"]  # conditional import of util.now_iso
 "src/hydra_dispatch.py" = ["F401"]  # fallback import of model_router

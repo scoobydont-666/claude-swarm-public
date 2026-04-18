@@ -73,12 +73,36 @@ class HostGpuInventory:
         return sum(g.vram_free_mb for g in self.gpus)
 
 
+def _is_localhost(host: str) -> bool:
+    """Socket-based localhost detection — resolves DNS + matches loopback
+    addresses + hostname synonyms. Replaces brittle string comparison
+    (audit remediation #3 from docs/churn-analysis-2026-04-17.md)."""
+    import socket
+
+    if not host:
+        return False
+    norm = host.strip().lower()
+    # Cheap path: well-known loopback names
+    if norm in ("localhost", "127.0.0.1", "::1", socket.gethostname().lower()):
+        return True
+    # Resolve and compare — catches DNS aliases like "miniboss.lan" → 127.0.0.1
+    try:
+        resolved = socket.gethostbyname(norm)
+        if resolved in ("127.0.0.1", "::1"):
+            return True
+        # Also true if it resolves to any local interface
+        local_ips = set()
+        for iface in socket.getaddrinfo(socket.gethostname(), None):
+            local_ips.add(iface[4][0])
+        return resolved in local_ips
+    except (socket.gaierror, socket.herror):
+        return False
+
+
 def probe_host(host: str, timeout: int = 10) -> HostGpuInventory:
     """Probe a single host via SSH nvidia-smi and return GPU inventory."""
     try:
-        import socket
-
-        if host.lower() in ("localhost", socket.gethostname().lower()):
+        if _is_localhost(host):
             # Local host — no SSH needed
             result = subprocess.run(
                 NVIDIA_SMI_CMD,

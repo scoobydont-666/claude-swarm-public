@@ -57,9 +57,7 @@ class TestAlertRulesYAML:
         for group in data["groups"]:
             for rule in group["rules"]:
                 for field in required_fields:
-                    assert field in rule, (
-                        f"Rule missing {field}: {rule.get('alert', 'unknown')}"
-                    )
+                    assert field in rule, f"Rule missing {field}: {rule.get('alert', 'unknown')}"
 
     def test_alert_node_offline_rule(self):
         """Test SwarmNodeOffline alert rule."""
@@ -155,12 +153,8 @@ class TestAlertRulesYAML:
         for group in data["groups"]:
             for rule in group["rules"]:
                 annotations = rule.get("annotations", {})
-                assert "summary" in annotations, (
-                    f"Missing summary for {rule.get('alert')}"
-                )
-                assert "description" in annotations, (
-                    f"Missing description for {rule.get('alert')}"
-                )
+                assert "summary" in annotations, f"Missing summary for {rule.get('alert')}"
+                assert "description" in annotations, f"Missing description for {rule.get('alert')}"
 
     def test_alert_rules_for_durations(self):
         """Test that rules specify 'for' duration."""

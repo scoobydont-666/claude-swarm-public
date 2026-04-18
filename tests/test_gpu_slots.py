@@ -11,24 +11,22 @@ import pytest
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from gpu_slots import (
+    _load_queue,
+    _parse_slot_info,
+    _queue_key,
+    _save_queue,
     claim_slot,
     claim_slot_with_deadline,
-    release_slot,
-    is_slot_available,
-    is_slot_stale,
-    is_slot_expired,
+    get_queue_position,
     get_slot_status,
     heartbeat_slot,
+    is_slot_available,
+    is_slot_expired,
+    is_slot_stale,
+    release_slot,
     release_stale_slots,
     setup_ollama_slot,
     wait_for_slot,
-    get_queue_position,
-    _load_queue,
-    _save_queue,
-    _queue_key,
-    _parse_slot_info,
-    DEFAULT_DEADLINE_SECONDS,
-    DEFAULT_STALE_THRESHOLD_SECONDS,
 )
 
 
@@ -391,6 +389,7 @@ class TestHeartbeat:
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             assert claim_slot(0)
             import time as _time
+
             _time.sleep(0.05)  # Ensure time advances
             assert heartbeat_slot(0)
             content = (gpu_tmpdir / "slot-0.lock").read_text().strip()
@@ -408,7 +407,9 @@ class TestHeartbeat:
         """Heartbeat fails if slot is held by a different host."""
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             lock_path = gpu_tmpdir / "slot-0.lock"
-            lock_path.write_text("otherhost:1234|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|9999999999\n")
+            lock_path.write_text(
+                "otherhost:1234|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|9999999999\n"
+            )
             assert not heartbeat_slot(0)
 
 
@@ -429,7 +430,9 @@ class TestSlotStaleness:
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             lock_path = gpu_tmpdir / "slot-0.lock"
             # Write a heartbeat from 10 minutes ago
-            lock_path.write_text("otherhost:1234|2026-01-01T00:00:00Z|2020-01-01T00:00:00Z|9999999999\n")
+            lock_path.write_text(
+                "otherhost:1234|2026-01-01T00:00:00Z|2020-01-01T00:00:00Z|9999999999\n"
+            )
             assert is_slot_stale(0, stale_threshold=60)
 
     def test_dead_pid_is_stale(self, gpu_tmpdir):
@@ -438,7 +441,9 @@ class TestSlotStaleness:
             hostname = socket.gethostname()
             dead_pid = 2147483647
             lock_path = gpu_tmpdir / "slot-0.lock"
-            lock_path.write_text(f"{hostname}:{dead_pid}|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|9999999999\n")
+            lock_path.write_text(
+                f"{hostname}:{dead_pid}|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|9999999999\n"
+            )
             assert is_slot_stale(0)
 
 
@@ -453,7 +458,9 @@ class TestSlotExpiry:
         """Slot with deadline in the past is expired."""
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             lock_path = gpu_tmpdir / "slot-0.lock"
-            lock_path.write_text("otherhost:1234|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|1000000000\n")
+            lock_path.write_text(
+                "otherhost:1234|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|1000000000\n"
+            )
             assert is_slot_expired(0)
 
     def test_future_deadline_not_expired(self, gpu_tmpdir):
@@ -461,8 +468,11 @@ class TestSlotExpiry:
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             lock_path = gpu_tmpdir / "slot-0.lock"
             import time as _time
+
             future_ts = str(int(_time.time()) + 86400)
-            lock_path.write_text(f"otherhost:1234|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|{future_ts}\n")
+            lock_path.write_text(
+                f"otherhost:1234|2026-01-01T00:00:00Z|2026-01-01T00:00:00Z|{future_ts}\n"
+            )
             assert not is_slot_expired(0)
 
     def test_unclaimed_slot_not_expired(self, gpu_tmpdir):
@@ -476,7 +486,9 @@ class TestReleaseStaleSlots:
         """Stale slots get released."""
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             lock_path = gpu_tmpdir / "slot-0.lock"
-            lock_path.write_text("otherhost:1234|2026-01-01T00:00:00Z|2020-01-01T00:00:00Z|9999999999\n")
+            lock_path.write_text(
+                "otherhost:1234|2026-01-01T00:00:00Z|2020-01-01T00:00:00Z|9999999999\n"
+            )
             released = release_stale_slots(stale_threshold=60)
             assert 0 in released
             assert is_slot_available(0)
@@ -485,7 +497,9 @@ class TestReleaseStaleSlots:
         """Expired slots get released."""
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             lock_path = gpu_tmpdir / "slot-0.lock"
-            lock_path.write_text("otherhost:1234|2026-01-01T00:00:00Z|2026-04-11T00:00:00Z|1000000000\n")
+            lock_path.write_text(
+                "otherhost:1234|2026-01-01T00:00:00Z|2026-04-11T00:00:00Z|1000000000\n"
+            )
             released = release_stale_slots()
             assert 0 in released
 
@@ -508,6 +522,7 @@ class TestClaimSlotWithDeadline:
         """Claim with custom deadline writes correct deadline_ts."""
         with patch("gpu_slots._gpu_dir", return_value=gpu_tmpdir):
             import time as _time
+
             before = int(_time.time())
             assert claim_slot_with_deadline(0, deadline_seconds=120)
             content = (gpu_tmpdir / "slot-0.lock").read_text().strip()

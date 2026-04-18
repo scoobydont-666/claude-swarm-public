@@ -1,9 +1,9 @@
 """Tests for performance_rating module."""
 
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -32,7 +32,7 @@ class TestTaskMetricRecording:
     """Test recording dispatch metrics."""
 
     def test_record_metric(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, get_metrics_for_host
+        from performance_rating import TaskMetric, get_metrics_for_host, record_metric
 
         metric = TaskMetric(
             task_id="task-001",
@@ -55,9 +55,9 @@ class TestTaskMetricRecording:
 
     def test_record_dispatch_start_end(self, temp_db):
         from performance_rating import (
-            record_dispatch_start,
-            record_dispatch_end,
             get_metrics_for_host,
+            record_dispatch_end,
+            record_dispatch_start,
         )
 
         ts = record_dispatch_start("task-002", "miniboss", model="haiku")
@@ -72,7 +72,7 @@ class TestTaskMetricRecording:
         assert metrics[0]["duration_seconds"] >= 0
 
     def test_record_dispatch_end_without_start(self, temp_db):
-        from performance_rating import record_dispatch_end, get_metrics_for_host
+        from performance_rating import get_metrics_for_host, record_dispatch_end
 
         record_dispatch_end("task-orphan", "GIGA", success=False, error_type="timeout")
 
@@ -83,9 +83,9 @@ class TestTaskMetricRecording:
 
     def test_record_dispatch_end_with_error(self, temp_db):
         from performance_rating import (
-            record_dispatch_start,
-            record_dispatch_end,
             get_metrics_for_host,
+            record_dispatch_end,
+            record_dispatch_start,
         )
 
         record_dispatch_start("task-fail", "GIGA")
@@ -100,14 +100,14 @@ class TestRatingComputation:
     """Test composite rating computation."""
 
     def test_new_host_gets_neutral_rating(self, temp_db):
-        from performance_rating import compute_rating, NEUTRAL_SCORE
+        from performance_rating import NEUTRAL_SCORE, compute_rating
 
         rating = compute_rating("new_host")
         assert rating.composite_score == NEUTRAL_SCORE
         assert rating.task_count == 0
 
     def test_perfect_host_gets_high_rating(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, compute_rating
+        from performance_rating import TaskMetric, compute_rating, record_metric
 
         # Record 10 successful tasks
         for i in range(10):
@@ -115,8 +115,8 @@ class TestRatingComputation:
                 TaskMetric(
                     task_id=f"task-{i}",
                     hostname="GIGA",
-                    started_at=datetime.now(timezone.utc).isoformat(),
-                    completed_at=datetime.now(timezone.utc).isoformat(),
+                    started_at=datetime.now(UTC).isoformat(),
+                    completed_at=datetime.now(UTC).isoformat(),
                     duration_seconds=300.0,
                     success=True,
                     estimated_minutes=10.0,  # Finished in 5 min vs 10 min estimate
@@ -130,7 +130,7 @@ class TestRatingComputation:
         assert rating.task_count == 10
 
     def test_failing_host_gets_low_rating(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, compute_rating
+        from performance_rating import TaskMetric, compute_rating, record_metric
 
         # Record 10 failed tasks
         for i in range(10):
@@ -138,8 +138,8 @@ class TestRatingComputation:
                 TaskMetric(
                     task_id=f"task-{i}",
                     hostname="BAD_HOST",
-                    started_at=datetime.now(timezone.utc).isoformat(),
-                    completed_at=datetime.now(timezone.utc).isoformat(),
+                    started_at=datetime.now(UTC).isoformat(),
+                    completed_at=datetime.now(UTC).isoformat(),
                     duration_seconds=300.0,
                     success=False,
                     error_type="crash",
@@ -152,9 +152,9 @@ class TestRatingComputation:
         assert rating.error_rate == 1.0
 
     def test_mixed_performance_moderate_rating(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, compute_rating
+        from performance_rating import TaskMetric, compute_rating, record_metric
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # 7 successes, 3 failures
         for i in range(7):
             record_metric(
@@ -187,18 +187,18 @@ class TestRatingComputation:
 
     def test_rating_cached_for_one_hour(self, temp_db):
         from performance_rating import (
-            record_metric,
             TaskMetric,
             compute_rating,
             get_rating,
+            record_metric,
         )
 
         record_metric(
             TaskMetric(
                 task_id="task-1",
                 hostname="cached_host",
-                started_at=datetime.now(timezone.utc).isoformat(),
-                completed_at=datetime.now(timezone.utc).isoformat(),
+                started_at=datetime.now(UTC).isoformat(),
+                completed_at=datetime.now(UTC).isoformat(),
                 duration_seconds=60.0,
                 success=True,
             )
@@ -219,7 +219,7 @@ class TestDecayWeight:
         assert _decay_weight(0) == pytest.approx(1.0)
 
     def test_half_life_decay(self):
-        from performance_rating import _decay_weight, DECAY_HALF_LIFE_DAYS
+        from performance_rating import DECAY_HALF_LIFE_DAYS, _decay_weight
 
         assert _decay_weight(DECAY_HALF_LIFE_DAYS) == pytest.approx(0.5, abs=0.01)
 
@@ -259,10 +259,10 @@ class TestScoredHostSelection:
 
     def test_multiple_capable_hosts_scored(self, temp_db):
         from performance_rating import (
-            scored_host_selection,
-            record_metric,
             TaskMetric,
             compute_rating,
+            record_metric,
+            scored_host_selection,
         )
 
         fleet = {
@@ -271,7 +271,7 @@ class TestScoredHostSelection:
         }
 
         # Make MECHA have better rating
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for i in range(5):
             record_metric(
                 TaskMetric(
@@ -321,9 +321,7 @@ class TestScoredHostSelection:
             "miniboss": {"capabilities": ["docker"]},
         }
         # Complex task should prefer GPU host
-        result = scored_host_selection(
-            fleet, requires=["docker"], task_complexity="complex"
-        )
+        result = scored_host_selection(fleet, requires=["docker"], task_complexity="complex")
         assert len(result) == 2
         # GIGA should score higher for complex tasks (has GPU)
         giga_score = next(s for h, s in result if h == "GIGA")
@@ -338,9 +336,7 @@ class TestScoredHostSelection:
             "miniboss": {"capabilities": ["docker"]},
         }
         # Simple task should prefer non-GPU (don't waste GPU)
-        result = scored_host_selection(
-            fleet, requires=["docker"], task_complexity="simple"
-        )
+        result = scored_host_selection(fleet, requires=["docker"], task_complexity="simple")
         assert len(result) == 2
         mini_score = next(s for h, s in result if h == "miniboss")
         giga_score = next(s for h, s in result if h == "GIGA")
@@ -371,9 +367,7 @@ class TestBenchmark:
         from performance_rating import on_join_probe
 
         with patch("performance_rating.subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0, stdout="GPU_VAL=8192\nOLLAMA_VAL=200\n"
-            )
+            mock_run.return_value = MagicMock(returncode=0, stdout="GPU_VAL=8192\nOLLAMA_VAL=200\n")
             result = on_join_probe("GIGA", "<primary-node-ip>")
             assert result.reachable
             assert result.gpu_available
@@ -391,9 +385,9 @@ class TestGetAllRatings:
         assert ratings == []
 
     def test_multiple_hosts(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, get_all_ratings
+        from performance_rating import TaskMetric, get_all_ratings, record_metric
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for host in ["GIGA", "miniboss", "MECHA"]:
             record_metric(
                 TaskMetric(
@@ -475,9 +469,9 @@ class TestMetricsForHost:
         assert metrics == []
 
     def test_limit_respected(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, get_metrics_for_host
+        from performance_rating import TaskMetric, get_metrics_for_host, record_metric
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for i in range(20):
             record_metric(
                 TaskMetric(
@@ -494,10 +488,10 @@ class TestMetricsForHost:
         assert len(metrics) == 5
 
     def test_ordered_by_recency(self, temp_db):
-        from performance_rating import record_metric, TaskMetric, get_metrics_for_host
+        from performance_rating import TaskMetric, get_metrics_for_host, record_metric
 
         for i in range(3):
-            ts = (datetime.now(timezone.utc) + timedelta(hours=i)).isoformat()
+            ts = (datetime.now(UTC) + timedelta(hours=i)).isoformat()
             record_metric(
                 TaskMetric(
                     task_id=f"task-{i}",
