@@ -112,15 +112,19 @@ def _fetch_from_cb(query: str, repo_name: str) -> Optional[list[dict]]:
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
             body = json.loads(resp.read())
-            raw = body.get("result") or body.get("results") or []
-            exemplars = []
-            for item in raw:
-                snippet = item.get("snippet") or item.get("content") or ""
-                exemplars.append({
-                    "source": item.get("source", ""),
-                    "snippet": snippet,
-                    "tokens": estimate_tokens(snippet),
-                })
+            # B1: validate against CB v1.0 contract (cb_schema). Replaces the
+            # legacy `source`/`content` fallbacks that silently hid schema drift.
+            from .cb_schema import parse_cb_search_response
+
+            items = parse_cb_search_response(body)
+            exemplars = [
+                {
+                    "source": item.source,
+                    "snippet": item.snippet,
+                    "tokens": estimate_tokens(item.snippet),
+                }
+                for item in items
+            ]
             return exemplars
     except (urllib.error.URLError, json.JSONDecodeError, OSError) as exc:
         logger.debug("CB HTTP failed (%s), trying cache", exc)

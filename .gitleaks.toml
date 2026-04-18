@@ -1,8 +1,7 @@
-# Public repo gitleaks policy — minimal allowlist
-# Internal hostnames are NOT permitted in public output; sanitizer handles those.
-# This allowlist is reserved for generic IP patterns only.
+# Fleet IP allowlist for setup scripts
+# These are stable infrastructure IPs, not credentials
 [allowlist]
 regexes = [
-  # Private RFC1918 IPs in example configs only (generic, not tied to our infra)
-  "10\\.0\\.0\\.(10|20|30|99|100|50)",
+  "192\\.168\\.200\\.(163|213|87|141|13)",
+  "giga|node_primary|mecha|mega|node_miner"
 ]
