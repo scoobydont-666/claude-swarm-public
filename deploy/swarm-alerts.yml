@@ -10,6 +10,7 @@ groups:
         annotations:
           summary: "{{ $value }} swarm node(s) offline"
           description: "Swarm has {{ $value }} offline nodes. Check connectivity."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-node-offline"
 
       - alert: SwarmTaskQueueBacklog
         expr: swarm_tasks_total{state="pending"} > 5
@@ -19,6 +20,7 @@ groups:
         annotations:
           summary: "Task queue backlog: {{ $value }} pending tasks"
           description: "{{ $value }} tasks are pending and waiting to be claimed."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-task-queue-backlog"
 
       - alert: SwarmHeartbeatStale
         expr: swarm_last_heartbeat_age_seconds > 600
@@ -28,6 +30,7 @@ groups:
         annotations:
           summary: "{{ $labels.hostname }} heartbeat stale for {{ humanizeDuration $value }}"
           description: "{{ $labels.hostname }} has not sent a heartbeat in {{ humanizeDuration $value }}. Node may be hung or offline."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-heartbeat-stale"
 
       # NOTE: nai-swarm ships a SwarmGPUSlotsFull >=2 rule — dropped here.
       # Hydra fleet has heterogeneous GPU counts (node_gpu=1, node_reserve2=1, node_reserve1=2);
@@ -42,6 +45,7 @@ groups:
         annotations:
           summary: "High dispatch cost rate: ${{ $value | humanize }}/hour"
           description: "Dispatch costs are running at ${{ $value | humanize }}/hour — review recent dispatches."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-high-dispatch-cost"
 
       - alert: SwarmDispatchCostByHost
         expr: rate(swarm_dispatch_cost_by_host_usd_total[1h]) > 2.0
@@ -51,3 +55,4 @@ groups:
         annotations:
           summary: "{{ $labels.hostname }} dispatch cost high: ${{ $value | humanize }}/hour"
           description: "{{ $labels.hostname }} is accruing dispatch costs at ${{ $value | humanize }}/hour."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-dispatch-cost-by-host"
