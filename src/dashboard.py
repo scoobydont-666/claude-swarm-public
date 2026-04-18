@@ -166,9 +166,128 @@ def get_liveness_health() -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# E6: K3s-style probes — /live and /ready
+# ---------------------------------------------------------------------------
+# /live: liveness = "process responds, restart if it doesn't".
+#        Lenient. Returns 200 unless the process is truly broken
+#        (Python exception bubbling up would naturally 500).
+#        Redis down does NOT fail liveness — swarm degrades to NFS
+#        fallback, which is still a functional state.
+# /ready: readiness = "can serve real traffic right now".
+#        Strict. Returns 503 if either Redis or NFS is unreachable —
+#        k8s stops routing work to this pod until both come back.
+# Rationale: split probe semantics prevent pod thrashing. With a single
+# /health endpoint, a flapping Redis would cause k8s to kill the pod
+# (liveness fail) even though restart doesn't fix the Redis outage.
+# With separate probes, k8s just stops routing traffic (readiness fail)
+# but leaves the pod running to pick up work when Redis recovers.
+
+
+@app.get("/live")
+def get_liveness() -> JSONResponse:
+    """K3s liveness probe — 'is the process alive?'
+
+    Always returns 200 when the ASGI app is responding. If the process is
+    truly wedged, FastAPI/uvicorn won't answer at all and k8s will mark
+    it failed via probe timeout.
+    """
+    return JSONResponse(
+        status_code=200,
+        content={"status": "alive", "probe": "liveness"},
+    )
+
+
+@app.get("/ready")
+def get_readiness() -> JSONResponse:
+    """K3s readiness probe — 'can this pod serve real traffic?'
+
+    Returns 200 only when BOTH Redis and the /opt/swarm NFS mount are
+    reachable. Returns 503 if either is degraded — k8s stops routing
+    work to this pod but does NOT restart it (liveness stays green).
+    """
+    import os as _inner_os
+
+    checks: dict[str, Any] = {}
+    not_ready_reasons: list[str] = []
+
+    # NFS mount (primary coordination surface)
+    swarm_nfs = _inner_os.path.ismount("/opt/swarm") or _inner_os.path.isdir(
+        "/opt/swarm/artifacts"
+    )
+    checks["nfs_swarm"] = swarm_nfs
+    if not swarm_nfs:
+        not_ready_reasons.append("nfs_swarm_mount_missing")
+
+    # Redis (IPC + state store)
+    try:
+        from redis_client import get_client
+
+        get_client().ping()
+        checks["redis"] = True
+    except Exception as exc:
+        checks["redis"] = False
+        not_ready_reasons.append(f"redis_unreachable:{type(exc).__name__}")
+
+    if not_ready_reasons:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "probe": "readiness",
+                "checks": checks,
+                "not_ready_reasons": not_ready_reasons,
+            },
+        )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "ready",
+            "probe": "readiness",
+            "checks": checks,
+        },
+    )
+
+
+def _get_backend_degradation() -> dict[str, Any]:
+    """E5: report which state backend is active + whether swarm is running degraded.
+
+    Returns:
+        {"backend": "redis"|"nfs"|"unknown", "degraded": bool, "reason": str|None}
+
+    Degraded state means swarm is functional but running on the slower NFS
+    fallback instead of Redis. Operators should act on sustained degraded
+    state — see docs/RUNBOOK.md §Backend failure playbooks.
+    """
+    active = _os.environ.get("SWARM_BACKEND", "auto")
+    if active == "redis":
+        return {"backend": "redis", "degraded": False, "reason": None}
+    if active == "nfs":
+        return {"backend": "nfs", "degraded": True, "reason": "SWARM_BACKEND pinned to nfs"}
+
+    # auto: probe Redis health
+    try:
+        sys.path.insert(0, "/opt/claude-swarm/src")
+        import redis_client  # type: ignore[import-untyped]
+
+        if redis_client.health_check():
+            return {"backend": "redis", "degraded": False, "reason": None}
+        return {
+            "backend": "nfs",
+            "degraded": True,
+            "reason": "redis_health_check_failed — falling back to NFS",
+        }
+    except Exception as exc:
+        return {
+            "backend": "unknown",
+            "degraded": True,
+            "reason": f"backend_probe_error: {type(exc).__name__}: {exc}",
+        }
+
+
 @app.get("/api/status")
 def get_status_api() -> dict[str, Any]:
-    """Return all node statuses from status JSON files."""
+    """Return all node statuses from status JSON files + backend degradation flag."""
     nodes = lib.get_all_status()
 
     # Add color codes for UI
@@ -194,7 +313,16 @@ def get_status_api() -> dict[str, Any]:
         updated = node.get("updated_at", "")
         node["_heartbeat_age"] = _relative_time(updated)
 
-    return {"nodes": nodes}
+    # E5: backend degradation flag — operators see instantly whether swarm
+    # is on Redis (healthy) or NFS (degraded-but-functional).
+    backend_state = _get_backend_degradation()
+
+    return {
+        "nodes": nodes,
+        "backend": backend_state["backend"],
+        "degraded": backend_state["degraded"],
+        "degradation_reason": backend_state["reason"],
+    }
 
 
 @app.get("/api/tasks")
