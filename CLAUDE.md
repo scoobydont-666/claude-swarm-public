@@ -7,6 +7,20 @@
 - `tier: infra`
 - `peer_fork: nai-swarm (Nutanix-track, diverged 2026-03-22 — DO NOT conflate; see /home/josh/.claude/projects/-opt-hydra-project/memory/feedback_claude_swarm_vs_nai_swarm.md)`
 
+## Routing Protocol v1 (2026-04-18)
+claude-swarm is the substrate for `routing-protocol-v1` — the coordinator ↔ worker contract between Claude Code terminal sessions and fleet workers. **Spec:** `<hydra-project-path>/docs/routing-protocol-v1.md`.
+
+Modules added 2026-04-18:
+- `config/routing.yaml` — tier_ladder, dispatch_class, host_slots, cascade config (§3-7)
+- `src/credential_broker.py` + `src/broker_client.py` + systemd unit — workers never hold keys (§12)
+- `src/context_assembly.py` — CB-augmented prompt packaging, per-tier token budget (§5)
+- `src/heartbeat.py` — 30s ping / 90s timeout / 5min stuck detection (§7,§10)
+- `src/session_report.py` — end-of-session markdown + CB-index (§15)
+- `src/state_store_cascade.py` — Redis → CB → SQLite → fail-closed (§6)
+
+Dashboard panels live in hydra-sentinel (`routing_panels.py` at `/routing/*`).
+Enforcement hooks in `~/.claude/hooks/routing_*.py` (coordinator-side).
+
 ## Project Location
 /opt/claude-swarm/
 
