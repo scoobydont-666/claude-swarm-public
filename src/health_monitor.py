@@ -120,6 +120,69 @@ def _merge_config(base: dict, override: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+# F1 — SSRF guard on the Prometheus URL loaded from config.
+# Without this, a malicious config file could point the health monitor at
+# an arbitrary internal service (SSH banner grab, SMTP relay probe, etc).
+# We require: scheme in {http, https}, hostname set, and (by default) the
+# URL must point to localhost or an RFC1918/link-local net.
+_ALLOWED_PROM_SCHEMES = {"http", "https"}
+
+
+def _validate_prometheus_url(raw: str) -> str:
+    """Parse + validate a Prometheus URL. Raise ValueError on malformed or
+    disallowed URLs. Returns the normalized URL on success.
+
+    Rules:
+        - scheme must be http or https (file://, gopher://, etc rejected)
+        - hostname must be present (empty-host URLs rejected)
+        - if HEALTH_MONITOR_ALLOW_PUBLIC_PROM is NOT set, hostname must
+          be loopback (127.0.0.1 / ::1 / localhost) or RFC1918/link-local
+        - user:pass@host form rejected (credentials in URLs are a smell)
+    """
+    from urllib.parse import urlparse
+    import ipaddress
+    import os as _o
+
+    parsed = urlparse(raw)
+    if parsed.scheme not in _ALLOWED_PROM_SCHEMES:
+        raise ValueError(
+            f"prometheus_url scheme '{parsed.scheme}' not in {sorted(_ALLOWED_PROM_SCHEMES)}"
+        )
+    if not parsed.hostname:
+        raise ValueError(f"prometheus_url has no hostname: {raw!r}")
+    if parsed.username or parsed.password:
+        raise ValueError(
+            "prometheus_url must not embed credentials (user:pass@host); "
+            "use an env var or a proxy if auth is needed"
+        )
+
+    # Allow public URLs only when explicitly opted in
+    if _o.environ.get("HEALTH_MONITOR_ALLOW_PUBLIC_PROM"):
+        return raw
+
+    host = parsed.hostname
+    if host in {"localhost", "127.0.0.1", "::1"}:
+        return raw
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        # Non-IP hostname (e.g., "prometheus.svc.cluster.local") — we
+        # can't easily validate without DNS; reject by default to avoid
+        # SSRF to arbitrary names. Set HEALTH_MONITOR_ALLOW_PUBLIC_PROM
+        # to override.
+        raise ValueError(
+            f"prometheus_url host '{host}' is not an IP and not loopback; "
+            f"set HEALTH_MONITOR_ALLOW_PUBLIC_PROM=1 to allow named hosts"
+        ) from None
+
+    if not (ip.is_private or ip.is_loopback or ip.is_link_local):
+        raise ValueError(
+            f"prometheus_url points to a public IP {host}; "
+            f"set HEALTH_MONITOR_ALLOW_PUBLIC_PROM=1 to allow"
+        )
+    return raw
+
+
 class HealthMonitor:
     """Watches Prometheus, services, NFS, and git state. Auto-remediates or escalates."""
 
@@ -129,7 +192,9 @@ class HealthMonitor:
         if config:
             self.config = _merge_config(self.config, config)
 
-        self.prometheus_url: str = self.config.get("prometheus_url", "http://127.0.0.1:9090")
+        self.prometheus_url: str = _validate_prometheus_url(
+            self.config.get("prometheus_url", "http://127.0.0.1:9090")
+        )
         self.check_interval: int = int(self.config.get("check_interval_seconds", 60))
         self.hosts: dict[str, Any] = self.config.get("hosts", {})
         self.cooldowns_cfg: dict[str, int] = self.config.get("cooldowns", {})
@@ -231,17 +296,44 @@ class HealthMonitor:
     # ── Prometheus helpers ─────────────────────────────────────────────────
 
     def _prom_query(self, query: str) -> list[dict]:
-        """Execute an instant PromQL query. Returns list of result dicts."""
+        """Execute an instant PromQL query. Returns list of result dicts.
+
+        E7: wrapped in a circuit breaker — when Prometheus fails 5 times in
+        the trailing window of 10 queries, the breaker opens and further
+        queries short-circuit to [] for 30s (exponential backoff to max 5m
+        on repeat probe failures). Prevents the 1s health_monitor loop from
+        hammering a down Prometheus instance during incidents.
+        """
+        if not hasattr(self, "_prom_breaker"):
+            from prom_circuit_breaker import CircuitBreaker, CircuitBreakerOpen
+
+            self._prom_breaker = CircuitBreaker(
+                failure_threshold=5,
+                window_size=10,
+                cooldown_seconds=30.0,
+                max_cooldown_seconds=300.0,
+                name="prometheus",
+            )
+            self._CircuitBreakerOpen = CircuitBreakerOpen
+
         url = f"{self.prometheus_url}/api/v1/query"
-        try:
+
+        def _do_query() -> list[dict]:
             resp = requests.get(url, params={"query": query}, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             if data.get("status") == "success":
                 return data.get("data", {}).get("result", [])
+            return []
+
+        try:
+            return self._prom_breaker.call(_do_query)
+        except self._CircuitBreakerOpen as exc:
+            log.debug("Prometheus query short-circuited: %s", exc)
+            return []
         except requests.RequestException as exc:
             log.warning("Prometheus query failed (%s): %s", query, exc)
-        return []
+            return []
 
     # ── Individual check implementations ──────────────────────────────────
 
@@ -776,4 +868,30 @@ if __name__ == "__main__":
     if not monitor.config.get("enabled", True):
         log.info("Health monitor disabled in config — exiting")
         sys.exit(0)
+
+    # E5 — prune DLQ on startup (72h default window, covers weekends + 48h D3
+    # staging windows with a buffer day). Runs once per process start —
+    # long-running monitor gets one prune; systemd restarts trigger fresh ones.
+    try:
+        from ipc.dlq import prune_old_messages
+
+        pruned = prune_old_messages(hours=72)
+        if pruned:
+            log.info("DLQ startup prune: removed %d entries older than 72h", pruned)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("DLQ startup prune skipped: %s", exc)
+
+    # F4 — prune health-events SQLite (30d default) + VACUUM to reclaim space.
+    # event_log.prune() already does DELETE + VACUUM together; we just call
+    # it at startup so operators don't need a separate cron. Daily VACUUM
+    # overhead on ~30d of rows is negligible.
+    try:
+        from event_log import EventLog
+
+        elog_pruned = EventLog().prune(days=30)
+        if elog_pruned:
+            log.info("Event log startup prune: removed %d rows older than 30d", elog_pruned)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Event log startup prune skipped: %s", exc)
+
     monitor.run()

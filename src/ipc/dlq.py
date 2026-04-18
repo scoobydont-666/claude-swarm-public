@@ -104,16 +104,21 @@ def dlq_depth() -> int:
     return transport.stream_len(_DLQ_KEY)
 
 
-def prune_old_messages(hours: int = 24) -> int:
+def prune_old_messages(hours: int = 72) -> int:
     """E5: Remove DLQ entries older than `hours`. Returns count pruned.
 
-    XADD caps at _DLQ_MAXLEN=5000 entries, but without age-based pruning
-    a burst of failed messages can sit in the DLQ indefinitely, slowing
-    XRANGE scans on the dashboard /api/ipc_events endpoint. Call this on
-    health_monitor startup or from a cron job.
+    XADD caps at _DLQ_MAXLEN=5000 entries, so capacity is already bounded;
+    this age-based prune is for dashboard cleanliness (old entries no longer
+    useful for triage). 72h default covers a Friday-to-Monday work cycle
+    plus the 48h D3-style staging observation windows with a buffer day —
+    Josh directive 2026-04-18 (work spans multiple days, don't lose
+    triage-able entries over a weekend). Increase freely if investigation
+    windows grow; decrease only if the DLQ table gets noisy.
 
     Args:
-        hours: Messages with stream_id older than now - hours are removed.
+        hours: Messages with stream_id older than (now - hours) are removed.
+            Default 72h. Minimum sensible value is 48h for a multi-day
+            work cadence.
 
     Returns:
         Number of entries removed.
