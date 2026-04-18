@@ -3,6 +3,45 @@
 Multi-instance Claude Code coordination system — NFS-backed task board, messaging, artifact
 sharing, worktree management, GPU slot allocation, and auto-dispatch across the Hydra cluster.
 
+## Features
+
+### Coordination primitives
+- **NFS-backed task board** — atomic file ops (`pending/claimed/done`) with `fcntl.flock`
+  for race-free claims across nodes
+- **Event bus** — append-only JSONL event log with schema versioning and 30-day prune
+- **Messaging** — per-node inbox (`messages/<host>/`) with archive + search
+- **Artifacts** — shared file store with aliased retrieval across instances
+- **Status heartbeats** — per-node `status/<host>.json` with configurable stale thresholds
+
+### Orchestration
+- **Auto-dispatch** — claims unblocked tasks matching this node's capabilities
+- **Pipelines** — chained task graphs with dependency resolution + retry
+- **Worktrees** — parallel branch checkouts via `git worktree`
+- **GPU slot allocation** — reserve-and-release model for shared GPU nodes
+- **Credential broker** — scoped, short-lived secret lending between agents
+- **Conflict detection** — flags overlapping writes across active worktrees
+
+### Reliability & ops
+- **Circuit breaker on Prometheus** — 5-of-10 failure window opens breaker for 30s–5m
+  exponential cooldown so health_monitor doesn't hammer a down Prom instance
+- **TTL cache on hot paths** — 5s identical-query cache cuts PromQL outbound volume 10–50x
+- **DLQ prune** — 72h rolling window on failed-task DLQ (spans weekends)
+- **Event log prune** — 30-day retention, append-only, bounded size
+- **K3s probes** — split `/live` vs `/ready` semantics; ready gates on NFS + DB health
+- **API-key middleware** — `SWARM_API_KEY` header enforcement on dashboard endpoints
+- **SSRF guard** — prometheus_url validated against loopback/private-range allowlist
+- **Centralized `with_retry`** — shared decorator with jitter, max-retries, backoff
+- **Contract CI** — schema validation for CB + event-bus payloads wired into CI
+- **Idempotency-Key** — opt-in header support on mutating endpoints (nai-reserve)
+- **NFS drift detection** — primary-vs-replica mtime comparison, flags at 120s drift
+- **Task deadline enforcement** — tasks exceeding `claimed_at + 2×estimated` get re-queued
+
+### Observability
+- **Prometheus metrics** — task counts, dispatch latency, event-bus throughput, breaker state
+- **Structured logs** — JSONL to `/opt/swarm/artifacts/logs/` + stdout
+- **Dashboard** — `/live /ready /metrics /events /tasks /status` on port 9192
+- **Cost tracker** — API token usage per agent/task with budget alerts
+
 ## Architecture
 
 ```

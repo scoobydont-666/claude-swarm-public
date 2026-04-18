@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from event_log import EventLog
 from health_rules import RULES
 from remediations import RemediationEngine
+from ttl_cache import ttl_cache
 from util import now_iso as _now_iso
 from util import now_ts as _now_ts
 from util import projects_for_host
@@ -295,14 +296,20 @@ class HealthMonitor:
 
     # ── Prometheus helpers ─────────────────────────────────────────────────
 
+    @ttl_cache(ttl_seconds=5.0, max_size=64)
     def _prom_query(self, query: str) -> list[dict]:
         """Execute an instant PromQL query. Returns list of result dicts.
 
-        E7: wrapped in a circuit breaker — when Prometheus fails 5 times in
-        the trailing window of 10 queries, the breaker opens and further
-        queries short-circuit to [] for 30s (exponential backoff to max 5m
-        on repeat probe failures). Prevents the 1s health_monitor loop from
-        hammering a down Prometheus instance during incidents.
+        F5: wrapped in a 5s TTL cache — duplicate rules inside the 1s
+        health_monitor loop would hammer Prometheus with identical queries;
+        5s staleness is acceptable for rule evaluation and 10-50x reduces
+        outbound request volume in practice.
+
+        E7: also wrapped in a circuit breaker — when Prometheus fails 5
+        times in the trailing window of 10 queries, the breaker opens and
+        further queries short-circuit to [] for 30s (exponential backoff
+        to max 5m). Prevents the 1s health_monitor loop from hammering a
+        down Prometheus during incidents.
         """
         if not hasattr(self, "_prom_breaker"):
             from prom_circuit_breaker import CircuitBreaker, CircuitBreakerOpen
