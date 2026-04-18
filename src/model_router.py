@@ -14,11 +14,10 @@ Replaces scattered routing logic in:
 Backported from NAI Swarm, stripped of Nutanix dependencies.
 """
 
-import re
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -27,9 +26,11 @@ logger = logging.getLogger(__name__)
 
 # ── Data Classes ──────────────────────────────────────────────────────────────
 
+
 @dataclass
 class RoutingRule:
     """A single task classification rule."""
+
     name: str
     pattern: str
     tier: str
@@ -47,6 +48,7 @@ class RoutingRule:
 @dataclass
 class RouteDecision:
     """Result of routing a task."""
+
     rule_name: str
     tier: str
     model: str
@@ -67,26 +69,107 @@ class RouteDecision:
 
 DEFAULT_RULES = [
     # OPUS tier — complex reasoning
-    RoutingRule("architecture", r"architect|design.*system|security.*audit|threat.*model", "opus", "claude-opus-4-7", "claude-sonnet-4-6"),
-    RoutingRule("deep_reasoning", r"complex.*debug|root.*cause|deep.*dive|explain.*why|reason.*about", "opus", "claude-opus-4-7", "claude-sonnet-4-6"),
-    RoutingRule("planning", r"plan|strategy|roadmap|evaluate.*tradeoff", "opus", "claude-opus-4-7", "claude-sonnet-4-6"),
-
+    RoutingRule(
+        "architecture",
+        r"architect|design.*system|security.*audit|threat.*model",
+        "opus",
+        "claude-opus-4-7",
+        "claude-sonnet-4-6",
+    ),
+    RoutingRule(
+        "deep_reasoning",
+        r"complex.*debug|root.*cause|deep.*dive|explain.*why|reason.*about",
+        "opus",
+        "claude-opus-4-7",
+        "claude-sonnet-4-6",
+    ),
+    RoutingRule(
+        "planning",
+        r"plan|strategy|roadmap|evaluate.*tradeoff",
+        "opus",
+        "claude-opus-4-7",
+        "claude-sonnet-4-6",
+    ),
     # SONNET tier — standard code work
-    RoutingRule("code_gen", r"implement|build|create|add.*feature|write.*code|refactor", "sonnet", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"),
-    RoutingRule("code_review", r"review|audit.*code|check.*quality|lint", "sonnet", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"),
-    RoutingRule("debug", r"fix.*bug|debug|troubleshoot|investigate.*error", "sonnet", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"),
-    RoutingRule("test", r"write.*test|add.*test|test.*coverage|tdd", "sonnet", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"),
-
+    RoutingRule(
+        "code_gen",
+        r"implement|build|create|add.*feature|write.*code|refactor",
+        "sonnet",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5-20251001",
+    ),
+    RoutingRule(
+        "code_review",
+        r"review|audit.*code|check.*quality|lint",
+        "sonnet",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5-20251001",
+    ),
+    RoutingRule(
+        "debug",
+        r"fix.*bug|debug|troubleshoot|investigate.*error",
+        "sonnet",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5-20251001",
+    ),
+    RoutingRule(
+        "test",
+        r"write.*test|add.*test|test.*coverage|tdd",
+        "sonnet",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5-20251001",
+    ),
     # HAIKU tier — simple tasks
-    RoutingRule("search", r"search|find|grep|locate|list.*files", "haiku", "claude-haiku-4-5-20251001", "claude-haiku-4-5-20251001"),
-    RoutingRule("status", r"status|check|verify|health|monitor", "haiku", "claude-haiku-4-5-20251001", "claude-haiku-4-5-20251001"),
-    RoutingRule("format", r"format|lint|style|rename|typo|spelling", "haiku", "claude-haiku-4-5-20251001", "claude-haiku-4-5-20251001"),
-    RoutingRule("docs", r"document|readme|comment|docstring|changelog", "haiku", "claude-haiku-4-5-20251001", "claude-haiku-4-5-20251001"),
-
+    RoutingRule(
+        "search",
+        r"search|find|grep|locate|list.*files",
+        "haiku",
+        "claude-haiku-4-5-20251001",
+        "claude-haiku-4-5-20251001",
+    ),
+    RoutingRule(
+        "status",
+        r"status|check|verify|health|monitor",
+        "haiku",
+        "claude-haiku-4-5-20251001",
+        "claude-haiku-4-5-20251001",
+    ),
+    RoutingRule(
+        "format",
+        r"format|lint|style|rename|typo|spelling",
+        "haiku",
+        "claude-haiku-4-5-20251001",
+        "claude-haiku-4-5-20251001",
+    ),
+    RoutingRule(
+        "docs",
+        r"document|readme|comment|docstring|changelog",
+        "haiku",
+        "claude-haiku-4-5-20251001",
+        "claude-haiku-4-5-20251001",
+    ),
     # LOCAL tier — Ollama models (requires GPU)
-    RoutingRule("local_inference", r"ollama|local.*model|qwen|devstral|deepseek", "local", "devstral:latest", "claude-sonnet-4-6"),
-    RoutingRule("embedding", r"embed|vector|index.*code|semantic.*search", "local", "nomic-embed-text", "nomic-embed-text"),
-    RoutingRule("tax_domain", r"tax|irs|cpa|deduction|1040|schedule.*c", "local", "christi-14b", "claude-sonnet-4-6"),
+    RoutingRule(
+        "local_inference",
+        r"ollama|local.*model|qwen|devstral|deepseek",
+        "local",
+        "devstral:latest",
+        "claude-sonnet-4-6",
+    ),
+    RoutingRule(
+        "embedding",
+        r"embed|vector|index.*code|semantic.*search",
+        "local",
+        "nomic-embed-text",
+        "nomic-embed-text",
+    ),
+    RoutingRule(
+        "tax_domain",
+        r"tax|irs|cpa|deduction|1040|schedule.*c",
+        "local",
+        "christi-14b",
+        "claude-sonnet-4-6",
+    ),
 ]
 
 # Local model mapping (tier → Ollama model)
@@ -98,6 +181,7 @@ LOCAL_MODELS = {
 
 
 # ── Router ────────────────────────────────────────────────────────────────────
+
 
 class ModelRouter:
     """Unified model router with configurable rules."""
@@ -119,30 +203,42 @@ class ModelRouter:
         self.prefer_local = prefer_local
         self.task_budget_total = task_budget_total or self.DEFAULT_TASK_BUDGET_TOTAL
 
+        # Always seed with DEFAULT_RULES (general tier classification).
+        # YAML rules (if present) append and take precedence by first-match order.
+        self.rules = list(DEFAULT_RULES)
         if config_path and Path(config_path).exists():
             self._load_yaml(Path(config_path))
         else:
-            self.rules = list(DEFAULT_RULES)
             logger.debug(f"Using {len(self.rules)} default routing rules")
 
     def _load_yaml(self, path: Path):
-        """Load routing rules from YAML config."""
+        """Load routing rules from YAML config. Prepends to DEFAULT_RULES so
+        YAML-specified rules match first (enables GPU-size or domain-specific
+        overrides), then falls through to tier classification defaults."""
         try:
             with path.open() as f:
                 data = yaml.safe_load(f) or {}
 
             routing = data.get("routing", data)
+            yaml_rules = []
             for r in routing.get("rules", []):
-                self.rules.append(RoutingRule(
-                    name=r["name"],
-                    pattern=r["pattern"],
-                    tier=r.get("tier", "sonnet"),
-                    model=r.get("model", "claude-sonnet-4-6"),
-                    fallback=r.get("fallback", "claude-sonnet-4-6"),
-                ))
-            logger.info(f"Loaded {len(self.rules)} routing rules from {path}")
+                yaml_rules.append(
+                    RoutingRule(
+                        name=r["name"],
+                        pattern=r["pattern"],
+                        tier=r.get("tier", "sonnet"),
+                        model=r.get("model", "claude-sonnet-4-6"),
+                        fallback=r.get("fallback", "claude-sonnet-4-6"),
+                    )
+                )
+            # YAML first (specific), DEFAULT_RULES second (general fallback).
+            self.rules = yaml_rules + list(DEFAULT_RULES)
+            logger.info(
+                f"Loaded {len(yaml_rules)} routing rules from {path} "
+                f"(+ {len(DEFAULT_RULES)} defaults = {len(self.rules)} total)"
+            )
         except Exception as e:
-            logger.warning(f"Failed to load routing config: {e}, using defaults")
+            logger.warning(f"Failed to load routing config: {e}, using defaults only")
             self.rules = list(DEFAULT_RULES)
 
     def route(self, task_description: str, context_tokens: int = 0) -> RouteDecision:

@@ -24,8 +24,8 @@ Usage:
 
 import os
 import shlex
-import sys
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -34,11 +34,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from celery import Celery
 
-# Redis connection — uses same DB as redis_client (default 0)
-REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")
+# Redis connection — uses same DB as redis_client (default 0).
+# Fail-closed: in non-dev mode, empty SWARM_REDIS_PASSWORD is a fatal config error.
+REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "127.0.0.1")
 REDIS_PORT = os.environ.get("SWARM_REDIS_PORT", "6379")
 REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "")
 REDIS_DB = os.environ.get("SWARM_REDIS_DB", "0")
+HYDRA_ENV = os.environ.get("HYDRA_ENV", "prod").lower()
+
+if not REDIS_PASSWORD and HYDRA_ENV != "dev":
+    raise RuntimeError(
+        "SWARM_REDIS_PASSWORD is required in non-dev environments. "
+        "Set HYDRA_ENV=dev to allow unauthenticated Redis for local development."
+    )
+
 REDIS_URL = (
     f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
     if REDIS_PASSWORD
@@ -110,8 +119,7 @@ def _validate_and_split_cmd(cmd: str) -> list[str]:
         raise ValueError("Empty command")
     binary = os.path.basename(argv[0])
     if not any(
-        binary == prefix or binary.startswith(prefix + ".")
-        for prefix in ALLOWED_CMD_PREFIXES
+        binary == prefix or binary.startswith(prefix + ".") for prefix in ALLOWED_CMD_PREFIXES
     ):
         raise ValueError(f"Command '{binary}' not in allowlist: {ALLOWED_CMD_PREFIXES}")
     return argv

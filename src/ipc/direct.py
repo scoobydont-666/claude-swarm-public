@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 
 from . import _lua_scripts, transport
-from .agent import _K_INDEX, _K_INBOX, _K_INBOX_GROUP, get_current_agent_id
+from .agent import _K_INBOX, _K_INBOX_GROUP, _K_INDEX, get_current_agent_id
 from .envelope import Envelope
 
 # Stream limits
@@ -152,8 +152,7 @@ def recv_iter(
             break
         block = min(remaining_ms, 2000)  # Poll every 2s max
         messages = recv(agent_id, count=batch_size, block_ms=block)
-        for msg in messages:
-            yield msg
+        yield from messages
 
 
 def broadcast(
@@ -178,6 +177,7 @@ def broadcast(
         # Send to project members individually
         r = transport.get_client()
         from .agent import _K_PROJECT
+
         members = r.smembers(f"{_K_PROJECT}{project}")
         count = 0
         for member in members:

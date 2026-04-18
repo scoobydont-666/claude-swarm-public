@@ -17,7 +17,6 @@ Run:
 import logging
 import sqlite3
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -156,23 +155,27 @@ def get_dispatches_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from ipc_bridge import get_client, is_available
+
         if is_available():
             client = get_client()
             raw = client.xrevrange("hydra:ipc:dispatch-events", "+", "-", count=30)
             for msg_id, fields in raw:
                 try:
                     import json as _json
+
                     env = _json.loads(fields.get("envelope", "{}"))
                     data = env.get("data", {})
-                    dispatches.append({
-                        "dispatch_id": data.get("dispatch_id", msg_id),
-                        "host": data.get("host", ""),
-                        "model": data.get("model", ""),
-                        "status": data.get("status", env.get("type", "").split(".")[-1]),
-                        "task": data.get("task", ""),
-                        "_started_ago": _relative_time(env.get("ts", 0)),
-                        "_icon": "✓" if "completed" in env.get("type", "") else "▶",
-                    })
+                    dispatches.append(
+                        {
+                            "dispatch_id": data.get("dispatch_id", msg_id),
+                            "host": data.get("host", ""),
+                            "model": data.get("model", ""),
+                            "status": data.get("status", env.get("type", "").split(".")[-1]),
+                            "task": data.get("task", ""),
+                            "_started_ago": _relative_time(env.get("ts", 0)),
+                            "_icon": "✓" if "completed" in env.get("type", "") else "▶",
+                        }
+                    )
                 except Exception:
                     continue
             if dispatches:
@@ -201,12 +204,14 @@ def get_health_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from ipc_bridge import get_client, is_available
+
         if is_available():
             client = get_client()
             raw = client.xrevrange("hydra:ipc:infra-events", "+", "-", count=20)
             for msg_id, fields in raw:
                 try:
                     import json as _json
+
                     env = _json.loads(fields.get("envelope", "{}"))
                     data = env.get("data", {})
                     event = {
@@ -274,7 +279,13 @@ def get_metrics_api() -> dict[str, Any]:
     # Get real cache hit rate from Context Bridge
     try:
         import subprocess as _sp
-        _cb = _sp.run(["curl", "-sf", "http://127.0.0.1:8520/stats"], capture_output=True, text=True, timeout=2)
+
+        _cb = _sp.run(
+            ["curl", "-sf", "http://127.0.0.1:8520/stats"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
         if _cb.returncode == 0:
             _stats = __import__("json").loads(_cb.stdout)
             cache_hit_rate = float(_stats.get("utilization_pct", "0")) / 100.0
@@ -287,7 +298,9 @@ def get_metrics_api() -> dict[str, Any]:
     today_dispatches = 0
     try:
         sys.path.insert(0, str(Path(__file__).parent))
-        from ipc_bridge import get_client as _ipc_client, is_available as _ipc_avail
+        from ipc_bridge import get_client as _ipc_client
+        from ipc_bridge import is_available as _ipc_avail
+
         if _ipc_avail():
             today_dispatches = _ipc_client().xlen("hydra:ipc:dispatch-events") or 0
     except Exception:
@@ -351,6 +364,7 @@ def get_gpu_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from gpu_scheduler_v2 import GpuScheduler
+
         scheduler = GpuScheduler()
         return scheduler.get_status()
     except Exception as e:
@@ -363,6 +377,7 @@ def get_warm_models_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from ipc_bridge import discover_fleet_warm_models
+
         warm = discover_fleet_warm_models()
         return {"hosts": warm, "total_models": sum(len(v) for v in warm.values())}
     except Exception as e:
@@ -374,7 +389,8 @@ def get_ipc_events_api() -> dict[str, Any]:
     """Return recent IPC events from Redis Streams (read-only, no ACK)."""
     try:
         sys.path.insert(0, str(Path(__file__).parent))
-        from ipc_bridge import get_client, is_available, ALL_CHANNELS
+        from ipc_bridge import ALL_CHANNELS, get_client, is_available
+
         if not is_available():
             return {"available": False, "events": []}
 
@@ -388,15 +404,18 @@ def get_ipc_events_api() -> dict[str, Any]:
                 for msg_id, fields in raw:
                     try:
                         import json as _json
+
                         env = _json.loads(fields.get("envelope", "{}"))
-                        all_events.append({
-                            "id": msg_id,
-                            "channel": ch,
-                            "type": env.get("type", ""),
-                            "data": env.get("data", {}),
-                            "sender": env.get("sender", ""),
-                            "timestamp": env.get("ts", 0),
-                        })
+                        all_events.append(
+                            {
+                                "id": msg_id,
+                                "channel": ch,
+                                "type": env.get("type", ""),
+                                "data": env.get("data", {}),
+                                "sender": env.get("sender", ""),
+                                "timestamp": env.get("ts", 0),
+                            }
+                        )
                     except Exception:
                         continue
             except Exception:
@@ -414,6 +433,7 @@ def get_costs_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from cost_tracker import get_daily_costs
+
         return get_daily_costs() or {"note": "No cost data available"}
     except Exception as e:
         return {"error": str(e)}
@@ -425,9 +445,13 @@ def get_routing_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from model_router import get_router
+
         router = get_router()
         return {
-            "rules": [{"name": r.name, "pattern": r.pattern, "tier": r.tier, "model": r.model} for r in router.rules],
+            "rules": [
+                {"name": r.name, "pattern": r.pattern, "tier": r.tier, "model": r.model}
+                for r in router.rules
+            ],
             "total_rules": len(router.rules),
         }
     except Exception as e:
@@ -1081,12 +1105,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="claude-swarm web dashboard")
-    parser.add_argument(
-        "--host", default=HOST, help="Host to bind to (default: 127.0.0.1)"
-    )
-    parser.add_argument(
-        "--port", type=int, default=PORT, help="Port to bind to (default: 9192)"
-    )
+    parser.add_argument("--host", default=HOST, help="Host to bind to (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=PORT, help="Port to bind to (default: 9192)")
 
     args = parser.parse_args()
     run_dashboard(host=args.host, port=args.port)

@@ -260,7 +260,6 @@ Test files mirror source modules (e.g., `test_gpu_slots.py` → `gpu_slots.py`).
 │   ├── rate_limiter.py       # Claude API rate-limit detection
 │   ├── pipeline.py           # pipeline execution engine
 │   ├── pipeline_registry.py  # pipeline YAML registry
-│   ├── orchestrator.py       # DEPRECATED — use work_generator + auto_dispatch
 │   ├── collaborative.py      # collaborative session primitives
 │   ├── conflicts.py          # conflict detection + resolution
 │   ├── sync_engine.py        # NFS↔git sync engine

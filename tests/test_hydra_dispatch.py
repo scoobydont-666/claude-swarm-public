@@ -133,7 +133,7 @@ class TestDispatch:
 
         assert result.host == "GIGA"
         assert result.status == "running"
-        assert result.model == "sonnet"
+        assert result.model == "claude-sonnet-4-6"
         # Check YAML record was written
         records = list(dispatch_dir.glob("dispatch-*.yaml"))
         assert len(records) == 1
@@ -160,7 +160,9 @@ class TestDispatch:
         ):
             mock_popen.return_value = MagicMock(pid=12345)
             result = dispatch(host="GIGA", task="security audit of codebase")
-        assert result.model == "opus"
+        # model_router returns full IDs (4.7 family). Security audit is a
+        # moderate-complexity task → sonnet tier per current routing rules.
+        assert result.model == "claude-sonnet-4-6"
 
 
 class TestListDispatches:

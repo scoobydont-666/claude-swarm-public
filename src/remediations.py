@@ -11,13 +11,16 @@ Security:
 
 import os
 import subprocess
-from typing import Optional
 
 from health_rules import ALLOWED_SERVICES
 from util import (
-    now_iso as _now_iso,
-    hostname as _hostname,
     atomic_write_yaml as _atomic_write_yaml,
+)
+from util import (
+    hostname as _hostname,
+)
+from util import (
+    now_iso as _now_iso,
 )
 
 
@@ -41,8 +44,7 @@ class RemediationEngine:
         allowed = ALLOWED_SERVICES.get(host, [])
         if service not in allowed:
             raise ValueError(
-                f"Service '{service}' not in allowlist for host '{host}'. "
-                f"Allowed: {allowed}"
+                f"Service '{service}' not in allowlist for host '{host}'. Allowed: {allowed}"
             )
 
     def _ssh_run(
@@ -77,7 +79,7 @@ class RemediationEngine:
         except OSError as exc:
             return False, f"SSH failed to start: {exc}"
 
-    def _resolve_host_ip(self, host: str) -> Optional[str]:
+    def _resolve_host_ip(self, host: str) -> str | None:
         """Return IP for a known fleet host, or None."""
         # Import lazily to avoid circular deps
         try:
@@ -253,9 +255,7 @@ class RemediationEngine:
 
         return True, f"killed pid {pid} on {host}"
 
-    def requeue_task(
-        self, host: str = "", task_id: str = "", **kwargs
-    ) -> tuple[bool, str]:
+    def requeue_task(self, host: str = "", task_id: str = "", **kwargs) -> tuple[bool, str]:
         """Requeue a deadline-exceeded task back to pending if retries < 3.
 
         Extracts task_id from kwargs if needed (from health monitor item).
@@ -268,8 +268,9 @@ class RemediationEngine:
 
         try:
             import os
-            import yaml
             from pathlib import Path
+
+            import yaml
 
             claimed_dir = Path("/opt/swarm/tasks/claimed")
             task_file = claimed_dir / f"{actual_task_id}.yaml"
@@ -369,9 +370,7 @@ class RemediationEngine:
             return True, dispatch_id
 
         if action == "alert_email":
-            return self.send_alert_email(
-                subject or "swarm health alert", body or message
-            )
+            return self.send_alert_email(subject or "swarm health alert", body or message)
 
         if action == "warn_swarm_message":
             return self.send_swarm_message(host, message)

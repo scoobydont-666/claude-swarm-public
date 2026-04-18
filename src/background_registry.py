@@ -18,7 +18,6 @@ import os
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -49,7 +48,7 @@ class BackgroundTask:
     dispatch_id: str
     host: str
     description: str = ""
-    task_id: Optional[str] = None
+    task_id: str | None = None
     model: str = "sonnet"
     status: str = "running"
     pid: int = -1
@@ -96,7 +95,7 @@ class BackgroundRegistry:
         dispatch_id: str,
         host: str,
         description: str = "",
-        task_id: Optional[str] = None,
+        task_id: str | None = None,
         model: str = "sonnet",
         pid: int = -1,
         output_file: str = "",
@@ -137,9 +136,7 @@ class BackgroundRegistry:
         )
         self._tasks[dispatch_id] = task
         self._save()
-        logger.info(
-            "Registered background task: %s on %s (pid=%d)", dispatch_id, host, pid
-        )
+        logger.info("Registered background task: %s on %s (pid=%d)", dispatch_id, host, pid)
         return task
 
     def active(self) -> list[BackgroundTask]:
@@ -154,7 +151,7 @@ class BackgroundRegistry:
         """Return all tasks with status 'failed'."""
         return [t for t in self._tasks.values() if t.status == "failed"]
 
-    def get(self, dispatch_id: str) -> Optional[BackgroundTask]:
+    def get(self, dispatch_id: str) -> BackgroundTask | None:
         """Get a specific task by dispatch ID."""
         return self._tasks.get(dispatch_id)
 
@@ -229,9 +226,7 @@ class BackgroundRegistry:
                         # Now check if the newly-discovered PID is alive
                         if not self._check_pid(task.pid):
                             task.status = "completed"
-                            task.completed_at = time.strftime(
-                                "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
-                            )
+                            task.completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                             newly_completed.append(task)
                     except ValueError:
                         task.status = "unknown"

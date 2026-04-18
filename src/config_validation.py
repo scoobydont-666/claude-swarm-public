@@ -7,7 +7,6 @@ Prevents silent failures from missing or weak secrets.
 import os
 import sys
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -16,7 +15,7 @@ class RedisConfig:
 
     host: str
     port: int
-    password: Optional[str] = None
+    password: str | None = None
     db: int = 0
 
     @classmethod
@@ -26,7 +25,7 @@ class RedisConfig:
         Raises:
             ValueError: If critical configuration is missing or invalid.
         """
-        host = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>").strip()
+        host = os.environ.get("SWARM_REDIS_HOST", "127.0.0.1").strip()
         port_str = os.environ.get("SWARM_REDIS_PORT", "6379").strip()
         password = os.environ.get("SWARM_REDIS_PASSWORD", "").strip()
         db_str = os.environ.get("SWARM_REDIS_DB", "0").strip()
@@ -34,8 +33,7 @@ class RedisConfig:
         # Validation: host must not be empty
         if not host:
             raise ValueError(
-                "SWARM_REDIS_HOST is required and cannot be empty. "
-                "Set in .env or environment."
+                "SWARM_REDIS_HOST is required and cannot be empty. Set in .env or environment."
             )
 
         # Validation: port must be valid integer
@@ -44,9 +42,7 @@ class RedisConfig:
             if port < 1 or port > 65535:
                 raise ValueError
         except ValueError:
-            raise ValueError(
-                f"SWARM_REDIS_PORT must be a valid port (1-65535), got: {port_str}"
-            )
+            raise ValueError(f"SWARM_REDIS_PORT must be a valid port (1-65535), got: {port_str}")
 
         # Validation: db must be valid integer
         try:
@@ -54,16 +50,26 @@ class RedisConfig:
             if db < 0 or db > 15:
                 raise ValueError
         except ValueError:
-            raise ValueError(
-                f"SWARM_REDIS_DB must be 0-15, got: {db_str}"
-            )
+            raise ValueError(f"SWARM_REDIS_DB must be 0-15, got: {db_str}")
 
-        # Warning: if password is required but missing (non-dev deployments)
-        # This is environment-dependent, so we warn instead of error.
-        if not password and "SWARM_REDIS_PASSWORD" not in os.environ:
+        # Fail-closed in non-dev environments; warn with HYDRA_ENV=dev.
+        hydra_env = os.environ.get("HYDRA_ENV", "prod").lower()
+        if not password:
+            if hydra_env == "dev":
+                print(
+                    "WARNING: SWARM_REDIS_PASSWORD not set. "
+                    "Continuing with no password (HYDRA_ENV=dev).",
+                    file=sys.stderr,
+                )
+            else:
+                raise ValueError(
+                    "SWARM_REDIS_PASSWORD is required in non-dev environments. "
+                    "Set HYDRA_ENV=dev to allow unauthenticated Redis for local development."
+                )
+        elif len(password) < 32:
             print(
-                "WARNING: SWARM_REDIS_PASSWORD not set. "
-                "Set it in .env for production. Continuing with no password.",
+                f"WARNING: SWARM_REDIS_PASSWORD is {len(password)} chars; "
+                "recommend >=32 chars for production.",
                 file=sys.stderr,
             )
 

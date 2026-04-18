@@ -303,8 +303,7 @@ def update_status(host: str, status: dict) -> bool:
     r.hset(
         key,
         mapping={
-            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
-            for k, v in status.items()
+            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in status.items()
         },
     )
     r.expire(key, STATUS_TTL)

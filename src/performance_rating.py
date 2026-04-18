@@ -18,7 +18,7 @@ import sqlite3
 import subprocess
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from util import now_iso as _now_iso
@@ -290,7 +290,7 @@ def compute_rating(hostname: str) -> HostRating:
         conn.close()
         return rating
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     weighted_success = 0.0
     weighted_total = 0.0
     weighted_duration_ratio = 0.0
@@ -328,9 +328,7 @@ def compute_rating(hostname: str) -> HostRating:
 
     completion_rate = weighted_success / weighted_total if weighted_total > 0 else 1.0
     avg_duration_ratio = (
-        weighted_duration_ratio / duration_weight_total
-        if duration_weight_total > 0
-        else 1.0
+        weighted_duration_ratio / duration_weight_total if duration_weight_total > 0 else 1.0
     )
     error_rate = error_count / weighted_total if weighted_total > 0 else 0.0
 
@@ -420,7 +418,7 @@ def get_rating(hostname: str) -> HostRating:
         last = row["last_computed"] or ""
         try:
             last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
-            age_hours = (datetime.now(timezone.utc) - last_dt).total_seconds() / 3600
+            age_hours = (datetime.now(UTC) - last_dt).total_seconds() / 3600
             if age_hours < 1:  # Cache for 1 hour
                 return HostRating(
                     hostname=row["hostname"],
@@ -542,19 +540,13 @@ echo "CLAUDE_END"
 
         # Parse Ollama
         if "OLLAMA_START" in output:
-            ollama_section = (
-                output.split("OLLAMA_START")[1].split("OLLAMA_END")[0].strip()
-            )
+            ollama_section = output.split("OLLAMA_START")[1].split("OLLAMA_END")[0].strip()
             result.ollama_healthy = ollama_section.strip() == "200"
 
         # Parse Claude
         if "CLAUDE_START" in output:
-            claude_section = (
-                output.split("CLAUDE_START")[1].split("CLAUDE_END")[0].strip()
-            )
-            result.claude_available = (
-                "NO_CLAUDE" not in claude_section and claude_section != ""
-            )
+            claude_section = output.split("CLAUDE_START")[1].split("CLAUDE_END")[0].strip()
+            result.claude_available = "NO_CLAUDE" not in claude_section and claude_section != ""
 
         # Parse disk latency (rough)
         if "DISK_START" in output:

@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -90,9 +91,9 @@ class AutoScaler:
         if not agents_dir.exists():
             return 0
         import json
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         count = 0
         for f in agents_dir.glob("*.json"):
             try:

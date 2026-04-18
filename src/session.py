@@ -12,7 +12,7 @@ from __future__ import annotations
 import atexit
 import logging
 import socket
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,19 +22,18 @@ try:
     from registry_redis import (
         AgentInfo,
         HeartbeatThread,
-        register,
         deregister,
+        register,
         update_agent,
     )
 except (ImportError, Exception):
-    from registry import AgentInfo, HeartbeatThread, register, deregister, update_agent
+    from registry import AgentInfo, HeartbeatThread, deregister, register, update_agent
 try:
-    from events_redis import emit, since_last_session, summarize_since, query
+    from events_redis import emit, query, since_last_session, summarize_since
 except (ImportError, Exception):
     from events import emit, since_last_session, summarize_since
-from sync_engine import pull_all_projects, push_all_dirty, sync_config, get_dirty_repos
 from crash_handler import install_crash_handlers
-
+from sync_engine import get_dirty_repos, pull_all_projects, push_all_dirty, sync_config
 from util import now_iso as _now_iso
 
 SWARM_ROOT = Path("/opt/swarm")
@@ -98,8 +97,7 @@ class SwarmSession:
         pulls = {
             k: v
             for k, v in pull_results.items()
-            if v.get("status") == "ok"
-            and "Already up to date" not in v.get("stdout", "")
+            if v.get("status") == "ok" and "Already up to date" not in v.get("stdout", "")
         }
 
         return {
@@ -150,14 +148,12 @@ class SwarmSession:
         }
 
         SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         summary_path = SUMMARIES_DIR / f"{socket.gethostname()}-{ts}.yaml"
 
         import yaml
 
-        summary_path.write_text(
-            yaml.dump(summary_data, default_flow_style=False, sort_keys=False)
-        )
+        summary_path.write_text(yaml.dump(summary_data, default_flow_style=False, sort_keys=False))
 
         # Emit session_end event
         emit(
@@ -185,7 +181,7 @@ class SwarmSession:
         """Seconds since session start."""
         try:
             start = datetime.fromisoformat(self.start_time.replace("Z", "+00:00"))
-            return int((datetime.now(timezone.utc) - start).total_seconds())
+            return int((datetime.now(UTC) - start).total_seconds())
         except Exception as exc:  # noqa: BLE001
             LOG.debug("Suppressed: %s", exc)
             return 0

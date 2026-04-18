@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -341,9 +341,7 @@ def plan_execution(
     if not is_local and not interactive:
         reasons.append("straightforward task — one-shot dispatch is sufficient")
     if complexity in (TaskComplexity.COMPLEX, TaskComplexity.EXPLORATORY):
-        reasons.append(
-            f"high complexity ({complexity.value}) warrants careful approach"
-        )
+        reasons.append(f"high complexity ({complexity.value}) warrants careful approach")
 
     # Max turns: unlimited for interactive, scaled for dispatch
     # Trivial tasks get 3 turns, simple get 10, moderate 25, complex/exploratory unlimited
@@ -424,8 +422,9 @@ def _auto_requeue_task(dispatch_id: str, task_id: str = "") -> bool:
         True if successfully requeued, False otherwise.
     """
     import os
-    import yaml
     from pathlib import Path
+
+    import yaml
 
     # Try to extract task_id from dispatch plan if not provided
     if not task_id:
@@ -481,7 +480,7 @@ def _auto_requeue_task(dispatch_id: str, task_id: str = "") -> bool:
         return False
 
 
-def check_dispatch_status(dispatch_id: str) -> Optional[SessionResult]:
+def check_dispatch_status(dispatch_id: str) -> SessionResult | None:
     """Check status of a background dispatch.
 
     For background dispatches, reads PID file and checks if process is alive.
@@ -781,13 +780,13 @@ def get_dispatch_output(dispatch_id: str, tail_lines: int = 50) -> str:
         return f"Output file not found: {output_file}"
 
     try:
-        with open(output_file, "r") as f:
+        with open(output_file) as f:
             if tail_lines > 0:
                 lines = f.readlines()
                 return "".join(lines[-tail_lines:])
             else:
                 return f.read()
-    except (OSError, IOError) as exc:
+    except OSError as exc:
         return f"Error reading output: {exc}"
 
 

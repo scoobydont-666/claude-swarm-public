@@ -29,14 +29,10 @@ groups:
           summary: "{{ $labels.hostname }} heartbeat stale for {{ humanizeDuration $value }}"
           description: "{{ $labels.hostname }} has not sent a heartbeat in {{ humanizeDuration $value }}. Node may be hung or offline."
 
-      - alert: SwarmGPUSlotsFull
-        expr: swarm_gpu_slots_used >= 2
-        for: 5m
-        labels:
-          severity: info
-        annotations:
-          summary: "All GPU slots claimed ({{ $value }}/2)"
-          description: "Both GPU slots are in use. Queue new GPU work or reduce active workloads."
+      # NOTE: nai-swarm ships a SwarmGPUSlotsFull >=2 rule — dropped here.
+      # Hydra fleet has heterogeneous GPU counts (GIGA=1, MECHA=1, MEGA=2);
+      # a fixed threshold of 2 is NAI-lab specific. Re-add with per-host thresholds
+      # if needed.
 
       - alert: SwarmHighDispatchCost
         expr: rate(swarm_dispatch_cost_usd_total[1h]) > 5.0

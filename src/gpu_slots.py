@@ -42,6 +42,8 @@ def _gpu_dir() -> Path:
     return d
 
 
+from datetime import UTC
+
 from util import now_iso as _now_iso
 
 
@@ -207,7 +209,7 @@ def get_slot_status() -> list[dict]:
         if not available:
             lock_path = _lock_path(gpu_id)
             try:
-                with open(lock_path, "r") as f:
+                with open(lock_path) as f:
                     holder = f.read().strip()
             except OSError:
                 holder = "unknown"
@@ -339,9 +341,7 @@ def wait_for_slot(
                     if claim_slot(gpu_id):
                         # Remove ourselves from the queue
                         queue = [
-                            e
-                            for e in queue
-                            if not (e["hostname"] == hostname and e["pid"] == pid)
+                            e for e in queue if not (e["hostname"] == hostname and e["pid"] == pid)
                         ]
                         _save_queue(gpu_id, queue)
                         return True
@@ -352,9 +352,7 @@ def wait_for_slot(
     finally:
         # Always clean ourselves out of queue on exit (timeout or success already removes)
         queue = _load_queue(gpu_id)
-        queue = [
-            e for e in queue if not (e["hostname"] == hostname and e["pid"] == pid)
-        ]
+        queue = [e for e in queue if not (e["hostname"] == hostname and e["pid"] == pid)]
         _save_queue(gpu_id, queue)
 
 
@@ -409,7 +407,9 @@ def heartbeat_slot(gpu_id: int) -> bool:
         claimed_at = info.get("claimed_at") or _now_iso()
         deadline_ts = info.get("deadline_ts") or int(time.time()) + DEFAULT_DEADLINE_SECONDS
 
-        lock_path.write_text(f"{info['hostname']}:{info['pid']}|{claimed_at}|{new_heartbeat}|{deadline_ts}\n")
+        lock_path.write_text(
+            f"{info['hostname']}:{info['pid']}|{claimed_at}|{new_heartbeat}|{deadline_ts}\n"
+        )
         return True
     except OSError:
         return False
@@ -446,7 +446,9 @@ def _parse_slot_info(content: str) -> dict:
             "pid": int(host_pid[1]) if host_pid[1].isdigit() else 0,
             "claimed_at": ext_parts[0] if len(ext_parts) > 0 else "",
             "heartbeat": ext_parts[1] if len(ext_parts) > 1 else "",
-            "deadline_ts": int(ext_parts[2]) if len(ext_parts) > 2 and ext_parts[2].isdigit() else 0,
+            "deadline_ts": int(ext_parts[2])
+            if len(ext_parts) > 2 and ext_parts[2].isdigit()
+            else 0,
         }
 
     # Legacy format: hostname:pid:timestamp
@@ -505,10 +507,10 @@ def is_slot_stale(gpu_id: int, stale_threshold: int = DEFAULT_STALE_THRESHOLD_SE
         # Heartbeat staleness check
         if info["heartbeat"]:
             try:
-                from datetime import datetime, timezone
+                from datetime import datetime
 
                 dt = datetime.fromisoformat(info["heartbeat"].replace("Z", "+00:00"))
-                age = (datetime.now(timezone.utc) - dt).total_seconds()
+                age = (datetime.now(UTC) - dt).total_seconds()
                 if age > stale_threshold:
                     return True
             except (ValueError, TypeError):

@@ -12,8 +12,6 @@ import shlex
 import subprocess
 import time
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +22,7 @@ BRANCH_PREFIX = "swarm"
 @dataclass
 class WorktreeInfo:
     """Info about a created worktree."""
+
     path: str
     branch: str
     repo_path: str
@@ -37,7 +36,7 @@ def create_worktree(
     host: str = "localhost",
     base_branch: str = "main",
     worktree_base: str = WORKTREE_BASE,
-) -> Optional[WorktreeInfo]:
+) -> WorktreeInfo | None:
     """Create a git worktree for isolated agent work.
 
     Args:
@@ -66,12 +65,16 @@ def create_worktree(
         if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
             result = subprocess.run(
                 ["bash", "-c", full_cmd],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
         if result.returncode == 0:
@@ -131,12 +134,16 @@ def merge_worktree(
         if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
             result = subprocess.run(
                 ["bash", "-c", full_cmd],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
-                capture_output=True, text=True, timeout=60,
+                capture_output=True,
+                text=True,
+                timeout=60,
             )
 
         if result.returncode == 0:
@@ -172,7 +179,8 @@ def cleanup_worktree(
         else:
             subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
-                capture_output=True, timeout=15,
+                capture_output=True,
+                timeout=15,
             )
         logger.info(f"Worktree cleaned: {worktree.path}")
         return True
@@ -190,7 +198,9 @@ def list_worktrees(repo_path: str, host: str = "localhost") -> list[str]:
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", cmd],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
         if result.returncode == 0:
             return [

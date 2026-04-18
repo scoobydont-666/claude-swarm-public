@@ -5,10 +5,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pipeline import Pipeline
-from pipelines.feature_build import FEATURE_BUILD
 from pipelines.bug_fix import BUG_FIX
-from pipelines.security_audit import SECURITY_AUDIT
+from pipelines.feature_build import FEATURE_BUILD
 from pipelines.question_generation import QUESTION_GEN
+from pipelines.security_audit import SECURITY_AUDIT
 
 PIPELINES: dict[str, Pipeline] = {
     "feature-build": FEATURE_BUILD,
@@ -21,9 +21,7 @@ PIPELINES: dict[str, Pipeline] = {
 def get_pipeline(name: str) -> Pipeline:
     """Return a named pipeline, raising ValueError if not found."""
     if name not in PIPELINES:
-        raise ValueError(
-            f"Unknown pipeline: {name!r}. Available: {sorted(PIPELINES.keys())}"
-        )
+        raise ValueError(f"Unknown pipeline: {name!r}. Available: {sorted(PIPELINES.keys())}")
     return PIPELINES[name]
 
 

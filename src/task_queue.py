@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 from uuid import uuid4
 
@@ -20,12 +20,12 @@ log = logging.getLogger(__name__)
 # Priority tiers: named tiers (0-5) inspired by NAI Swarm fair-share scheduling
 # Lower number = higher priority
 PRIORITY_TIERS = {
-    "production": 0,   # Tier 0: production inference / critical path
-    "cicd": 1,         # Tier 1: CI/CD pipelines
-    "lead": 2,         # Tier 2: team lead / high-priority manual
-    "standard": 3,     # Tier 3: standard work (default)
-    "batch": 4,        # Tier 4: batch jobs, background work
-    "sandbox": 5,      # Tier 5: dev/sandbox, lowest priority
+    "production": 0,  # Tier 0: production inference / critical path
+    "cicd": 1,  # Tier 1: CI/CD pipelines
+    "lead": 2,  # Tier 2: team lead / high-priority manual
+    "standard": 3,  # Tier 3: standard work (default)
+    "batch": 4,  # Tier 4: batch jobs, background work
+    "sandbox": 5,  # Tier 5: dev/sandbox, lowest priority
 }
 
 # Legacy priority mapping (backward compatible)
@@ -41,9 +41,9 @@ PRIORITY_MAP = {
 CLAIM_TTL_SECONDS = 600  # 10 minutes — requeue if uncompleted
 
 # Preemption: tasks with priority <= this can preempt tasks with priority >= PREEMPT_TARGET_MIN
-PREEMPT_SOURCE_MAX = 2   # P0-P2 can preempt
-PREEMPT_TARGET_MIN = 4   # P4-P5 can be preempted
-PREEMPT_GAP = 2          # Must be at least 2 tiers apart
+PREEMPT_SOURCE_MAX = 2  # P0-P2 can preempt
+PREEMPT_TARGET_MIN = 4  # P4-P5 can be preempted
+PREEMPT_GAP = 2  # Must be at least 2 tiers apart
 
 
 @dataclass
@@ -87,11 +87,7 @@ class Task:
         # Handle requires as string (from YAML/Redis)
         requires = data.get("requires", [])
         if isinstance(requires, str):
-            requires = (
-                [r.strip() for r in requires.split(",") if r.strip()]
-                if requires
-                else []
-            )
+            requires = [r.strip() for r in requires.split(",") if r.strip()] if requires else []
         return cls(
             id=data.get("id", str(uuid4())),
             title=data.get("title", ""),
@@ -136,8 +132,13 @@ class TaskQueue:
     Backend priority: SQLite (if configured) → Redis → filesystem (NFS).
     """
 
-    def __init__(self, use_redis: bool = True, tasks_dir: str = "/opt/swarm/tasks",
-                 use_sqlite: bool = False, sqlite_path: str = "") -> None:
+    def __init__(
+        self,
+        use_redis: bool = True,
+        tasks_dir: str = "/opt/swarm/tasks",
+        use_sqlite: bool = False,
+        sqlite_path: str = "",
+    ) -> None:
         """Initialize TaskQueue with backend selection.
 
         Args:
@@ -255,7 +256,9 @@ class TaskQueue:
         return self._fs_claim(claimer)
 
     def claim_matching(
-        self, capabilities: dict[str, bool] | list[str], claimer: str,
+        self,
+        capabilities: dict[str, bool] | list[str],
+        claimer: str,
     ) -> Task | None:
         """Claim the highest-priority task matching the given capabilities.
 
@@ -419,7 +422,10 @@ class TaskQueue:
         claimed = self.list_claimed()
         preemptable = []
         for task in claimed:
-            if task.priority >= PREEMPT_TARGET_MIN and (task.priority - new_priority) >= PREEMPT_GAP:
+            if (
+                task.priority >= PREEMPT_TARGET_MIN
+                and (task.priority - new_priority) >= PREEMPT_GAP
+            ):
                 preemptable.append(task)
         return preemptable
 
