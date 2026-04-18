@@ -107,7 +107,7 @@ tasks:
   - id: s4-gpu-slots
     title: GPU resource arbitration
     requires: [gpu]
-    host: GIGA
+    host: node_gpu
     depends_on: [s1-registry]
     acceptance: GPU slot claiming prevents two agents loading models simultaneously
 ```

@@ -75,7 +75,7 @@ class ExecutionPlan:
 # ── Fleet Knowledge ─────────────────────────────────────────────────────────
 
 FLEET: dict[str, dict[str, Any]] = {
-    "miniboss": {
+    "node_primary": {
         "ip": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
         "ssh_user": "josh",
         "claude_path": "/home/josh/.local/bin/claude",
@@ -83,7 +83,7 @@ FLEET: dict[str, dict[str, Any]] = {
         "strengths": "Fullnode relay, lightweight services, orchestration, CPU-only tasks",
         "is_primary": True,  # Usually the swarm controller
     },
-    "GIGA": {
+    "node_gpu": {
         "ip": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
         "ssh_user": "josh",
         "claude_path": "/home/josh/.local/bin/claude",
@@ -102,11 +102,11 @@ FLEET: dict[str, dict[str, Any]] = {
 
 # Resource → required host mapping
 RESOURCE_HOST_MAP = {
-    "gpu": "GIGA",
-    "ollama": "GIGA",
-    "chromadb": "GIGA",
-    "swarm_manager": "GIGA",
-    "monero": "miniboss",
+    "gpu": "node_gpu",
+    "ollama": "node_gpu",
+    "chromadb": "node_gpu",
+    "swarm_manager": "node_gpu",
+    "monero": "node_primary",
 }
 
 
@@ -168,7 +168,7 @@ _GPU_KEYWORDS = {
     "model",
     "embedding",
     "chromadb",
-    "christi",
+    "project-a",
     "comfyui",
     "vram",
 }
@@ -215,9 +215,9 @@ def _needs_remote_resources(task: str) -> tuple[bool, str]:
     lower = task.lower()
 
     if any(kw in lower for kw in _GPU_KEYWORDS):
-        return True, "GIGA"
+        return True, "node_gpu"
     if any(kw in lower for kw in _DOCKER_KEYWORDS):
-        return True, "GIGA"
+        return True, "node_gpu"
 
     return False, ""
 
@@ -290,10 +290,10 @@ def plan_execution(
     elif needs_remote and preferred_host:
         target_host = preferred_host
     elif project_dir:
-        # Project affinity: GPU projects → GIGA, others → current host
-        gpu_projects = {"/opt/christi-project", "<ai-project-path>"}
+        # Project affinity: GPU projects → node_gpu, others → current host
+        gpu_projects = {"<project-a-path>", "<ai-project-path>"}
         if project_dir in gpu_projects:
-            target_host = "GIGA"
+            target_host = "node_gpu"
         else:
             target_host = current_host
     else:
@@ -769,7 +769,7 @@ def get_dispatch_output(dispatch_id: str, tail_lines: int = 50) -> str:
     """Retrieve the output from a dispatch, optionally tailing the last N lines.
 
     Args:
-        dispatch_id: The dispatch ID (e.g., 'session-1774378670-GIGA')
+        dispatch_id: The dispatch ID (e.g., 'session-1774378670-node_gpu')
         tail_lines: Number of lines to return from the end. If 0, return all.
 
     Returns:

@@ -30,7 +30,7 @@ groups:
           description: "{{ $labels.hostname }} has not sent a heartbeat in {{ humanizeDuration $value }}. Node may be hung or offline."
 
       # NOTE: nai-swarm ships a SwarmGPUSlotsFull >=2 rule — dropped here.
-      # Hydra fleet has heterogeneous GPU counts (GIGA=1, MECHA=1, MEGA=2);
+      # Hydra fleet has heterogeneous GPU counts (node_gpu=1, node_reserve2=1, node_reserve1=2);
       # a fixed threshold of 2 is NAI-lab specific. Re-add with per-host thresholds
       # if needed.
 

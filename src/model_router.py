@@ -167,7 +167,7 @@ DEFAULT_RULES = [
         "tax_domain",
         r"tax|irs|cpa|deduction|1040|schedule.*c",
         "local",
-        "christi-14b",
+        "project-a-14b",
         "claude-sonnet-4-6",
     ),
 ]

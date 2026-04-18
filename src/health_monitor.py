@@ -63,9 +63,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "enabled": True,
     "check_interval_seconds": 60,
     "prometheus_url": "http://127.0.0.1:9090",
-    "email_alerts": "r.josh.jones@gmail.com",
+    "email_alerts": "admin@example.com",
     "hosts": {
-        "miniboss": {
+        "node_primary": {
             "ip": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
             "services": [
                 "monerod",
@@ -77,7 +77,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
                 "crowdsec",
             ],
         },
-        "GIGA": {
+        "node_gpu": {
             "ip": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
             "services": ["docker", "fail2ban", "crowdsec"],
         },
@@ -134,7 +134,7 @@ class HealthMonitor:
         self.hosts: dict[str, Any] = self.config.get("hosts", {})
         self.cooldowns_cfg: dict[str, int] = self.config.get("cooldowns", {})
         self.thresholds: dict[str, Any] = self.config.get("thresholds", {})
-        self.email_to: str = self.config.get("email_alerts", "r.josh.jones@gmail.com")
+        self.email_to: str = self.config.get("email_alerts", "admin@example.com")
 
         self.rules: list[dict] = self._load_rules()
         self.event_log = EventLog()

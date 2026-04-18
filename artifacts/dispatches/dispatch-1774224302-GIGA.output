@@ -1,8 +1,0 @@
-Done. Updated and committed phase status for all four GIGA projects:
-
-1. **Christi** — Phase 3+, healthy, Kin indexing in progress
-2. **STR Intelligence** — Phase 0, scaffolded, awaiting webhook receiver
-3. **Tax Prep Wizard** — Phase 0, scaffolded, awaiting Milvus setup  
-4. **AI Server** — Production v6.0.3 GOLD, hardened
-
-Each commit made with minimal, targeted edits.

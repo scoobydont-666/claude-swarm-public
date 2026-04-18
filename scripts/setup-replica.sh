@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# setup-replica.sh — Run on miniboss (<orchestration-node-ip>)
-# Mounts GIGA's NFS share and sets up local replica + backup NFS export
+# setup-replica.sh — Run on node_primary (<orchestration-node-ip>)
+# Mounts node_gpu's NFS share and sets up local replica + backup NFS export
 # Requires: sudo
 
 GIGA_IP="<primary-node-ip>"
@@ -10,7 +10,7 @@ SWARM_MOUNT="/opt/swarm"
 REPLICA_DIR="/opt/swarm-replica"
 SUBNET="192.168.200.0/23"
 
-echo "=== claude-swarm: NFS Replica Setup (miniboss) ==="
+echo "=== claude-swarm: NFS Replica Setup (node_primary) ==="
 
 # Install NFS packages
 if ! dpkg -l | grep -q nfs-common; then
@@ -26,7 +26,7 @@ fi
 # Create mount point
 sudo mkdir -p "${SWARM_MOUNT}"
 
-# Mount GIGA's NFS share (idempotent)
+# Mount node_gpu's NFS share (idempotent)
 if mountpoint -q "${SWARM_MOUNT}" 2>/dev/null; then
     echo "NFS already mounted at ${SWARM_MOUNT}."
 else

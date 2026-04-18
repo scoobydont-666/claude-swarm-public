@@ -1,7 +1,0 @@
-hostname: miniboss
-pid: 4101850
-exit_time: '2026-03-24T19:25:07Z'
-exit_signal: null
-session_info:
-  test_key: test_value
-  test: data

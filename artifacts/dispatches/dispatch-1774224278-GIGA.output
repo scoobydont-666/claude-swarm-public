@@ -1,9 +1,0 @@
-Done. All three projects indexed with Kin semantic VCS:
-
-| Project | Entities | Relations | Files |
-|---------|----------|-----------|-------|
-| /opt/ai-project | 0 | 0 | 81 |
-| /opt/str-project | 0 | 0 | 1 |
-| /opt/taxprep-project | 63 | 6 | 22 |
-
-All `.kin` directories created with genesis state. ai-project and str-project contain mostly non-semantic file types (Ansible YAML, shell scripts, config). taxprep-project has semantic content (Python/TypeScript) with 63 entities parsed and 6 cross-file relations established.

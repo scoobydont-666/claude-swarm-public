@@ -1,6 +1,6 @@
 # Routing Protocol v1 Conformance Test Suite
 
-Validates the Routing Protocol v1 specification against three distinct agent kinds: **Christi** (tax-advisory, multi-repo), **TaxPrep** (interview pipeline, high-velocity dispatch), and **Reference** (minimal, text-only).
+Validates the Routing Protocol v1 specification against three distinct agent kinds: **ProjectA** (tax-advisory, multi-repo), **TaxPrep** (interview pipeline, high-velocity dispatch), and **Reference** (minimal, text-only).
 
 **Status:** Production · **Last updated:** 2026-04-18 · **Owner:** josh
 
@@ -14,7 +14,7 @@ Routing Protocol v1 shipped with 166+ internal claude-swarm tests proving hooks 
 
 ## Test Coverage
 
-### Agent Kind: Christi (Tax-Advisory)
+### Agent Kind: ProjectA (Tax-Advisory)
 
 **Characteristics:** Multi-repo cross-editing, long thinking blocks, pause-for-user-input patterns.
 
@@ -143,15 +143,15 @@ state.get_hook_fires(hook=None, action=None)
 
 | Hook | Trigger | v1 Mode | Test Coverage |
 |------|---------|---------|---|
-| `pre_tool_use_parallel_detector.py` | Every tool call | warn-only | Christi multi-repo, TaxPrep interviews, Reference no-false-positives |
+| `pre_tool_use_parallel_detector.py` | Every tool call | warn-only | ProjectA multi-repo, TaxPrep interviews, Reference no-false-positives |
 | `dispatch_rate_limit_hook.py` | Pre-dispatch | block | TaxPrep burst detection, rate-reset, escalation |
 
 ### Stop-Response Hooks
 
 | Hook | Trigger | v1 Mode | Test Coverage |
 |------|---------|---------|---|
-| `post_tool_use_idle_detector.py` | Text-only mid-plan | warn-only | Christi long-thinking, Reference brief-think |
-| `stop_hook_pause_ask_scanner.py` | Pause-ask pattern | block | Christi pause-ask-active, Reference no-false-positives |
+| `post_tool_use_idle_detector.py` | Text-only mid-plan | warn-only | ProjectA long-thinking, Reference brief-think |
+| `stop_hook_pause_ask_scanner.py` | Pause-ask pattern | block | ProjectA pause-ask-active, Reference no-false-positives |
 
 ### State Management
 
@@ -310,6 +310,6 @@ Tests use in-memory stubs (no subprocess), so races are unlikely. If you add sub
 
 **File an issue** with:
 - Failing test name + output
-- Agent kind (Christi/TaxPrep/Reference) or custom
+- Agent kind (ProjectA/TaxPrep/Reference) or custom
 - Expected vs. actual hook behavior
 - Logs from `/tmp/claude-routing-state/`

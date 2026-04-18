@@ -2,17 +2,17 @@
 
 ## Deploy Model (locked 2026-04-18 — P4 of DoD plan)
 
-**systemd on miniboss — Option A.** claude-swarm is the orchestrator for the K3s
-cluster, so placing it ON that cluster is topologically circular. miniboss is
+**systemd on node_primary — Option A.** claude-swarm is the orchestrator for the K3s
+cluster, so placing it ON that cluster is topologically circular. node_primary is
 the command-center host by design; it runs the swarm coordinator, which routes
 work TO the K3s cluster. The prior `k8s/deployment.yaml` was never applied and
 has been removed.
 
 ## Current State
 
-Deployed as **6 systemd units on miniboss**.
+Deployed as **6 systemd units on node_primary**.
 
-## Systemd Units (miniboss)
+## Systemd Units (node_primary)
 
 | Unit | Role |
 |---|---|
@@ -27,7 +27,7 @@ All drop-in: `10-hydra-redis.conf` — injects `SWARM_REDIS_*` env from `/opt/cl
 
 ## Dependencies
 
-- **Redis** — miniboss:6379 with `SWARM_REDIS_PASSWORD`
+- **Redis** — node_primary:6379 with `SWARM_REDIS_PASSWORD`
 - **NFS mount** — `<primary-node-ip>:/opt/swarm` → `/opt/swarm` (NFS4.2, `root_squash`)
 - **Python 3.12+**, uv-managed venv
 
@@ -38,7 +38,7 @@ All drop-in: `10-hydra-redis.conf` — injects `SWARM_REDIS_*` env from `/opt/cl
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # 2. Clone + sync
-git clone https://github.com/scoobydont-666/claude-swarm.git /opt/claude-swarm
+git clone https://github.com/your-github-user/claude-swarm.git /opt/claude-swarm
 cd /opt/claude-swarm
 uv sync --extra dev
 

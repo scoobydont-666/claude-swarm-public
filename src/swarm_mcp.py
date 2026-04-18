@@ -190,7 +190,7 @@ def _dispatch(args):
         from hydra_dispatch import dispatch
 
         result = dispatch(
-            host=args.get("host", "MEGA"),
+            host=args.get("host", "node_reserve1"),
             task=args["task"],
             model=args.get("model"),
             project_dir=args.get("project_dir"),

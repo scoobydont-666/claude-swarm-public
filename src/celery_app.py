@@ -1,19 +1,19 @@
 """Celery application for claude-swarm task orchestration.
 
 Replaces custom auto_dispatch.py with Celery workers + beat scheduler.
-Redis on miniboss (<orchestration-node-ip>:6379) serves as both broker and result backend.
+Redis on node_primary (<orchestration-node-ip>:6379) serves as both broker and result backend.
 
 Queues:
-  gpu     — GPU workloads (GIGA, MECHA only)
+  gpu     — GPU workloads (node_gpu, node_reserve2 only)
   cpu     — CPU workloads (all hosts)
   default — fallback
 
 Usage:
   # Start worker on a GPU host:
-  celery -A celery_app worker -Q gpu,cpu,default -c 2 --hostname=worker@GIGA
+  celery -A celery_app worker -Q gpu,cpu,default -c 2 --hostname=worker@node_gpu
 
   # Start worker on a CPU host:
-  celery -A celery_app worker -Q cpu,default -c 4 --hostname=worker@miniboss
+  celery -A celery_app worker -Q cpu,default -c 4 --hostname=worker@node_primary
 
   # Start beat scheduler:
   celery -A celery_app beat

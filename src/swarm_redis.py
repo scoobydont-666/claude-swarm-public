@@ -590,7 +590,7 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
             ip = node.get("ip", "")
             target = ip or node_host
             if not target or (
-                "." not in target and target not in ("GIGA", "MECHA", "miniboss", "rainbow", "mega")
+                "." not in target and target not in ("node_gpu", "node_reserve2", "node_primary", "node_miner", "mega")
             ):
                 continue
             try:

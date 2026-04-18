@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# swarm-sync.sh — Bidirectional swarm state sync between miniboss and GIGA.
+# swarm-sync.sh — Bidirectional swarm state sync between node_primary and node_gpu.
 #
 # Architecture: Both hosts maintain local /opt/swarm/ directories. This script
 # merges state bidirectionally using rsync --update (newer files win). Each host
@@ -37,26 +37,26 @@ done
 ssh -o ConnectTimeout=5 -o BatchMode=yes "${GIGA_USER}@${GIGA_HOST}" \
     "mkdir -p ${REMOTE_SWARM}/{status,tasks/{pending,claimed,completed,preempted,decomposed},messages/{inbox,archive},artifacts/{dispatches,shared},gpu,collaborative,config,events}" \
     2>/dev/null || {
-        log "ERROR: Cannot reach GIGA at ${GIGA_HOST} — skipping sync"
+        log "ERROR: Cannot reach node_gpu at ${GIGA_HOST} — skipping sync"
         exit 1
     }
 
-# Phase 1: Pull from GIGA → local (newer files win, no delete)
+# Phase 1: Pull from node_gpu → local (newer files win, no delete)
 rsync -rlpt --update --timeout=30 \
     "${GIGA_USER}@${GIGA_HOST}:${REMOTE_SWARM}/" \
     "${LOCAL_SWARM}/" \
     >> "$LOGFILE" 2>&1 || {
         rc=$?
-        log "WARNING: Pull from GIGA failed (rc=${rc})"
+        log "WARNING: Pull from node_gpu failed (rc=${rc})"
     }
 
-# Phase 2: Push local → GIGA (newer files win, no delete)
+# Phase 2: Push local → node_gpu (newer files win, no delete)
 rsync -rlpt --update --timeout=30 \
     "${LOCAL_SWARM}/" \
     "${GIGA_USER}@${GIGA_HOST}:${REMOTE_SWARM}/" \
     >> "$LOGFILE" 2>&1 || {
         rc=$?
-        log "WARNING: Push to GIGA failed (rc=${rc})"
+        log "WARNING: Push to node_gpu failed (rc=${rc})"
     }
 
 # Phase 3: Update local backup replica

@@ -9,7 +9,7 @@ Each claude-code session writes a session artifact into `/opt/swarm/artifacts/ha
 ```markdown
 ---
 session_id: <uuid>
-host: miniboss | giga | mecha | mega | mongo
+host: node_primary | giga | mecha | mega | mongo
 started: <ISO-8601>
 ended: <ISO-8601>
 model: claude-opus-4-7 | claude-sonnet-4-6 | ...
@@ -31,7 +31,7 @@ token_cost_usd: <float>   # from hydra-pulse
 
 ```bash
 ls /opt/swarm/artifacts/handoffs/ | tail -5
-swarm handoffs list --host miniboss --since 1d
+swarm handoffs list --host node_primary --since 1d
 swarm handoffs show <host>-<timestamp>
 ```
 

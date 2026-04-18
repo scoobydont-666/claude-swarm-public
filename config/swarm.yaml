@@ -6,7 +6,7 @@ swarm:
   name: hydra-swarm
   version: 1
 nodes:
-  miniboss:
+  node_primary:
     ip: <orchestration-node-ip>
     role: replica
     cpu: AMD Ryzen AI 9 HX 470 (12c/24t, 5.3GHz boost)
@@ -23,7 +23,7 @@ nodes:
     - monero-farm
     - hydra-project
     - examforge
-  GIGA:
+  node_gpu:
     ip: <primary-node-ip>
     role: primary
     capabilities:
@@ -35,7 +35,7 @@ nodes:
     projects:
     - ai-project
     - audit-sentinel
-    - christi-project
+    - project-a-project
     - claude-code-costguard
     - comfyforge
     - documint
@@ -51,7 +51,7 @@ nodes:
     - solar-sentinel
     - str-project
     - taxprep-project
-  MEGA:
+  node_reserve1:
     ip: <gpu-node-ip>
     role: worker
     capabilities:
@@ -63,7 +63,7 @@ nodes:
     - docker
     projects:
     - ai-project
-    - christi-project
+    - project-a-project
     - examforge
     - hydra-forge
     - hydra-media
@@ -72,7 +72,7 @@ nodes:
     - nutantforge
     - prompt-forge
     - taxprep-project
-  MONGO:
+  node_mongo:
     ip: 127.0.0.1
     role: worker
     capabilities:
@@ -86,7 +86,7 @@ nodes:
     - claude-swarm
     - examforge
     - nutantforge
-  MECHA:
+  node_reserve2:
     ip: <gpu-worker-ip>
     role: worker
     capabilities:
@@ -98,7 +98,7 @@ nodes:
     - tailscale
     projects:
     - ai-project
-    - christi-project
+    - project-a-project
     - comfyforge
     - examforge
     - hydra-forge
@@ -116,7 +116,7 @@ nfs:
   sync_interval_seconds: 30
 
 git:
-  repo: scoobydont-666/claude-config
+  repo: your-github-user/claude-config
   branch: main
   sync_interval_seconds: 60
   sync_on_task_complete: true
@@ -133,13 +133,13 @@ decomposition:
   enabled: true
   auto_suggest: true
   capability_routing:
-    ollama: [GIGA, MECHA, MEGA, MONGO, miniboss]
-    gpu:    [GIGA, MECHA, MEGA, MONGO, miniboss]
-    mining: [miniboss, MEGA]
-    cpu:    [MEGA, GIGA, MECHA, MONGO, miniboss]
-    cpu_heavy: [MEGA, GIGA]
-    docker: [GIGA, MECHA, MEGA, MONGO, miniboss]
-    docker_swarm: [GIGA]
+    ollama: [node_gpu, node_reserve2, node_reserve1, node_mongo, node_primary]
+    gpu:    [node_gpu, node_reserve2, node_reserve1, node_mongo, node_primary]
+    mining: [node_primary, node_reserve1]
+    cpu:    [node_reserve1, node_gpu, node_reserve2, node_mongo, node_primary]
+    cpu_heavy: [node_reserve1, node_gpu]
+    docker: [node_gpu, node_reserve2, node_reserve1, node_mongo, node_primary]
+    docker_swarm: [node_gpu]
 
 worktrees:
   enabled: true
@@ -160,19 +160,19 @@ work_generator:
   prometheus_url: http://127.0.0.1:9090
   max_pending_tasks: 10
   projects:
-    examforge:        {path: /opt/examforge,        host: miniboss}
-    audit-sentinel:   {path: /opt/audit-sentinel,   host: miniboss}
-    clausehound:      {path: /opt/clausehound,      host: miniboss}
-    prompt-forge:     {path: /opt/prompt-forge,     host: miniboss}
-    hashrate-hedger:  {path: /opt/hashrate-hedger,  host: miniboss}
-    documint:         {path: /opt/documint,         host: miniboss}
-    christi-project:  {path: /opt/christi-project,  host: GIGA}
-    solar-sentinel:   {path: /opt/solar-sentinel,   host: miniboss}
-    comfyforge:       {path: /opt/comfyforge,       host: MECHA}
-    hydra-forge:      {path: /opt/hydra-forge,      host: GIGA}
-    hydra-media:      {path: /opt/hydra-media,      host: miniboss}
-    hydra-pulse:      {path: /opt/hydra-pulse,      host: miniboss}
-    claude-code-costguard: {path: /opt/claude-code-costguard, host: miniboss}
+    examforge:        {path: /opt/examforge,        host: node_primary}
+    audit-sentinel:   {path: /opt/audit-sentinel,   host: node_primary}
+    clausehound:      {path: /opt/clausehound,      host: node_primary}
+    prompt-forge:     {path: /opt/prompt-forge,     host: node_primary}
+    hashrate-hedger:  {path: /opt/hashrate-hedger,  host: node_primary}
+    documint:         {path: /opt/documint,         host: node_primary}
+    project-a-project:  {path: <project-a-path>,  host: node_gpu}
+    solar-sentinel:   {path: /opt/solar-sentinel,   host: node_primary}
+    comfyforge:       {path: /opt/comfyforge,       host: node_reserve2}
+    hydra-forge:      {path: /opt/hydra-forge,      host: node_gpu}
+    hydra-media:      {path: /opt/hydra-media,      host: node_primary}
+    hydra-pulse:      {path: /opt/hydra-pulse,      host: node_primary}
+    claude-code-costguard: {path: /opt/claude-code-costguard, host: node_primary}
 
 auto_dispatch:
   enabled: true
@@ -187,21 +187,21 @@ health_monitor:
   enabled: true
   check_interval_seconds: 60
   prometheus_url: http://127.0.0.1:9090
-  email_alerts: r.josh.jones@gmail.com
+  email_alerts: admin@example.com
   hosts:
-    miniboss:
+    node_primary:
       ip: <orchestration-node-ip>
       services: [monerod, p2pool-main, p2pool-mini, p2pool-nano, prometheus, grafana-server, crowdsec]
-    GIGA:
+    node_gpu:
       ip: <primary-node-ip>
       services: [docker, fail2ban, crowdsec]
-    MEGA:
+    node_reserve1:
       ip: <gpu-node-ip>
       services: [fail2ban, crowdsec, prometheus-node-exporter]
-    MONGO:
+    node_mongo:
       ip: 127.0.0.1
       services: [ollama, prometheus-node-exporter]
-    MECHA:
+    node_reserve2:
       ip: <gpu-worker-ip>
       services: [docker]
   cooldowns:

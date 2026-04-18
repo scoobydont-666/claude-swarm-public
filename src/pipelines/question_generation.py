@@ -14,7 +14,7 @@ QUESTION_GEN = Pipeline(
             name="generate",
             role="Generate CPA exam questions via Ollama",
             model="sonnet",
-            host="miniboss",  # orchestrates, calls GIGA Ollama
+            host="node_primary",  # orchestrates, calls node_gpu Ollama
             requires=[],
             depends_on=[],
             prompt_template="""Generate {input.count} CPA exam questions for section {input.cert}.
@@ -27,7 +27,7 @@ Report how many were generated.""",
             name="validate",
             role="Run QA validation pipeline",
             model="sonnet",
-            host="miniboss",
+            host="node_primary",
             requires=[],
             depends_on=["generate"],
             prompt_template="""Questions were generated: {previous_output.generate}
