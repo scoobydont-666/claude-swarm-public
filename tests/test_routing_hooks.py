@@ -232,7 +232,7 @@ class TestPauseAskScanner:
                         self.s.main()
         assert exc.value.code == 0
         out = json.loads(mock_print.call_args[0][0])
-        assert out["decision"] == "continue"
+        assert out.get("continue") is True
 
     def test_continue_when_plan_not_active(self, isolated_tmp):
         with patch.object(self.s, "find_last_assistant_message",
@@ -243,7 +243,7 @@ class TestPauseAskScanner:
                         self.s.main()
         assert exc.value.code == 0
         out = json.loads(mock_print.call_args[0][0])
-        assert out["decision"] == "continue"
+        assert out.get("continue") is True
 
     def test_warn_only_does_not_block(self, isolated_tmp):
         import routing_common as rc
@@ -257,7 +257,7 @@ class TestPauseAskScanner:
                         self.s.main()
         assert exc.value.code == 0
         out = json.loads(mock_print.call_args[0][0])
-        assert out["decision"] == "continue"
+        assert out.get("continue") is True
 
 
 # ══════════════════════════════════════════════════════════════════════════════
