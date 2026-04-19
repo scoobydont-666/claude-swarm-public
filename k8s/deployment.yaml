@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-swarm
+  labels:
+    app.kubernetes.io/name: claude-swarm
+    app.kubernetes.io/part-of: hydra-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: claude-swarm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: claude-swarm
+    spec:
+      containers:
+        - name: app
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9192
+              name: http
+          envFrom:
+            - configMapRef:
+                name: claude-swarm-config
+            - secretRef:
+                name: claude-swarm-secrets
+                optional: true
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: 9192
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 120
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9192
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 9192
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
