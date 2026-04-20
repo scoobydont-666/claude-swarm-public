@@ -108,6 +108,27 @@ DISPATCH_COST_BY_HOST = Counter(
     ["hostname"],
 )
 
+# Routing Protocol v1 DLQ observability. Source: src/ipc/dlq_persist.py,
+# which mirrors Redis-stream DLQ events into a SQLite store so a Redis
+# restart does not lose triage history.
+ROUTING_DLQ_DEPTH = Gauge(
+    "routing_dlq_depth_total",
+    "Unresolved entries in the persisted DLQ store (SQLite mirror).",
+)
+
+ROUTING_DLQ_FP_RATE = Gauge(
+    "routing_dlq_false_positive_rate",
+    "Rolling-window false-positive rate: requeued / (requeued + expired). "
+    "Purged entries (operator cleanup) are excluded from the denominator.",
+    ["window"],
+)
+
+ROUTING_DLQ_RESOLVED_TOTAL = Gauge(
+    "routing_dlq_resolved_window_total",
+    "Count of DLQ entries resolved (requeued + expired) in the rolling window.",
+    ["window"],
+)
+
 # ---------------------------------------------------------------------------
 # Data collection helpers
 # ---------------------------------------------------------------------------
@@ -317,6 +338,22 @@ def _update_all_metrics() -> None:
             current_count,
         )
         _last_event_count = current_count
+
+    # --- routing v1 DLQ observability ---
+    try:
+        from ipc import dlq_persist
+
+        ROUTING_DLQ_DEPTH.set(dlq_persist.depth_persisted())
+        for window_label, window_seconds in (("1h", 3600), ("24h", 86_400)):
+            fp_rate, _requeued, resolved_total = dlq_persist.false_positive_rate(
+                window_seconds=window_seconds
+            )
+            ROUTING_DLQ_FP_RATE.labels(window=window_label).set(fp_rate)
+            ROUTING_DLQ_RESOLVED_TOTAL.labels(window=window_label).set(resolved_total)
+    except Exception as exc:  # noqa: BLE001
+        # DLQ persist is a soft dependency — a schema-init failure or missing
+        # SQLite file should not stop the rest of the metrics loop.
+        log.debug("Routing DLQ metrics skipped: %s", exc)
 
     # --- dispatch costs ---
     total_cost, host_costs = _collect_dispatch_costs()
