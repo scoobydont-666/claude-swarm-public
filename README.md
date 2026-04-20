@@ -394,6 +394,10 @@ Available units in `deploy/`:
 
 Prometheus alerts config: `deploy/swarm-alerts.yml`
 
+> **Deployment**: `swarm-alerts.yml` is deployed via the `swarm_alerts` Ansible role in
+> `<hydra-project-path>/ansible/roles/swarm_alerts/` (shipped in hydra-project PR #23,
+> 2026-04-20). Run the role against the monitoring host to push alert rules to Prometheus.
+
 Metrics exposed include: node online status, task queue depth, dispatch counts,
 GPU slot utilization, rate-limit events.
 
