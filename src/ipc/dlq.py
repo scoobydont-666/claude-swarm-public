@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import time
 
-from . import transport
+from . import dlq_persist, transport
 from .agent import _K_INBOX, _K_INBOX_GROUP, get_current_agent_id
 from .envelope import Envelope
 
@@ -105,6 +105,11 @@ def requeue(message_id: str, new_recipient: str | None = None) -> bool:
     # Remove from DLQ
     r.xdel(_DLQ_KEY, message_id)
 
+    # Record the requeue in the persisted DLQ mirror so false-positive-rate
+    # calculations have signal. Best-effort; a failure here never blocks
+    # the Redis-side requeue.
+    dlq_persist.mark_resolved(message_id, dlq_persist.RESOLUTION_REQUEUED)
+
     return True
 
 
@@ -129,6 +134,7 @@ def purge(older_than_seconds: int = 3600) -> int:
 
     if to_delete:
         r.xdel(_DLQ_KEY, *to_delete)
+        dlq_persist.mark_resolved_bulk(to_delete, dlq_persist.RESOLUTION_PURGED)
 
     return len(to_delete)
 
@@ -162,10 +168,22 @@ def prune_old_messages(hours: int = 72) -> int:
     cutoff_ms = int((time.time() - hours * 3600) * 1000)
     cutoff_id = f"{cutoff_ms}-0"
 
+    # Snapshot the IDs we're about to trim BEFORE the XTRIM so we can mirror
+    # the age-based expiration into the persisted store. XTRIM itself doesn't
+    # hand back the trimmed IDs.
+    expired_ids: list[str] = []
+    try:
+        expired_entries = r.xrange(_DLQ_KEY, "-", f"({cutoff_id}")
+        expired_ids = [stream_id for stream_id, _ in expired_entries]
+    except Exception:
+        expired_ids = []
+
     # XTRIM with MINID: O(N) in removed entries, cheaper than range+delete.
     # approximate=True lets Redis batch the trim for lower tail latency.
     try:
         removed = r.xtrim(_DLQ_KEY, minid=cutoff_id, approximate=True)
+        if expired_ids:
+            dlq_persist.mark_resolved_bulk(expired_ids, dlq_persist.RESOLUTION_EXPIRED)
         return int(removed or 0)
     except Exception:
         # Best-effort: fall back to explicit XRANGE + XDEL if XTRIM minid
@@ -176,6 +194,7 @@ def prune_old_messages(hours: int = 72) -> int:
         ids = [stream_id for stream_id, _ in entries]
         for i in range(0, len(ids), 100):
             r.xdel(_DLQ_KEY, *ids[i : i + 100])
+        dlq_persist.mark_resolved_bulk(ids, dlq_persist.RESOLUTION_EXPIRED)
         return len(ids)
 
 
@@ -207,8 +226,14 @@ def sweep_pending(agent_id: str | None = None) -> int:
         raw = r.xrange(inbox_key, mid, mid, count=1)
         if raw:
             _, fields = raw[0]
-            fields["reason"] = f"pending_timeout_{entry['idle_ms']}ms"
-            r.xadd(_DLQ_KEY, fields, maxlen=_DLQ_MAXLEN, approximate=True)
+            reason = f"pending_timeout_{entry['idle_ms']}ms"
+            fields["reason"] = reason
+            # Redis returns the new stream ID assigned by XADD; mirror that
+            # same ID into the persisted store so resolution updates line up.
+            new_stream_id = r.xadd(_DLQ_KEY, fields, maxlen=_DLQ_MAXLEN, approximate=True)
+            dlq_persist.persist_entry(
+                stream_id=str(new_stream_id), reason=reason, envelope_fields=fields
+            )
             # Ack to remove from pending
             transport.stream_ack(inbox_key, _K_INBOX_GROUP, mid)
             moved += 1
