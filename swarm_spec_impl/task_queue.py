@@ -58,7 +58,8 @@ class ClaudeSwarmTaskQueueAdapter:
         """Dequeue a task matching capabilities, respecting priority order.
 
         For testing, we ignore timeout_s (no actual blocking).
-        Returns highest-priority task matching any of the requested capabilities.
+        Priority direction (N+3): HIGHER int = HIGHER priority (K8s/Volcano convention).
+        Tiebreaker: created_at ascending (FIFO within equal priority).
         """
         # Filter: tasks in pending state, not discarded, matching at least one capability
         candidates = []
@@ -72,8 +73,8 @@ class ClaudeSwarmTaskQueueAdapter:
             log.debug("No tasks available for worker=%s capabilities=%s", worker_id, capabilities)
             return None
 
-        # Sort by priority (lower = higher priority), then stable order
-        candidates.sort(key=lambda x: (x[0], str(x[1])))
+        # Sort by priority DESCENDING (higher=higher), then FIFO by created_at
+        candidates.sort(key=lambda x: (-x[0], x[2].created_at))
         priority, task_id, task = candidates[0]
 
         # Mark as dequeued (move to "claimed" state)
@@ -111,7 +112,7 @@ class ClaudeSwarmTaskQueueAdapter:
             self._dequeued.pop(task_id, None)
             log.debug("Nacked task %s with retry=False, discarded. Reason: %s", task_id, reason)
 
-    def peek(self, filter_capabilities: list[str] = [], limit: int = 10) -> list["TaskDescriptor"]:
+    def peek(self, filter_capabilities: list[str] = [], limit: int = 10) -> list["TaskDescriptor"]:  # noqa: B006
         """Peek at pending tasks without dequeuing. Filter by capabilities if provided."""
         candidates = []
         for tid, (task, state) in self._tasks.items():
@@ -124,8 +125,12 @@ class ClaudeSwarmTaskQueueAdapter:
                     # No filter: include all pending
                     candidates.append((task.priority, tid, task))
 
-        # Sort by priority
-        candidates.sort(key=lambda x: (x[0], str(x[1])))
+        # Sort by priority DESCENDING, FIFO tiebreaker (same as dequeue)
+        candidates.sort(key=lambda x: (-x[0], x[2].created_at))
         result = [task for _, _, task in candidates[:limit]]
         log.debug("Peeked %d tasks (limit=%d)", len(result), limit)
         return result
+
+
+# Spec-standard adapter alias (N+3): spec conformance conftest looks for `Adapter`.
+Adapter = ClaudeSwarmTaskQueueAdapter
