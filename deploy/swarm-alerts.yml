@@ -56,3 +56,41 @@ groups:
           summary: "{{ $labels.hostname }} dispatch cost high: ${{ $value | humanize }}/hour"
           description: "{{ $labels.hostname }} is accruing dispatch costs at ${{ $value | humanize }}/hour."
           runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-dispatch-cost-by-host"
+
+      # S3-5 additions — OBS-01 fix applied: swarm_tasks_total is a Gauge, not a Counter.
+      # rate() on a Gauge is structurally broken. Use a Gauge ratio instead.
+      - alert: SwarmTaskErrorRateHigh
+        expr: >
+          swarm_tasks_total{state="error"}
+          / ignoring(state) group_left()
+          sum without(state)(swarm_tasks_total) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: claude-swarm
+        annotations:
+          summary: "Swarm task error ratio {{ $value | humanizePercentage }} (> 10%)"
+          description: |
+            More than 10% of swarm tasks are in error state (point-in-time Gauge ratio).
+            Check recent task logs for patterns:
+              swarm handoffs list --since 30m
+              sqlite3 /opt/swarm/state/swarm.db \
+                'SELECT host, error, COUNT(*) FROM tasks WHERE state="error" GROUP BY error ORDER BY 3 DESC LIMIT 10'
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-task-queue-backlog"
+
+      - alert: SwarmCoordinatorSilent
+        expr: sum(swarm_tasks_total) == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: claude-swarm
+        annotations:
+          summary: "No swarm task records for 30 minutes"
+          description: |
+            The swarm coordinator has zero task records for 30 minutes. Either all sessions
+            are idle (expected overnight) or the coordinator is hung. During expected active
+            hours this warrants investigation:
+              swarm handoffs list --since 1h
+              journalctl -u swarm-health-monitor -n 50 --no-pager
+              curl -s http://127.0.0.1:8560/api/status
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-heartbeat-stale"
