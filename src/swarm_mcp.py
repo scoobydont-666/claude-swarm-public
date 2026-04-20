@@ -190,7 +190,7 @@ def _dispatch(args):
         from hydra_dispatch import dispatch
 
         result = dispatch(
-            host=args.get("host", "node_reserve1"),
+            host=args.get("host", "MEGA"),
             task=args["task"],
             model=args.get("model"),
             project_dir=args.get("project_dir"),
@@ -231,7 +231,7 @@ def _pipeline_run(args):
     try:
         pipeline_name = args["pipeline"]
         input_text = args["input"]
-        project_dir = args.get("project_dir", "<hydra-project-path>")
+        project_dir = args.get("project_dir", "/opt/hydra-project")
 
         # Dynamic pipeline import
         import importlib

@@ -54,4 +54,4 @@ def free_tcp_port() -> int:
 def skip_without_redis(live_redis_available):
     """Skip the test if live Redis is unreachable."""
     if not live_redis_available:
-        pytest.skip("Live Redis not reachable — set SWARM_REDIS_* or start node_primary:6379")
+        pytest.skip("Live Redis not reachable — set SWARM_REDIS_* or start miniboss:6379")

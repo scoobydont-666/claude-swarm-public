@@ -12,7 +12,7 @@ Run:
     python3 /opt/claude-swarm/src/swarm_metrics.py
 
 The server listens on 0.0.0.0:9191. Prometheus should scrape
-http://<node_primary>:9191/metrics.
+http://<miniboss>:9191/metrics.
 """
 
 import json

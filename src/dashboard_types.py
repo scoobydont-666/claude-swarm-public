@@ -1,6 +1,6 @@
 """F3: TypedDict response schemas for dashboard /api/* endpoints.
 
-Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase F3.
+Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase F3.
 
 Purpose: document the response shape each endpoint returns so callers
 (dashboard JS, external monitoring scripts, NAI-suite integrations) have

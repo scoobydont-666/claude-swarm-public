@@ -12,9 +12,9 @@ SECURITY_AUDIT = Pipeline(
     stages=[
         PipelineStage(
             name="scan_miniboss",
-            role="Security scan of node_primary",
+            role="Security scan of miniboss",
             model="sonnet",
-            host="node_primary",
+            host="miniboss",
             requires=[],
             depends_on=[],
             prompt_template="""Run a security audit of this host:
@@ -28,9 +28,9 @@ Report all findings with severity.""",
         ),
         PipelineStage(
             name="scan_giga",
-            role="Security scan of node_gpu",
+            role="Security scan of GIGA",
             model="sonnet",
-            host="node_gpu",
+            host="GIGA",
             requires=[],
             depends_on=[],
             prompt_template="""Run a security audit of this host:
@@ -52,7 +52,7 @@ Report all findings with severity.""",
             prompt_template="""Security scan results:
 
 Miniboss: {previous_output.scan_miniboss}
-node_gpu: {previous_output.scan_giga}
+GIGA: {previous_output.scan_giga}
 
 Analyze the combined findings:
 1. Prioritize by severity and blast radius

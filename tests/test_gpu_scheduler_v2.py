@@ -21,10 +21,10 @@ def scheduler(db_path):
     # Pre-populate inventory
     inventories = [
         HostGpuInventory(
-            host="node_reserve1",
+            host="MEGA",
             gpus=[
                 GpuInfo(
-                    host="node_reserve1",
+                    host="MEGA",
                     gpu_index=0,
                     gpu_model="RTX 5080",
                     vram_total_mb=16303,
@@ -33,7 +33,7 @@ def scheduler(db_path):
                     utilization_pct=5,
                 ),
                 GpuInfo(
-                    host="node_reserve1",
+                    host="MEGA",
                     gpu_index=1,
                     gpu_model="RTX 5080",
                     vram_total_mb=16303,
@@ -44,10 +44,10 @@ def scheduler(db_path):
             ],
         ),
         HostGpuInventory(
-            host="node_reserve2",
+            host="MECHA",
             gpus=[
                 GpuInfo(
-                    host="node_reserve2",
+                    host="MECHA",
                     gpu_index=0,
                     gpu_model="RTX 5060 Ti",
                     vram_total_mb=16311,
@@ -58,10 +58,10 @@ def scheduler(db_path):
             ],
         ),
         HostGpuInventory(
-            host="node_mongo",
+            host="MONGO",
             gpus=[
                 GpuInfo(
-                    host="node_mongo",
+                    host="MONGO",
                     gpu_index=0,
                     gpu_model="RTX 5080",
                     vram_total_mb=16303,
@@ -74,7 +74,7 @@ def scheduler(db_path):
     ]
     save_inventory(inventories, db_path)
 
-    sched = GpuScheduler(db_path=db_path, exclude_hosts=["node_gpu"])
+    sched = GpuScheduler(db_path=db_path, exclude_hosts=["GIGA"])
     sched._last_refresh = 9999999999.0  # prevent auto-refresh (no SSH in tests)
     return sched
 
@@ -92,17 +92,17 @@ class TestScheduleBasic:
         assert result.vram_allocated_mb >= MODEL_VRAM_REQUIREMENTS["qwen3:14b"]
 
     def test_schedule_preferred_host(self, scheduler):
-        result = scheduler.schedule("task-3", model_name="qwen3:8b", prefer_host="node_reserve2")
+        result = scheduler.schedule("task-3", model_name="qwen3:8b", prefer_host="MECHA")
         assert result.success is True
-        assert result.host == "node_reserve2"
+        assert result.host == "MECHA"
 
     def test_schedule_excludes_giga(self, scheduler):
-        # Schedule all 4 GPUs (2 node_reserve1 + 1 node_reserve2 + 1 node_mongo)
+        # Schedule all 4 GPUs (2 MEGA + 1 MECHA + 1 MONGO)
         results = []
         for i in range(4):
             r = scheduler.schedule(f"task-fill-{i}", model_name="qwen3:8b")
             results.append(r)
-        assert all(r.host != "node_gpu" for r in results if r.success)
+        assert all(r.host != "GIGA" for r in results if r.success)
 
     def test_schedule_fails_when_full(self, scheduler):
         # Allocate all GPUs
@@ -119,12 +119,12 @@ class TestMultiGpu:
         result = scheduler.schedule("task-big", required_vram_mb=25000)
         assert result.success is True
         assert len(result.gpu_indices) >= 2
-        assert result.host == "node_reserve1"  # only host with 2 GPUs
+        assert result.host == "MEGA"  # only host with 2 GPUs
 
     def test_multi_gpu_fails_on_single_gpu_host(self, scheduler):
-        # Allocate node_reserve1's GPUs first
-        scheduler.schedule("task-mega-0", model_name="qwen3:8b", prefer_host="node_reserve1")
-        scheduler.schedule("task-mega-1", model_name="qwen3:8b", prefer_host="node_reserve1")
+        # Allocate MEGA's GPUs first
+        scheduler.schedule("task-mega-0", model_name="qwen3:8b", prefer_host="MEGA")
+        scheduler.schedule("task-mega-1", model_name="qwen3:8b", prefer_host="MEGA")
         # Now try multi-GPU — should fail (only single-GPU hosts left)
         result = scheduler.schedule("task-multi-fail", required_vram_mb=25000)
         assert result.success is False
@@ -132,17 +132,17 @@ class TestMultiGpu:
 
 class TestRelease:
     def test_release_makes_gpu_available(self, scheduler):
-        r1 = scheduler.schedule("task-release-1", model_name="qwen3:8b", prefer_host="node_reserve2")
+        r1 = scheduler.schedule("task-release-1", model_name="qwen3:8b", prefer_host="MECHA")
         assert r1.success is True
-        # node_reserve2 should be full now
-        r2 = scheduler.schedule("task-release-2", model_name="qwen3:8b", prefer_host="node_reserve2")
-        assert r2.success is False or r2.host != "node_reserve2"
+        # MECHA should be full now
+        r2 = scheduler.schedule("task-release-2", model_name="qwen3:8b", prefer_host="MECHA")
+        assert r2.success is False or r2.host != "MECHA"
         # Release
         scheduler.release(r1.host, r1.gpu_indices)
         # Should be available again
-        r3 = scheduler.schedule("task-release-3", model_name="qwen3:8b", prefer_host="node_reserve2")
+        r3 = scheduler.schedule("task-release-3", model_name="qwen3:8b", prefer_host="MECHA")
         assert r3.success is True
-        assert r3.host == "node_reserve2"
+        assert r3.host == "MECHA"
 
 
 class TestStatus:
@@ -159,4 +159,4 @@ class TestStatus:
 
     def test_status_shows_exclusions(self, scheduler):
         status = scheduler.get_status()
-        assert "node_gpu" in status["excluded_hosts"]
+        assert "GIGA" in status["excluded_hosts"]

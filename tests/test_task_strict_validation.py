@@ -1,7 +1,7 @@
 """E3: Task.from_dict(strict=True) validation tests.
 
 Covers the input-validation hardening from
-<hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E3.
+/opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E3.
 
 Lax mode (default) preserves pre-E3 behavior: malformed input gets
 sensible defaults (uuid4 id, empty title, pending state). Strict mode

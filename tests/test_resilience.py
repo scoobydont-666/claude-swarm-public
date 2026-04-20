@@ -334,7 +334,7 @@ class TestCrashHandlerRobustness:
         task = {
             "id": "task-requeue-test",
             "type": "test",
-            "claimed_by": "node_primary-12345",
+            "claimed_by": "miniboss-12345",
             "claimed_at": "2026-01-01T00:00:00Z",
         }
         (claimed_dir / "task-requeue-test.yaml").write_text(
@@ -586,7 +586,7 @@ class TestEventLogConcurrency:
 
 
 # ---------------------------------------------------------------------------
-# sync_engine — edge cases in _run, pull_all_projects with node_gpu hostname
+# sync_engine — edge cases in _run, pull_all_projects with GIGA hostname
 # ---------------------------------------------------------------------------
 
 

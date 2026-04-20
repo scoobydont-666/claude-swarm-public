@@ -95,7 +95,7 @@ def start_collaborative(
 
     Args:
         task: Task description for the worker
-        worker_host: Hostname where worker will run (e.g. 'node_gpu')
+        worker_host: Hostname where worker will run (e.g. 'GIGA')
         orchestrator_host: Hostname of orchestrator (auto-detected if empty)
         project_dir: Project directory context
         model: Claude model to use

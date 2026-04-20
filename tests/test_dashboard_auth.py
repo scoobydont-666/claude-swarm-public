@@ -1,6 +1,6 @@
 """E4: Dashboard bearer-token auth middleware tests.
 
-Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E4.
+Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E4.
 
 Semantics:
 - SWARM_API_KEY unset → middleware is no-op, all requests pass (preserves

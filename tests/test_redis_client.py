@@ -78,22 +78,22 @@ class TestTasks:
 
 class TestAgentRegistry:
     def test_register_and_list(self):
-        redis_client.register_agent("node_gpu", 1234, {"gpu": True})
+        redis_client.register_agent("GIGA", 1234, {"gpu": True})
         agents = redis_client.list_agents()
         assert len(agents) == 1
-        assert agents[0]["host"] == "node_gpu"
+        assert agents[0]["host"] == "GIGA"
         assert agents[0]["pid"] == "1234"
 
     def test_heartbeat_refreshes(self):
-        redis_client.register_agent("node_gpu", 1234)
-        assert redis_client.heartbeat("node_gpu", 1234)
+        redis_client.register_agent("GIGA", 1234)
+        assert redis_client.heartbeat("GIGA", 1234)
 
     def test_heartbeat_unregistered_returns_false(self):
-        assert not redis_client.heartbeat("node_gpu", 9999)
+        assert not redis_client.heartbeat("GIGA", 9999)
 
     def test_unregister(self):
-        redis_client.register_agent("node_gpu", 1234)
-        redis_client.unregister_agent("node_gpu", 1234)
+        redis_client.register_agent("GIGA", 1234)
+        redis_client.unregister_agent("GIGA", 1234)
         agents = redis_client.list_agents()
         assert len(agents) == 0
 
@@ -142,26 +142,26 @@ class TestGPUSlots:
 
 class TestMessaging:
     def test_send_and_read(self):
-        redis_client.send_message("node_gpu", {"action": "sync"})
-        msgs = redis_client.read_inbox("node_gpu")
+        redis_client.send_message("GIGA", {"action": "sync"})
+        msgs = redis_client.read_inbox("GIGA")
         assert len(msgs) == 1
         assert msgs[0]["action"] == "sync"
 
     def test_read_pop(self):
-        redis_client.send_message("node_gpu", {"action": "sync"})
-        msgs = redis_client.read_inbox("node_gpu", pop=True)
+        redis_client.send_message("GIGA", {"action": "sync"})
+        msgs = redis_client.read_inbox("GIGA", pop=True)
         assert len(msgs) == 1
         # Inbox should be empty after pop
-        assert redis_client.read_inbox("node_gpu") == []
+        assert redis_client.read_inbox("GIGA") == []
 
     def test_empty_inbox(self):
-        assert redis_client.read_inbox("node_gpu") == []
+        assert redis_client.read_inbox("GIGA") == []
 
 
 class TestStatus:
     def test_update_and_get(self):
-        redis_client.update_status("node_gpu", {"load": 0.5, "gpu_free": True})
-        status = redis_client.get_status("node_gpu")
+        redis_client.update_status("GIGA", {"load": 0.5, "gpu_free": True})
+        status = redis_client.get_status("GIGA")
         assert status is not None
         assert status["load"] == "0.5"
         assert status["gpu_free"] == "True"

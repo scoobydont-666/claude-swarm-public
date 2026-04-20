@@ -1,6 +1,6 @@
 """E5: DLQ age-based prune + backend degradation flag tests.
 
-Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E5.
+Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E5.
 
 Semantics:
 - prune_old_messages(hours=72) removes DLQ entries with stream_id older

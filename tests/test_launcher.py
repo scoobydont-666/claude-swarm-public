@@ -238,8 +238,8 @@ class TestStatus:
 
 class TestSpawnResult:
     def test_to_dict(self):
-        result = SpawnResult(success=True, pid=42, host="node_primary", profile="default")
+        result = SpawnResult(success=True, pid=42, host="miniboss", profile="default")
         d = result.to_dict()
         assert d["success"] is True
         assert d["pid"] == 42
-        assert d["host"] == "node_primary"
+        assert d["host"] == "miniboss"

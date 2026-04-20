@@ -30,7 +30,7 @@ class TestStatusCommand:
         monkeypatch.setenv("SWARM_ROOT", str(swarm_tmpdir))
         fake_nodes = [
             {
-                "hostname": "node_gpu",
+                "hostname": "GIGA",
                 "state": "active",
                 "current_task": "task-001",
                 "project": "/opt/examforge",
@@ -48,14 +48,14 @@ class TestStatusCommand:
         assert "Swarm Status" in result.output
         assert "Host" in result.output
         assert "State" in result.output
-        assert "node_gpu" in result.output
+        assert "GIGA" in result.output
 
     def test_status_stale_node_marked(self, swarm_tmpdir, monkeypatch):
         """A node with old updated_at is labeled STALE."""
         monkeypatch.setenv("SWARM_ROOT", str(swarm_tmpdir))
         fake_nodes = [
             {
-                "hostname": "node_reserve2",
+                "hostname": "MECHA",
                 "state": "active",
                 "current_task": "",
                 "project": "",
@@ -91,7 +91,7 @@ class TestTasksCommand:
                 "_stage": "pending",
                 "priority": "high",
                 "title": "Implement logging",
-                "created_by": "node_gpu",
+                "created_by": "GIGA",
                 "claimed_by": None,
             },
             {
@@ -99,8 +99,8 @@ class TestTasksCommand:
                 "_stage": "claimed",
                 "priority": "medium",
                 "title": "Write tests",
-                "created_by": "node_primary",
-                "claimed_by": "node_reserve2",
+                "created_by": "miniboss",
+                "claimed_by": "MECHA",
             },
         ]
         with patch("swarm_cli.lib.list_tasks", return_value=fake_tasks):
@@ -128,7 +128,7 @@ class TestInboxCommand:
         monkeypatch.setenv("SWARM_ROOT", str(swarm_tmpdir))
         fake_msgs = [
             {
-                "from": "node_gpu",
+                "from": "GIGA",
                 "text": "Task task-001 is ready for review",
                 "sent_at": "2026-03-31T10:00:00Z",
                 "_source": "direct",
@@ -138,7 +138,7 @@ class TestInboxCommand:
         with patch("swarm_cli.lib.read_inbox", return_value=fake_msgs):
             result = runner.invoke(swarm_cli.app, ["inbox"])
         assert result.exit_code == 0
-        assert "node_gpu" in result.output
+        assert "GIGA" in result.output
         assert "Task task-001" in result.output
 
     def test_inbox_broadcast_renders_message(self, swarm_tmpdir, monkeypatch):
@@ -146,7 +146,7 @@ class TestInboxCommand:
         monkeypatch.setenv("SWARM_ROOT", str(swarm_tmpdir))
         fake_msgs = [
             {
-                "from": "node_primary",
+                "from": "miniboss",
                 "text": "Swarm maintenance in 5 minutes",
                 "sent_at": "2026-03-31T11:00:00Z",
                 "_source": "broadcast",
@@ -156,7 +156,7 @@ class TestInboxCommand:
         with patch("swarm_cli.lib.read_inbox", return_value=fake_msgs):
             result = runner.invoke(swarm_cli.app, ["inbox"])
         assert result.exit_code == 0
-        assert "node_primary" in result.output
+        assert "miniboss" in result.output
         assert "Swarm maintenance in 5 minutes" in result.output
 
 
@@ -210,7 +210,7 @@ class TestHealthCommand:
             "nfs_available": True,
             "config_loaded": True,
             "nodes": {
-                "node_gpu": {
+                "GIGA": {
                     "state": "active",
                     "age_seconds": 45,
                     "stale": False,
@@ -226,4 +226,4 @@ class TestHealthCommand:
             result = runner.invoke(swarm_cli.app, ["health"])
         assert result.exit_code == 0
         assert "Node Health" in result.output
-        assert "node_gpu" in result.output
+        assert "GIGA" in result.output

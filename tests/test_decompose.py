@@ -34,7 +34,7 @@ class TestTaskDecomposer:
         task = {
             "title": "Generate and validate tax scenarios",
             "description": "Create scenarios then validate outputs",
-            "project": "<project-a-path>",
+            "project": "/opt/christi-project",
         }
         suggestions = lib.TaskDecomposer.suggest(task)
         assert len(suggestions) == 2
@@ -44,14 +44,14 @@ class TestTaskDecomposer:
 
     def test_multiple_projects_pattern(self, swarm_tmpdir):
         task = {
-            "title": "Update configs for project-a and monero",
+            "title": "Update configs for christi and monero",
             "description": "Both projects need config updates",
             "project": "",
         }
         suggestions = lib.TaskDecomposer.suggest(task)
         assert len(suggestions) == 2
         projects = [s["project"] for s in suggestions]
-        assert "<project-a-path>/" in projects
+        assert "/opt/christi-project/" in projects
         assert "/opt/monero-farm/" in projects
 
     def test_no_pattern_match(self, swarm_tmpdir):

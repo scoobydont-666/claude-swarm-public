@@ -1,6 +1,6 @@
 """F2: centralized retry decorator with exponential backoff.
 
-Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase F2.
+Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase F2.
 
 Replaces ad-hoc retry logic scattered across remote_session.py and similar
 callers. Provides a single decorator callers can apply to any function

@@ -4,7 +4,7 @@
 Manages GPU slot allocation across the swarm using lockfiles at /opt/swarm/gpu/slot-{N}.lock.
 Each slot can be claimed by a single hostname:pid:timestamp tuple.
 
-node_gpu has 2 GPUs:
+GIGA has 2 GPUs:
   - GPU 0: Reserved for Ollama (permanently claimed)
   - GPU 1: Workload allocation
 
@@ -201,7 +201,7 @@ def get_slot_status() -> list[dict]:
             except (IndexError, ValueError):
                 continue
 
-    # Include node_gpu's 2 GPUs explicitly
+    # Include GIGA's 2 GPUs explicitly
     for gpu_id in {0, 1} | existing_ids:
         available = is_slot_available(gpu_id)
         holder = ""

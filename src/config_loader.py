@@ -10,7 +10,7 @@ Usage:
 
     config = get_config()
     fleet = get_fleet()
-    node = get_node_config("node_gpu")
+    node = get_node_config("GIGA")
 """
 
 import logging
@@ -158,7 +158,7 @@ def get_node_config(hostname: str) -> dict:
     """Get config for a specific node by hostname (case-insensitive).
 
     Args:
-        hostname: Node hostname (e.g., "node_gpu", "node_primary").
+        hostname: Node hostname (e.g., "GIGA", "miniboss").
 
     Returns:
         Node config dict, or empty dict if not found.
