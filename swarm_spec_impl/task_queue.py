@@ -4,15 +4,8 @@ Maps the internal Task/TaskQueue to the TaskQueueBackend protocol from swarm_spe
 """
 
 import logging
-from datetime import datetime
 from typing import Optional
 from uuid import UUID
-
-# Import the spec protocol
-from swarm_spec.protocols import TaskDescriptor, TaskQueueBackend
-
-# Import claude-swarm's internal implementation
-from src.task_queue import Task, TaskQueue
 
 log = logging.getLogger(__name__)
 
