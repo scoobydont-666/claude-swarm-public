@@ -43,8 +43,10 @@ DB_PATH = Path("/opt/claude-swarm/data/health-events.db")
 # Node states tracked in status JSON files
 NODE_STATES = ("active", "idle", "offline")
 
-# Task subdirectory names map directly to states
-TASK_STATES = ("pending", "claimed", "completed")
+# Task subdirectory names map directly to states.
+# "failed" is included so that swarm_tasks_total{state="failed"} is always
+# exported (even as 0) and alert expressions that reference it are valid.
+TASK_STATES = ("pending", "claimed", "completed", "failed")
 
 # ---------------------------------------------------------------------------
 # Logging

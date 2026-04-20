@@ -257,6 +257,124 @@ SWARM_EVENT_SCHEMA_STRICT=1 python3 -c "from src.events import emit; emit('unkno
 
 If tests fail, revert the offending change and inspect the schema diff in the commit.
 
+## DLQ retention & prune (S3-11)
+
+DLQ entries are capped at 5000 by `_DLQ_MAXLEN` on XADD, so bounded by design. Age-based prune exists for dashboard hygiene — stale entries beyond 72h don't help triage and clutter the Grafana "DLQ depth by kind" panels.
+
+**Mechanisms**:
+1. **Startup prune** (automatic): `src/health_monitor.py` calls `prune_old_messages(72)` on bootstrap — see log `DLQ startup prune: removed N entries older than 72h`.
+2. **Periodic prune** (scheduled): `k8s/dlq-prune-cronjob.yaml` runs every 6 hours at `:17` via Kubernetes CronJob. Invokes `scripts/dlq_prune.py --hours 72`. Emits single-line JSON record per run.
+3. **Manual prune** (on-demand): `python3 /opt/claude-swarm/scripts/dlq_prune.py --hours 48 --dry-run` to preview; drop `--dry-run` to execute.
+
+**Retention policy**: 72h covers Friday-to-Monday plus 48h D3 staging observations with buffer. Adjust via CronJob arg if investigation windows grow. Do not go below 48h without Josh sign-off — multi-day work cycles would lose context.
+
+**Failure modes**:
+- CronJob backoff: 2 retries. Check `kubectl -n ai-cluster get jobs -l app.kubernetes.io/component=maintenance`.
+- Redis unreachable: `dlq_prune_error` JSON record on stderr, exit 1. Alert fires via routing `DLQ growth rate` panel if it accumulates.
+
+---
+
+## NFS failover runbook (S3-12)
+
+**Primary**: node_primary exports `/opt/swarm` over NFS. All fleet hosts mount it.
+**Replica**: node_gpu keeps an rsync mirror updated every minute via `/opt/claude-swarm/scripts/replica-sync` (checkpointed).
+**Detection**: `SwarmNodeOffline` + `SwarmHeartbeatStale` both fire when NFS is stale (agents can't touch `.swarm_alive`).
+
+### Scenario A — node_primary NFS export down, node_primary reachable
+
+**Symptom**: `showmount -e node_primary` works, but clients can't read `/opt/swarm`.
+
+**First commands**:
+```bash
+ssh node_primary "systemctl status nfs-server; systemctl status rpcbind; exportfs -v"
+# Client side
+stat /opt/swarm/.swarm_alive 2>&1 | head -3   # hangs if NFS is stuck
+```
+
+**Common causes & resolutions**:
+- **nfs-server not running** → `ssh node_primary "sudo systemctl restart nfs-server"`. Wait 10s. Retry `stat` on a client.
+- **Exports file changed, not re-exported** → `ssh node_primary "sudo exportfs -ra"`.
+- **Stale NFS handle on client (common after node_primary reboot)** → `sudo umount -f /opt/swarm && sudo mount /opt/swarm` on that client.
+- **Firewall change blocks 2049** → `ssh node_primary "sudo ufw status | grep -i nfs"`; should allow `2049/tcp` + `111/tcp` from LAN.
+
+**Verify recovery**:
+```bash
+for h in giga mega mecha mongo; do
+  echo "=== $h ==="
+  ssh $h "stat /opt/swarm/.swarm_alive 2>&1 | head -1; date"
+done
+```
+
+### Scenario B — node_primary fully down (power off / kernel panic)
+
+**Symptom**: `ping node_primary` fails or `ssh node_primary` times out. All fleet hosts show `SwarmNodeOffline`.
+
+**Cutover to node_gpu replica**:
+
+1. **Confirm replica is fresh**:
+   ```bash
+   ssh giga "stat /opt/swarm/.swarm_alive; ls -la /opt/swarm/agents/ | head; date"
+   # Expected: .swarm_alive mtime within last 2 min
+   ```
+2. **Promote node_gpu to NFS primary** (manual — no automatic failover yet):
+   ```bash
+   ssh giga "sudo systemctl start nfs-server 2>/dev/null || true"
+   ssh giga "grep -q '/opt/swarm' /etc/exports || echo '/opt/swarm 192.168.200.0/24(rw,sync,no_subtree_check)' | sudo tee -a /etc/exports"
+   ssh giga "sudo exportfs -ra"
+   ```
+3. **Point clients at node_gpu**:
+   ```bash
+   # On each fleet host (mega, mecha, mongo):
+   sudo umount -f /opt/swarm 2>/dev/null || sudo umount -l /opt/swarm
+   sudo sed -i 's|node_primary:/opt/swarm|giga:/opt/swarm|' /etc/fstab
+   sudo mount /opt/swarm
+   ```
+4. **Restart swarm agents**:
+   ```bash
+   for h in mega mecha mongo giga; do
+     ssh $h "systemctl --user restart swarm-heartbeat 2>/dev/null || true"
+   done
+   ```
+5. **Verify heartbeats resume**:
+   ```bash
+   python3 /opt/claude-swarm/src/swarm_cli.py status  # run from node_primary-replacement coordinator
+   ```
+
+### Scenario C — node_gpu replica stale (rsync cron dead)
+
+**Symptom**: `replica-sync` cron hasn't run recently; mirror drift.
+
+**First commands**:
+```bash
+ssh giga "ls -la /opt/swarm/.swarm_alive; crontab -l | grep replica"
+ssh giga "tail -20 /var/log/replica-sync.log 2>/dev/null || journalctl --user -u swarm-replica-sync -n 20"
+```
+
+**Common causes**:
+- **Cron disabled after node_primary reboot** → `ssh giga "crontab -e"` and re-add: `* * * * * /opt/claude-swarm/scripts/replica-sync >> /var/log/replica-sync.log 2>&1`.
+- **SSH key rotated, rsync auth broken** → verify with `ssh giga "ssh node_primary 'hostname'"`. Re-distribute keys if needed.
+- **node_primary NFS not readable from node_gpu** → Scenario A applies first.
+
+**Caveat**: promotion of node_gpu to primary while node_primary NFS is ALSO alive creates split-brain. Only promote when node_primary is confirmed down.
+
+### Rollback — node_primary returns to service
+
+1. Re-mount `/opt/swarm` from node_primary on fleet hosts (reverse step 3 of Scenario B).
+2. Rsync node_gpu `/opt/swarm/` back to node_primary to capture any writes during failover window:
+   ```bash
+   ssh giga "rsync -avz --delete /opt/swarm/ node_primary:/opt/swarm/"
+   ```
+3. Disable node_gpu's `nfs-server` if it was temporarily enabled.
+4. Restart swarm agents fleet-wide.
+
+### Known limitations
+
+- **No automatic failover**: promotion is manual to avoid split-brain on transient network partitions.
+- **Multi-host write during cutover**: agents continue writing to their mounted `/opt/swarm` during the 2–5 min cutover window. Conflicting writes resolve via NFS file-per-agent convention (each agent owns `/opt/swarm/agents/<host>-*.yaml`). Tasks in `/opt/swarm/tasks/pending/` are atomic rename-based, which NFS handles.
+- **node_gpu sync lag**: rsync-every-minute leaves a ≤60s window of lost writes on primary failure.
+
+---
+
 ## Contacts
 
 - **Primary on-call**: Josh (your-github-user)

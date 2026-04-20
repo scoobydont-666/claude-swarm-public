@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 from . import transport
@@ -13,6 +14,39 @@ _DLQ_MAXLEN = 5000
 
 # Messages pending longer than this get moved to DLQ
 _PENDING_TIMEOUT_MS = 60_000  # 60 seconds
+
+log = logging.getLogger(__name__)
+
+
+def _warn_if_no_persistence() -> None:
+    """REL-01: Warn loudly if Redis has no AOF or RDB persistence configured.
+
+    DLQ entries are stored in Redis streams. Without appendonly or save
+    configured, a Redis restart silently drops all DLQ entries — undeliverable
+    messages are permanently lost with no record for triage.
+
+    This is ops-side config; the app does not modify Redis config. The warning
+    is intentionally loud (WARNING level) so it surfaces in service logs on
+    every startup when persistence is off.
+    """
+    try:
+        r = transport.get_client()
+        appendonly = r.config_get("appendonly").get("appendonly", "no")
+        save = r.config_get("save").get("save", "")
+        if appendonly != "yes" and not save:
+            log.warning(
+                "REL-01: Redis has NO persistence (appendonly=no, save='')."
+                " DLQ entries in ipc:dlq will be LOST on Redis restart."
+                " To enable: CONFIG SET appendonly yes; CONFIG REWRITE"
+                " — see /opt/claude-swarm/docs/RUNBOOK.md#rel-01-dlq-persistence"
+            )
+    except Exception as exc:  # noqa: BLE001
+        # If we cannot reach Redis at all, transport will surface its own errors.
+        # Don't let a persistence check crash the DLQ module.
+        log.debug("REL-01 persistence check skipped: %s", exc)
+
+
+_warn_if_no_persistence()
 
 
 def list_dlq(limit: int = 50) -> list[dict]:
