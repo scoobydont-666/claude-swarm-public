@@ -2,7 +2,7 @@
 
 Tests validate that the protocol correctly handles dispatch decisions,
 state persistence, and enforcement hooks across distinct agent kinds:
-  - Christi (multi-repo cross-edit, long thinking)
+  - ProjectA (multi-repo cross-edit, long thinking)
   - TaxPrep (interview pipeline, rapid dispatch bursts)
   - Reference (minimal, text-only, single-file edits)
 

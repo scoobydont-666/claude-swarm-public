@@ -11,7 +11,7 @@ Pattern from Paperclip AI's hierarchical agent model.
 from pipeline import Pipeline, PipelineStage
 
 
-def create(project_dir: str = "/opt/hydra-project") -> Pipeline:
+def create(project_dir: str = "<hydra-project-path>") -> Pipeline:
     """Create a hierarchical planning pipeline."""
     return Pipeline(
         name="hierarchical",
@@ -42,8 +42,8 @@ def create(project_dir: str = "/opt/hydra-project") -> Pipeline:
                 prompt_template=(
                     "You are a project manager sequencing work across the fleet.\n\n"
                     "Sub-tasks from planner:\n{previous_output.plan}\n\n"
-                    "Fleet: GIGA (96GB GPU), MEGA (32GB GPU x2), MECHA (16GB GPU), "
-                    "MONGO (16GB GPU), miniboss (CPU only)\n\n"
+                    "Fleet: node_gpu (96GB GPU), node_reserve1 (32GB GPU x2), node_reserve2 (16GB GPU), "
+                    "node_mongo (16GB GPU), node_primary (CPU only)\n\n"
                     "Sequence the sub-tasks in execution order. Group independent tasks "
                     "for parallel execution. Assign each to the best fleet member.\n\n"
                     "Output as ordered YAML with host assignments."

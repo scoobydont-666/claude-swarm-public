@@ -12,7 +12,7 @@ Pattern from Anthropic Multi-Agent Coordination and Cursor Background Agents.
 from pipeline import Pipeline, PipelineStage
 
 
-def create(project_dir: str = "/opt/hydra-project") -> Pipeline:
+def create(project_dir: str = "<hydra-project-path>") -> Pipeline:
     """Create a generator-verifier loop pipeline."""
     return Pipeline(
         name="gen_verify_loop",

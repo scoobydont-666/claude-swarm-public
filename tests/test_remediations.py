@@ -16,7 +16,7 @@ from remediations import RemediationEngine
 def engine():
     return RemediationEngine(
         ssh_user="josh",
-        email_to="r.josh.jones@gmail.com",
+        email_to="admin@example.com",
         replica_sync_script="/usr/local/bin/swarm-replica-sync.sh",
     )
 
@@ -24,7 +24,7 @@ def engine():
 class TestRestartService:
     def test_rejects_unlisted_service(self, engine):
         with pytest.raises(ValueError, match="not in allowlist"):
-            engine.restart_service("miniboss", "evil-service")
+            engine.restart_service("node_primary", "evil-service")
 
     def test_rejects_unknown_host(self, engine):
         with pytest.raises(ValueError, match="not in allowlist"):
@@ -34,7 +34,7 @@ class TestRestartService:
         # Even if it were on the allowlist, injection must fail
         # (allowlist validation catches this before SSH)
         with pytest.raises(ValueError):
-            engine.restart_service("miniboss", "monerod; rm -rf /")
+            engine.restart_service("node_primary", "monerod; rm -rf /")
 
     def test_successful_restart(self, engine):
         mock_result = MagicMock()
@@ -43,7 +43,7 @@ class TestRestartService:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
-            success, detail = engine.restart_service("miniboss", "monerod")
+            success, detail = engine.restart_service("node_primary", "monerod")
 
         assert success is True
         assert "monerod" in detail
@@ -62,14 +62,14 @@ class TestRestartService:
         mock_result.stderr = "Unit monerod.service not found"
 
         with patch("subprocess.run", return_value=mock_result):
-            success, detail = engine.restart_service("miniboss", "monerod")
+            success, detail = engine.restart_service("node_primary", "monerod")
 
         assert success is False
         assert "failed" in detail.lower()
 
     def test_ssh_timeout_handled(self, engine):
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("ssh", 30)):
-            success, detail = engine.restart_service("miniboss", "monerod")
+            success, detail = engine.restart_service("node_primary", "monerod")
 
         assert success is False
         assert "timed out" in detail.lower()
@@ -81,7 +81,7 @@ class TestRestartService:
         mock_result.stderr = ""
 
         with patch("subprocess.run", return_value=mock_result):
-            success, _ = engine.restart_service("GIGA", "docker")
+            success, _ = engine.restart_service("node_gpu", "docker")
         assert success is True
 
 
@@ -133,17 +133,17 @@ class TestSendAlertEmail:
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
             success, detail = engine.send_alert_email(
-                subject="miniboss-health-alert-service_down-2026-03-22",
+                subject="node_primary-health-alert-service_down-2026-03-22",
                 body="monerod is down",
             )
 
         assert success is True
-        assert "r.josh.jones@gmail.com" in detail
+        assert "admin@example.com" in detail
         # Validate msmtp invocation
         args, kwargs = mock_run.call_args
         cmd = args[0]
         assert "msmtp" in cmd[0]
-        assert "r.josh.jones@gmail.com" in cmd
+        assert "admin@example.com" in cmd
 
     def test_msmtp_not_found(self, engine):
         with patch("subprocess.run", side_effect=FileNotFoundError):
@@ -175,17 +175,17 @@ class TestSendAlertEmail:
 
         with patch("subprocess.run", side_effect=capture_run):
             engine.send_alert_email(
-                subject="GIGA-health-alert-gpu_vram_full-2026-03-22",
+                subject="node_gpu-health-alert-gpu_vram_full-2026-03-22",
                 body="GPU VRAM at 98%",
             )
 
-        assert "GIGA-health-alert-gpu_vram_full-2026-03-22" in captured_input["input"]
+        assert "node_gpu-health-alert-gpu_vram_full-2026-03-22" in captured_input["input"]
 
 
 class TestSendSwarmMessage:
     def test_send_to_host(self, engine):
         with patch("swarm_lib.send_message") as mock_send:
-            success, detail = engine.send_swarm_message("miniboss", "disk at 90%")
+            success, detail = engine.send_swarm_message("node_primary", "disk at 90%")
 
         mock_send.assert_called_once()
         assert success is True
@@ -201,7 +201,7 @@ class TestSendSwarmMessage:
         # swarm_lib is already imported at module load time in the test environment.
         # Test that send_swarm_message returns gracefully when swarm_lib.send_message raises.
         with patch("swarm_lib.send_message", side_effect=RuntimeError("NFS unavailable")):
-            success, detail = engine.send_swarm_message("miniboss", "test message")
+            success, detail = engine.send_swarm_message("node_primary", "test message")
         assert success is False
         assert "send_message failed" in detail
 
@@ -209,16 +209,16 @@ class TestSendSwarmMessage:
 class TestDispatchFix:
     def test_dispatch_returns_id(self, engine):
         mock_result = MagicMock()
-        mock_result.dispatch_id = "dispatch-1234-GIGA"
+        mock_result.dispatch_id = "dispatch-1234-node_gpu"
 
         with patch("hydra_dispatch.dispatch", return_value=mock_result):
-            dispatch_id = engine.dispatch_fix("GIGA", "restart failing service")
+            dispatch_id = engine.dispatch_fix("node_gpu", "restart failing service")
 
-        assert dispatch_id == "dispatch-1234-GIGA"
+        assert dispatch_id == "dispatch-1234-node_gpu"
 
     def test_dispatch_failure_returns_error_string(self, engine):
         with patch("hydra_dispatch.dispatch", side_effect=RuntimeError("SSH failed")):
-            result = engine.dispatch_fix("GIGA", "fix something")
+            result = engine.dispatch_fix("node_gpu", "fix something")
 
         assert "dispatch_fix failed" in result
 
@@ -232,9 +232,9 @@ class TestExecuteDispatcher:
     def test_restart_service_dispatched(self, engine):
         with patch.object(engine, "restart_service", return_value=(True, "OK")) as mock:
             success, _ = engine.execute(
-                action="restart_service", host="miniboss", service="monerod"
+                action="restart_service", host="node_primary", service="monerod"
             )
-        mock.assert_called_once_with("miniboss", "monerod")
+        mock.assert_called_once_with("node_primary", "monerod")
         assert success is True
 
     def test_force_sync_dispatched(self, engine):
@@ -269,7 +269,7 @@ class TestRequeueTaskAtomicWrite:
             "id": task_id,
             "type": "test",
             "_retries": retries,
-            "claimed_by": "miniboss",
+            "claimed_by": "node_primary",
             "claimed_at": "2026-03-31T00:00:00Z",
         }
         task_file = claimed_dir / f"{task_id}.yaml"
@@ -362,7 +362,7 @@ class TestKillHungTask:
         assert "missing" in detail
 
     def test_missing_pid_returns_false(self, engine):
-        success, detail = engine.kill_hung_task("miniboss", 0)
+        success, detail = engine.kill_hung_task("node_primary", 0)
         assert success is False
         assert "missing" in detail
 
@@ -385,11 +385,11 @@ class TestKillHungTask:
             return False, ""
 
         with (
-            patch.object(engine, "_resolve_host_ip", return_value="192.168.200.213"),
+            patch.object(engine, "_resolve_host_ip", return_value="<orchestration-node-ip>"),
             patch.object(engine, "_ssh_run", side_effect=mock_ssh_run),
             patch("time.sleep"),
         ):
-            success, detail = engine.kill_hung_task("miniboss", 9876)
+            success, detail = engine.kill_hung_task("node_primary", 9876)
 
         assert success is True
         assert calls[0] == ["kill", "9876"]  # SIGTERM first
@@ -409,11 +409,11 @@ class TestKillHungTask:
             return False, ""
 
         with (
-            patch.object(engine, "_resolve_host_ip", return_value="192.168.200.213"),
+            patch.object(engine, "_resolve_host_ip", return_value="<orchestration-node-ip>"),
             patch.object(engine, "_ssh_run", side_effect=mock_ssh_run),
             patch("time.sleep"),
         ):
-            success, detail = engine.kill_hung_task("miniboss", 1111)
+            success, detail = engine.kill_hung_task("node_primary", 1111)
 
         assert success is True
         assert ["kill", "-9", "1111"] in calls
@@ -425,11 +425,11 @@ class TestKillHungTask:
             return False, "SSH connection refused"
 
         with (
-            patch.object(engine, "_resolve_host_ip", return_value="192.168.200.213"),
+            patch.object(engine, "_resolve_host_ip", return_value="<orchestration-node-ip>"),
             patch.object(engine, "_ssh_run", side_effect=mock_ssh_run),
             patch("time.sleep"),
         ):
-            success, detail = engine.kill_hung_task("miniboss", 5555)
+            success, detail = engine.kill_hung_task("node_primary", 5555)
 
         assert success is False
         assert "SIGTERM failed" in detail
@@ -448,7 +448,7 @@ class TestKillHungTask:
             "id": task_id,
             "type": "test",
             "_retries": 0,
-            "claimed_by": "miniboss",
+            "claimed_by": "node_primary",
             "claimed_at": "2026-03-31T00:00:00Z",
             "pid": 12345,
         }
@@ -480,7 +480,7 @@ class TestKillHungTask:
 
         assert success is True
         assert len(kill_calls) == 1
-        assert kill_calls[0] == ("miniboss", 12345)
+        assert kill_calls[0] == ("node_primary", 12345)
 
     def test_requeue_proceeds_if_kill_fails(self, engine, tmp_path):
         """requeue_task must succeed even when kill_hung_task fails."""
@@ -496,7 +496,7 @@ class TestKillHungTask:
             "id": task_id,
             "type": "test",
             "_retries": 0,
-            "claimed_by": "miniboss",
+            "claimed_by": "node_primary",
             "claimed_at": "2026-03-31T00:00:00Z",
             "pid": 99999,
         }

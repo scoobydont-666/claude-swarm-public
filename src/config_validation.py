@@ -103,15 +103,15 @@ class FleetConfig:
         Raises:
             ValueError: If critical configuration is missing.
         """
-        miniboss = os.environ.get("MINIBOSS_HOST", "127.0.0.1").strip()
+        node_primary = os.environ.get("MINIBOSS_HOST", "127.0.0.1").strip()
         giga = os.environ.get("GIGA_HOST", "127.0.0.1").strip()
 
-        if not miniboss:
+        if not node_primary:
             raise ValueError("MINIBOSS_HOST is required and cannot be empty")
         if not giga:
             raise ValueError("GIGA_HOST is required and cannot be empty")
 
-        return cls(miniboss_host=miniboss, giga_host=giga)
+        return cls(miniboss_host=node_primary, giga_host=giga)
 
 
 def validate_all_config() -> dict:

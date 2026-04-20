@@ -2,13 +2,13 @@
 
 ## The Problem
 
-A single Claude Code session on miniboss can SSH to GIGA and run bash commands, but it can't **think** on GIGA. When a task requires:
+A single Claude Code session on node_primary can SSH to node_gpu and run bash commands, but it can't **think** on node_gpu. When a task requires:
 - GPU resources (Ollama, ChromaDB, CUDA)
 - Docker Swarm context (services, stacks, Traefik)
 - Project-local CLAUDE.md and .kin/ context
 - Multi-turn debugging with tool use
 
-...the current approach of `ssh GIGA "some command"` is insufficient. You need a full Claude Code brain on the remote host.
+...the current approach of `ssh node_gpu "some command"` is insufficient. You need a full Claude Code brain on the remote host.
 
 ## The Solution: `smart-dispatch`
 
@@ -27,9 +27,9 @@ The swarm now has an intelligent dispatch engine that decides **how** to execute
 
 ```
 1. Does it need remote resources?
-   ├─ GPU/Ollama/ChromaDB → GIGA
-   ├─ Docker Swarm management → GIGA
-   ├─ Monero/P2Pool → miniboss
+   ├─ GPU/Ollama/ChromaDB → node_gpu
+   ├─ Docker Swarm management → node_gpu
+   ├─ Monero/P2Pool → node_primary
    └─ None → stay local
 
 2. How complex is it?
@@ -49,16 +49,16 @@ The swarm now has an intelligent dispatch engine that decides **how** to execute
 ### Project Affinity
 
 Some projects have inherent host affinity:
-- `/opt/christi-project` → GIGA (needs Ollama GPU)
-- `/opt/ai-project` → GIGA (Docker Swarm manager)
-- `/opt/monero-farm` → miniboss (fullnode)
+- `<project-a-path>` → node_gpu (needs Ollama GPU)
+- `<ai-project-path>` → node_gpu (Docker Swarm manager)
+- `/opt/monero-farm` → node_primary (fullnode)
 - Everything else → current host (avoid unnecessary remote)
 
 ## Usage
 
 ### Plan without executing
 ```bash
-swarm smart-dispatch "debug why Christi RAG is slow" -p /opt/christi-project --plan-only
+swarm smart-dispatch "debug why ProjectA RAG is slow" -p <project-a-path> --plan-only
 ```
 
 ### Fire and forget (background)
@@ -73,7 +73,7 @@ swarm smart-dispatch "run full test suite on ExamForge backend" --sync
 
 ### Force host
 ```bash
-swarm smart-dispatch "check disk usage" --host GIGA
+swarm smart-dispatch "check disk usage" --host node_gpu
 ```
 
 ## Architecture
@@ -81,7 +81,7 @@ swarm smart-dispatch "check disk usage" --host GIGA
 ```
 ┌─────────────────────────────────────────────────┐
 │            smart-dispatch CLI                     │
-│  "debug why Christi RAG returns stale results"   │
+│  "debug why ProjectA RAG returns stale results"   │
 └────────────────────┬────────────────────────────┘
                      │
                      ▼
@@ -89,7 +89,7 @@ swarm smart-dispatch "check disk usage" --host GIGA
 │          Strategy Decision Engine                 │
 │                                                   │
 │  1. Classify complexity    → COMPLEX              │
-│  2. Check resources needed → GPU/ChromaDB → GIGA  │
+│  2. Check resources needed → GPU/ChromaDB → node_gpu  │
 │  3. Needs interactive?     → "debug" → YES        │
 │  4. Select model           → COMPLEX+interactive   │
 │                               → opus               │
@@ -97,18 +97,18 @@ swarm smart-dispatch "check disk usage" --host GIGA
 │                                                   │
 │  ExecutionPlan:                                    │
 │    strategy=REMOTE_SESSION                         │
-│    host=GIGA, model=opus, turns=unlimited          │
+│    host=node_gpu, model=opus, turns=unlimited          │
 └────────────────────┬────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────┐
-│          SSH to GIGA                              │
+│          SSH to node_gpu                              │
 │  claude --permission-mode bypassPermissions       │
 │    --model opus                                   │
-│    -p "debug why Christi RAG returns stale..."    │
+│    -p "debug why ProjectA RAG returns stale..."    │
 │                                                   │
-│  Claude Code on GIGA:                             │
-│  - Loads /opt/christi-project/CLAUDE.md            │
+│  Claude Code on node_gpu:                             │
+│  - Loads <project-a-path>/CLAUDE.md            │
 │  - Has access to ChromaDB at 127.0.0.1:8100       │
 │  - Can query Ollama at 127.0.0.1:11434            │
 │  - Reads files, runs tests, checks logs           │
@@ -126,7 +126,7 @@ The next evolution is **COLLABORATIVE** — where the orchestrating session and 
 4. Orchestrator sends updated context to the remote session via swarm message
 5. Remote session continues with new context
 
-This enables **distributed debugging**: miniboss can reason about the architecture while GIGA investigates the running system, and they converge on a solution.
+This enables **distributed debugging**: node_primary can reason about the architecture while node_gpu investigates the running system, and they converge on a solution.
 
 ## Cost Implications
 

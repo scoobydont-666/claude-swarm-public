@@ -1,6 +1,6 @@
 """B2: Swarm→Sentinel event schema tests.
 
-Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase B2.
+Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase B2.
 """
 
 from __future__ import annotations

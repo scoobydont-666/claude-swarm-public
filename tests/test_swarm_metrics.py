@@ -17,19 +17,19 @@ class TestCollectNodeMetrics:
         status_dir = tmp_path / "status"
         status_dir.mkdir()
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        (status_dir / "miniboss.json").write_text(
+        (status_dir / "node_primary.json").write_text(
             json.dumps(
                 {
-                    "hostname": "miniboss",
+                    "hostname": "node_primary",
                     "state": "idle",
                     "updated_at": now,
                 }
             )
         )
-        (status_dir / "GIGA.json").write_text(
+        (status_dir / "node_gpu.json").write_text(
             json.dumps(
                 {
-                    "hostname": "GIGA",
+                    "hostname": "node_gpu",
                     "state": "active",
                     "session_id": "sess-1",
                     "updated_at": now,
@@ -157,7 +157,7 @@ class TestCollectDispatchCosts:
     def test_sums_costs(self, tmp_path, monkeypatch):
         dispatches_dir = tmp_path / "dispatches"
         dispatches_dir.mkdir()
-        for i, (host, cost) in enumerate([("GIGA", 0.50), ("miniboss", 0.25), ("GIGA", 0.75)]):
+        for i, (host, cost) in enumerate([("node_gpu", 0.50), ("node_primary", 0.25), ("node_gpu", 0.75)]):
             (dispatches_dir / f"d{i}.plan.yaml").write_text(
                 yaml.dump(
                     {
@@ -182,8 +182,8 @@ class TestCollectDispatchCosts:
 
         total, host_costs = patched()
         assert abs(total - 1.50) < 0.01
-        assert abs(host_costs["GIGA"] - 1.25) < 0.01
-        assert abs(host_costs["miniboss"] - 0.25) < 0.01
+        assert abs(host_costs["node_gpu"] - 1.25) < 0.01
+        assert abs(host_costs["node_primary"] - 0.25) < 0.01
 
     def test_no_crash_on_real_dir(self):
         """Verify the real function doesn't crash regardless of disk state."""

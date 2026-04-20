@@ -244,10 +244,10 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
                 "." not in target
                 and target
                 not in (
-                    "GIGA",
-                    "MECHA",
-                    "miniboss",
-                    "rainbow",
+                    "node_gpu",
+                    "node_reserve2",
+                    "node_primary",
+                    "node_miner",
                 )
             ):
                 continue
@@ -987,7 +987,7 @@ class TaskDecomposer:
         "across": re.compile(r"\bacross\b", re.IGNORECASE),
         "generate_and_validate": re.compile(r"\bgenerate\b.*\bvalidate\b", re.IGNORECASE),
         "multiple_projects": re.compile(
-            r"\b(christi|monero|str[- ]intel|taxprep|examforge|audit[- ]sentinel|hashrate|clausehound|prompt[- ]forge|documint)\b",
+            r"\b(project-a|monero|str[- ]intel|taxprep|examforge|audit[- ]sentinel|hashrate|clausehound|prompt[- ]forge|documint)\b",
             re.IGNORECASE,
         ),
     }
@@ -1005,8 +1005,8 @@ class TaskDecomposer:
         "mining": "monero-farm",
         "p2pool": "monero-farm",
         "xmrig": "monero-farm",
-        "christi": "christi-project",
-        "tax advisor": "christi-project",
+        "project-a": "project-a-project",
+        "tax advisor": "project-a-project",
         "str": "str-project",
         "rental": "str-project",
         "taxprep": "taxprep-project",

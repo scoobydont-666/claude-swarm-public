@@ -1,6 +1,6 @@
 # Claude-Swarm Operations Runbook
 
-**Version**: 1.0 | **Last updated**: 2026-04-18 | **Scope**: on-call response to every alert in `deploy/swarm-alerts.yml` and `/opt/ai-project/config/prometheus/routing_protocol_v1_alerts.yml`.
+**Version**: 1.0 | **Last updated**: 2026-04-18 | **Scope**: on-call response to every alert in `deploy/swarm-alerts.yml` and `<ai-project-path>/config/prometheus/routing_protocol_v1_alerts.yml`.
 
 ## How to use this runbook
 
@@ -17,11 +17,11 @@ Keep this document short and action-oriented. If a section grows beyond ~30 line
 
 | Subsystem | Owner | Escalation |
 |---|---|---|
-| Redis (state store) | miniboss local service | SSH miniboss; `systemctl status redis` |
-| NFS share `/opt/swarm` | miniboss NFS export | `showmount -e miniboss`; check mount on each host |
+| Redis (state store) | node_primary local service | SSH node_primary; `systemctl status redis` |
+| NFS share `/opt/swarm` | node_primary NFS export | `showmount -e node_primary`; check mount on each host |
 | Routing Protocol v1 | `~/.claude/hooks/routing_*.py` + `~/.claude/state/routing.db` | `sqlite3 ~/.claude/state/routing.db` |
 | Prometheus textfile | `/tmp/node_exporter_textfile/routing_protocol.prom` | `crontab -l | grep routing_metrics` |
-| Grafana dashboards | `/opt/ai-project/config/grafana/dashboards/` | GIGA:3000 |
+| Grafana dashboards | `<ai-project-path>/config/grafana/dashboards/` | node_gpu:3000 |
 | NAI-suite derivatives | `/opt/nai-swarm`, `/opt/nai-reserve` (own runbooks) | See nai-swarm/docs/ops-guide.md |
 
 ---
@@ -40,11 +40,11 @@ for h in giga mega mecha mongo; do echo "=== $h ==="; ssh -o ConnectTimeout=5 $h
 
 **Common causes**:
 - **Host powered off** → wake via `wakeonlan` if WoL configured, else physical power
-- **SSH key issue** → `ssh -vv <host>` to diagnose; miniboss `.ssh/known_hosts` may need refresh
+- **SSH key issue** → `ssh -vv <host>` to diagnose; node_primary `.ssh/known_hosts` may need refresh
 - **Heartbeat agent crashed** → SSH in, `systemctl status swarm-heartbeat` (or the equivalent service name on that host)
 - **Network segmentation** → `ping <host>` vs `ssh <host>`
 
-**Escalation**: if multiple nodes offline simultaneously → likely network/switch issue. Check miniboss router logs.
+**Escalation**: if multiple nodes offline simultaneously → likely network/switch issue. Check node_primary router logs.
 
 ### `SwarmTaskQueueBacklog` {#swarm-task-queue-backlog}
 
@@ -77,7 +77,7 @@ ssh $HOST "cat /opt/swarm/agents/*${HOST}*.yaml" 2>&1 | head -20
 **Common causes**:
 - **Agent process crashed / hung** → restart the swarm agent on that host
 - **NFS mount stale on the host** → `ssh $HOST "stat /opt/swarm/.swarm_alive"`; if hangs, remount NFS
-- **Redis unreachable from that host** → `ssh $HOST "redis-cli -h miniboss ping"` (expect PONG)
+- **Redis unreachable from that host** → `ssh $HOST "redis-cli -h node_primary ping"` (expect PONG)
 
 **Escalation**: critical severity — paged. If host is unrecoverable, drain + replace via NAI-Reserve scheduling.
 
@@ -93,7 +93,7 @@ python3 /opt/claude-swarm/src/cost_tracker.py --last-hour
 **Common causes**:
 - **Runaway loop** — a task stuck in Opus retry → find the task, kill it, inspect root cause
 - **Legitimate heavy work** (large planning session) — ack the alert, monitor for return to baseline
-- **Cost routing misconfigured** — check `/opt/hydra-project/libs/agent_bridge/model_tier.py` for tier pins that should be sonnet but got set to opus
+- **Cost routing misconfigured** — check `<hydra-project-path>/libs/agent_bridge/model_tier.py` for tier pins that should be sonnet but got set to opus
 
 **Escalation**: if cost crosses $20/hour without a known heavy workload → kill all dispatches, call Josh.
 
@@ -175,7 +175,7 @@ cat /tmp/routing-mode
 
 ### Redis down
 
-Redis runs on miniboss. Swarm falls back to NFS-backed mode (slower, still functional).
+Redis runs on node_primary. Swarm falls back to NFS-backed mode (slower, still functional).
 
 ```bash
 systemctl status redis
@@ -203,7 +203,7 @@ ssh $HOST "sudo umount -lf /opt/swarm && sudo mount /opt/swarm"
 
 The swarm dashboard at `127.0.0.1:9192` returns 503 when `/ready` detects a degraded backend. Check:
 
-1. Redis: `redis-cli -h miniboss ping`
+1. Redis: `redis-cli -h node_primary ping`
 2. NFS: `stat /opt/swarm/.swarm_alive`
 3. Log: `journalctl -u swarm-dashboard -n 50`
 
@@ -259,8 +259,8 @@ If tests fail, revert the offending change and inspect the schema diff in the co
 
 ## Contacts
 
-- **Primary on-call**: Josh (scoobydont-666)
-- **Project home**: `/opt/hydra-project`
+- **Primary on-call**: Josh (your-github-user)
+- **Project home**: `<hydra-project-path>`
 - **This runbook**: `/opt/claude-swarm/docs/RUNBOOK.md`
 - **Alerts file**: `/opt/claude-swarm/deploy/swarm-alerts.yml`
-- **Routing alerts**: `/opt/ai-project/config/prometheus/routing_protocol_v1_alerts.yml`
+- **Routing alerts**: `<ai-project-path>/config/prometheus/routing_protocol_v1_alerts.yml`

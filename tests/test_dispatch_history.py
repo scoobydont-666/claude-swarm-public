@@ -73,7 +73,7 @@ class TestDispatchOutputStreaming:
         """Verify execute_plan wraps SSH command with stdbuf."""
         plan = ExecutionPlan(
             strategy=ExecutionStrategy.REMOTE_DISPATCH,
-            host="miniboss",
+            host="node_primary",
             model="sonnet",
             reasoning="test",
             complexity=TaskComplexity.SIMPLE,
@@ -100,7 +100,7 @@ class TestDispatchOutputStreaming:
         """Test that output file path is set in result."""
         plan = ExecutionPlan(
             strategy=ExecutionStrategy.REMOTE_DISPATCH,
-            host="miniboss",
+            host="node_primary",
             model="haiku",
             reasoning="test",
             complexity=TaskComplexity.TRIVIAL,
@@ -159,7 +159,7 @@ class TestDispatchCostEstimation:
 
         plan = ExecutionPlan(
             strategy=ExecutionStrategy.REMOTE_DISPATCH,
-            host="GIGA",
+            host="node_gpu",
             model="sonnet",
             reasoning="test",
             complexity=TaskComplexity.SIMPLE,
@@ -213,7 +213,7 @@ class TestDispatchHistoryCLI:
 
     def test_dispatches_output_file_structure(self, tmp_path):
         """Test that dispatch output file follows expected naming."""
-        dispatch_id = "session-1234567890-GIGA"
+        dispatch_id = "session-1234567890-node_gpu"
         output_dir = tmp_path / "dispatches"
         output_dir.mkdir()
 
@@ -228,7 +228,7 @@ class TestDispatchHistoryCLI:
             yaml.dump(
                 {
                     "dispatch_id": dispatch_id,
-                    "host": "GIGA",
+                    "host": "node_gpu",
                     "strategy": "remote_dispatch",
                     "model": "sonnet",
                 }

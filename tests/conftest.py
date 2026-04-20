@@ -78,9 +78,9 @@ def swarm_tmpdir(tmp_path):
             "enabled": True,
             "auto_suggest": True,
             "capability_routing": {
-                "ollama": ["GIGA"],
-                "gpu": ["GIGA"],
-                "mining": ["miniboss"],
+                "ollama": ["node_gpu"],
+                "gpu": ["node_gpu"],
+                "mining": ["node_primary"],
             },
         },
         "worktrees": {
