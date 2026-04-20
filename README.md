@@ -181,6 +181,35 @@ Key settings:
 | `git.sync_on_task_complete` | `true` | Sync immediately on task done |
 | `heartbeat.interval_seconds` | `60` | Node heartbeat cadence |
 
+### Claude Backend (CLAUDE_BACKEND)
+
+The swarm can call Claude via multiple backends. Set `CLAUDE_BACKEND` to control which one:
+
+| Value | Behavior | Requirements |
+|-------|----------|--------------|
+| `cli` (forced) | Uses `claude` CLI (OAuth-authenticated, no API key) | Claude Code installed on PATH |
+| `sdk` (forced) | Uses Anthropic SDK | `ANTHROPIC_API_KEY` env var set |
+| `auto` (default) | Tries CLI first; falls back to SDK if CLI unavailable | Either Claude Code or API key |
+
+Example:
+```bash
+# Use CLI (Claude Code auth)
+export CLAUDE_BACKEND=cli
+python3 src/claude_backend.py
+
+# Use SDK (API key)
+export CLAUDE_BACKEND=sdk
+export ANTHROPIC_API_KEY=sk-ant-...
+python3 src/claude_backend.py
+
+# Auto-fallback (tries CLI, uses SDK as fallback)
+export CLAUDE_BACKEND=auto
+python3 src/claude_backend.py
+```
+
+Related environment variables:
+- `CLAUDE_CLI_TIMEOUT_SEC` — timeout for CLI calls (default: 180)
+
 ## CLI Commands
 
 ### Node Status
