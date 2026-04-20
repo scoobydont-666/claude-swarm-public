@@ -41,7 +41,7 @@
 
 ### B. Rapid Phase Development Without Integration Tests (50% of fixes)
 - Phase 3 → Phase 4 big refactor split API shape, broke consumers
-- Host discovery (localhost/node_primary) added without cross-platform testing
+- Host discovery (localhost/miniboss) added without cross-platform testing
 - IPC/living-spec wiring created 9 cascading gaps because integration wasn't verified end-to-end
 
 **Design Flaw:** No contract validation between dispatch engine → dashboard/IPC/health_check. Schema-driven API development would have caught all 3 themes in CI.

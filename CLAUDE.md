@@ -8,7 +8,7 @@
 - `peer_fork: nai-swarm (Nutanix-track, diverged 2026-03-22 — DO NOT conflate; see /home/josh/.claude/projects/-opt-hydra-project/memory/feedback_claude_swarm_vs_nai_swarm.md)`
 
 ## Routing Protocol v1 (2026-04-18)
-claude-swarm is the substrate for `routing-protocol-v1` — the coordinator ↔ worker contract between Claude Code terminal sessions and fleet workers. **Spec:** `<hydra-project-path>/docs/routing-protocol-v1.md`.
+claude-swarm is the substrate for `routing-protocol-v1` — the coordinator ↔ worker contract between Claude Code terminal sessions and fleet workers. **Spec:** `/opt/hydra-project/docs/routing-protocol-v1.md`.
 
 Modules added 2026-04-18:
 - `config/routing.yaml` — tier_ladder, dispatch_class, host_slots, cascade config (§3-7)
@@ -30,9 +30,9 @@ Multi-instance Claude Code awareness and task sharing via NFS + git.
 Advisory coordination system — never forces action, human in the loop.
 
 ## Architecture
-- NFS primary: node_gpu (<primary-node-ip>) exports /opt/swarm/
-- NFS replica: node_primary (<orchestration-node-ip>) mirrors to /opt/swarm-replica/ and re-exports
-- Git: claude-config repo (your-github-user/claude-config) for remote sync + durability
+- NFS primary: GIGA (192.168.200.163) exports /opt/swarm/
+- NFS replica: miniboss (192.168.200.213) mirrors to /opt/swarm-replica/ and re-exports
+- Git: claude-config repo (scoobydont-666/claude-config) for remote sync + durability
 - Local instances: instant coordination via NFS mount at /opt/swarm/
 - Remote instances: git sync every 60s or on-demand
 

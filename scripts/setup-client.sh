@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # setup-client.sh — Run on any host joining the swarm
-# Mounts NFS (node_gpu primary, node_primary fallback) and installs hooks
+# Mounts NFS (GIGA primary, miniboss fallback) and installs hooks
 # Requires: sudo for NFS mount
 
 # Load config from environment or defaults
-GIGA_IP="${GIGA_IP:-<primary-node-ip>}"
-MINIBOSS_IP="${MINIBOSS_IP:-<orchestration-node-ip>}"
+GIGA_IP="${GIGA_IP:-192.168.200.163}"
+MINIBOSS_IP="${MINIBOSS_IP:-192.168.200.213}"
 SWARM_MOUNT="${SWARM_MOUNT:-/opt/swarm}"
 ALLOW_LOCAL="${ALLOW_LOCAL:-0}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,21 +24,21 @@ fi
 # Create mount point
 sudo mkdir -p "${SWARM_MOUNT}"
 
-# Try node_gpu first, fall back to node_primary replica
+# Try GIGA first, fall back to miniboss replica
 if mountpoint -q "${SWARM_MOUNT}" 2>/dev/null; then
     echo "NFS already mounted at ${SWARM_MOUNT}."
 else
-    echo "Attempting NFS mount from node_gpu (${GIGA_IP})..."
+    echo "Attempting NFS mount from GIGA (${GIGA_IP})..."
     if sudo mount -t nfs -o soft,timeo=10 "${GIGA_IP}:/opt/swarm" "${SWARM_MOUNT}" 2>/dev/null; then
-        echo "Mounted from node_gpu."
+        echo "Mounted from GIGA."
         FSTAB_SRC="${GIGA_IP}:/opt/swarm"
     else
-        echo "node_gpu unavailable. Trying node_primary replica (${MINIBOSS_IP})..."
+        echo "GIGA unavailable. Trying miniboss replica (${MINIBOSS_IP})..."
         if sudo mount -t nfs -o soft,timeo=10 "${MINIBOSS_IP}:/opt/swarm-replica" "${SWARM_MOUNT}" 2>/dev/null; then
-            echo "Mounted from node_primary replica."
+            echo "Mounted from miniboss replica."
             FSTAB_SRC="${MINIBOSS_IP}:/opt/swarm-replica"
         else
-            echo "[ERROR] Could not mount NFS from node_gpu or node_primary."
+            echo "[ERROR] Could not mount NFS from GIGA or miniboss."
             if [[ "${ALLOW_LOCAL}" == "1" ]]; then
                 echo "Local fallback enabled. Creating ~/.swarm/ directory."
                 mkdir -p "${HOME}/.swarm"/{status,tasks/{pending,claimed,completed},artifacts,messages/{inbox,archive},config}

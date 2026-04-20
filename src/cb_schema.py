@@ -9,7 +9,7 @@ This module defines the shape claude-swarm expects from CB's ``cb_search``
 tool and validates every item. Field names match CB's actual SearchResult
 interface in /opt/context-bridge-mcp-server/src/types.ts.
 
-Plan: <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase B1
+Plan: /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase B1
 """
 
 from __future__ import annotations

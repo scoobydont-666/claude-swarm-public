@@ -8,16 +8,16 @@ from pipeline import Pipeline, PipelineStage
 
 STUDENT_TRAIN = Pipeline(
     name="student-train",
-    description="Train a student model via QLoRA on node_gpu, with GPU lifecycle management",
+    description="Train a student model via QLoRA on GIGA, with GPU lifecycle management",
     stages=[
         PipelineStage(
             name="claim_gpu",
-            role="Stop vLLM on node_gpu to free GPU for training",
+            role="Stop vLLM on GIGA to free GPU for training",
             model="haiku",
             host="giga",
             requires=["gpu"],
             depends_on=[],
-            prompt_template="""Prepare node_gpu GPU for training by stopping vLLM.
+            prompt_template="""Prepare GIGA GPU for training by stopping vLLM.
 Run:
   docker stop vllm-giga-primary 2>/dev/null || true
   sleep 5
@@ -33,7 +33,7 @@ Report: VRAM status before and after.""",
             host="giga",
             requires=["gpu"],
             depends_on=["claim_gpu"],
-            prompt_template="""Train student model on node_gpu.
+            prompt_template="""Train student model on GIGA.
 Run: cd /opt/ntnx-codeforge && python3 finetune.py \
   --model-size {input.model_size} \
   --dataset {input.dataset_path} \
@@ -59,12 +59,12 @@ Report: pass/fail for each test, overall verdict.""",
         ),
         PipelineStage(
             name="release_gpu",
-            role="Restart vLLM on node_gpu after training",
+            role="Restart vLLM on GIGA after training",
             model="haiku",
             host="giga",
             requires=[],
             depends_on=["smoke_test"],
-            prompt_template="""Restore vLLM on node_gpu after training completes.
+            prompt_template="""Restore vLLM on GIGA after training completes.
 Run:
   docker start vllm-giga-primary
   sleep 30

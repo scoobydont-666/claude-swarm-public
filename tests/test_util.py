@@ -172,19 +172,19 @@ class TestFleetFromConfig:
         config_dir.mkdir()
         config = {
             "nodes": {
-                "node_gpu": {"ip": "<primary-node-ip>", "capabilities": ["gpu", "docker"]},
-                "node_primary": {"ip": "<orchestration-node-ip>", "capabilities": ["docker"]},
+                "GIGA": {"ip": "192.168.200.163", "capabilities": ["gpu", "docker"]},
+                "miniboss": {"ip": "192.168.200.213", "capabilities": ["docker"]},
                 "future": {"ip": "TBD"},
             }
         }
         (config_dir / "swarm.yaml").write_text(yaml.dump(config))
         with patch("util.swarm_root", return_value=tmp_path):
             fleet = fleet_from_config()
-        assert "node_gpu" in fleet
-        assert "node_primary" in fleet
+        assert "GIGA" in fleet
+        assert "miniboss" in fleet
         assert "future" not in fleet  # TBD should be excluded
-        assert fleet["node_gpu"]["ip"] == "<primary-node-ip>"
-        assert "gpu" in fleet["node_gpu"]["capabilities"]
+        assert fleet["GIGA"]["ip"] == "192.168.200.163"
+        assert "gpu" in fleet["GIGA"]["capabilities"]
 
     def test_empty_config_returns_empty(self):
         with patch("util.load_swarm_config", return_value={}):

@@ -1,6 +1,6 @@
-"""Routing Protocol v1 Conformance: ProjectA Tax-Advisory Agent.
+"""Routing Protocol v1 Conformance: Christi Tax-Advisory Agent.
 
-Simulates ProjectA's multi-repo cross-editing behavior, long thinking blocks,
+Simulates Christi's multi-repo cross-editing behavior, long thinking blocks,
 and legitimate pause-for-user-input patterns.
 
 Expected hooks:
@@ -18,14 +18,14 @@ class TestChristiMultiRepoEditing(RoutingConformanceTest):
     """Multi-repo edit pattern triggers parallel-detector warnings."""
 
     def test_christi_cross_repo_edit_warns(self):
-        """Editing project-a/ then taxprep/ in sequence → warn-only (independent repos)."""
-        self._activate_plan("project-a-plan.md")
+        """Editing christi/ then taxprep/ in sequence → warn-only (independent repos)."""
+        self._activate_plan("christi-plan.md")
 
         # Simulate rapid cross-repo edits
         self.simulate_multi_file_edit_pattern([
-            "<project-a-path>/src/advisor.py",
+            "/opt/christi-project/src/advisor.py",
             "/opt/taxprep-project/src/interview.py",
-            "<project-a-path>/src/rag.py",
+            "/opt/christi-project/src/rag.py",
         ])
 
         # Should warn about independent files but not block
@@ -37,13 +37,13 @@ class TestChristiMultiRepoEditing(RoutingConformanceTest):
 
     def test_christi_same_file_repeated_edit_no_warn(self):
         """Editing same file multiple times → no warn (serial-OK pattern)."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         # Same file, multiple edits
         self.simulate_multi_file_edit_pattern([
-            "<project-a-path>/src/advisor.py",
-            "<project-a-path>/src/advisor.py",
-            "<project-a-path>/src/advisor.py",
+            "/opt/christi-project/src/advisor.py",
+            "/opt/christi-project/src/advisor.py",
+            "/opt/christi-project/src/advisor.py",
         ])
 
         # Same file is allowed; don't count as parallelizable
@@ -51,15 +51,15 @@ class TestChristiMultiRepoEditing(RoutingConformanceTest):
         assert self.state.get_dispatches() == [], "Same-file edits should not dispatch"
 
     def test_christi_parent_child_directory_edit_series(self):
-        """Editing parent/child dirs (project-a/ + project-a/src/) → considered related."""
-        self._activate_plan("project-a-plan.md")
+        """Editing parent/child dirs (christi/ + christi/src/) → considered related."""
+        self._activate_plan("christi-plan.md")
 
         # Parent and child dirs — language-naive detector sees different paths
         # but domain logic (same project) should suppress warn
         # For v1: we expect parallel-detector to fire (false positive tolerance).
         self.simulate_multi_file_edit_pattern([
-            "<project-a-path>/src/advisor.py",
-            "<project-a-path>/src/rag.py",
+            "/opt/christi-project/src/advisor.py",
+            "/opt/christi-project/src/rag.py",
         ])
 
         fires = self.state.get_hook_fires(hook="pre_tool_use_parallel_detector")
@@ -73,7 +73,7 @@ class TestChristiLongThinking(RoutingConformanceTest):
 
     def test_christi_long_thinking_then_edit_warns(self):
         """Long thinking (500ms) followed by tool use → may warn (idle-detector)."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         self.simulate_long_thinking_block(duration_ms=500)
         fires = self.state.get_hook_fires(hook="post_tool_use_idle_detector")
@@ -83,13 +83,13 @@ class TestChristiLongThinking(RoutingConformanceTest):
 
     def test_christi_thinking_rapid_followup_is_ok(self):
         """Thinking followed immediately by tool use → no complaint."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         # Short thinking (< detector threshold)
         self.simulate_long_thinking_block(duration_ms=100)
 
         # Rapid follow-up edit
-        self.simulate_single_file_edit_only("<project-a-path>/src/advisor.py")
+        self.simulate_single_file_edit_only("/opt/christi-project/src/advisor.py")
 
         # Should not accumulate blocks; brief thinking is fine
         blocks = self.state.get_hook_fires(hook="post_tool_use_idle_detector", action="block")
@@ -101,7 +101,7 @@ class TestChristiPauseAsk(RoutingConformanceTest):
 
     def test_christi_pause_ask_when_plan_active_blocks(self):
         """Pause-ask pattern with plan active → block."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         self.simulate_pause_ask_pattern("Pause here. Ready for next phase?")
 
@@ -110,7 +110,7 @@ class TestChristiPauseAsk(RoutingConformanceTest):
 
     def test_christi_shall_i_continue_blocks(self):
         """'Shall I continue?' pattern when plan active → block."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         self.simulate_pause_ask_pattern("Shall I continue with the next phase?")
 
@@ -119,7 +119,7 @@ class TestChristiPauseAsk(RoutingConformanceTest):
 
     def test_christi_want_me_to_proceed_blocks(self):
         """'Want me to proceed?' pattern → block when plan active."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         self.simulate_pause_ask_pattern("Want me to proceed with tax reconciliation?")
 
@@ -138,7 +138,7 @@ class TestChristiPauseAsk(RoutingConformanceTest):
 
     def test_christi_legitimate_status_update_allowed(self):
         """Text-only status update (not a pause-ask) → allowed."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
         self.simulate_pause_ask_pattern("Here's the current reconciliation status: all Q1 receipts validated.")
 
@@ -153,10 +153,10 @@ class TestChristiIntegration(RoutingConformanceTest):
 
     def test_christi_multi_step_with_pauses(self):
         """Realistic scenario: edit + think + pause-ask + (blocked)."""
-        self._activate_plan("project-a-reconciliation.md")
+        self._activate_plan("christi-reconciliation.md")
 
         # Step 1: edit
-        self.simulate_single_file_edit_only("<project-a-path>/src/advisor.py")
+        self.simulate_single_file_edit_only("/opt/christi-project/src/advisor.py")
 
         # Step 2: long thinking
         self.simulate_long_thinking_block(duration_ms=300)
@@ -169,16 +169,16 @@ class TestChristiIntegration(RoutingConformanceTest):
 
     def test_christi_legitimate_flow(self):
         """Realistic OK flow: edit + cross-repo edit (warned) + single-file close-out."""
-        self._activate_plan("project-a-plan.md")
+        self._activate_plan("christi-plan.md")
 
-        # Edit project-a
-        self.simulate_single_file_edit_only("<project-a-path>/src/advisor.py")
+        # Edit christi
+        self.simulate_single_file_edit_only("/opt/christi-project/src/advisor.py")
 
         # Cross-repo (warns)
         self.simulate_single_file_edit_only("/opt/taxprep-project/src/interview.py")
 
-        # Back to project-a (no new issue)
-        self.simulate_single_file_edit_only("<project-a-path>/src/advisor.py")
+        # Back to christi (no new issue)
+        self.simulate_single_file_edit_only("/opt/christi-project/src/advisor.py")
 
         # Should complete without blocks
         blocks = self.state.get_hook_fires(action="block")

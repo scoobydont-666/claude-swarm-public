@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# setup-primary.sh — Run on node_gpu (<primary-node-ip>) to set up NFS primary
+# setup-primary.sh — Run on GIGA (192.168.200.163) to set up NFS primary
 # Requires: sudo
 
 SWARM_ROOT="/opt/swarm"
 SUBNET="192.168.200.0/23"
 
-echo "=== claude-swarm: NFS Primary Setup (node_gpu) ==="
+echo "=== claude-swarm: NFS Primary Setup (GIGA) ==="
 
 # Create directory structure
 echo "Creating swarm directory structure at ${SWARM_ROOT}..."
-sudo mkdir -p "${SWARM_ROOT}"/{status,tasks/{pending,claimed,completed},artifacts,messages/{inbox/{node_primary,node_gpu,node_reserve1,node_reserve2,broadcast},archive},config}
+sudo mkdir -p "${SWARM_ROOT}"/{status,tasks/{pending,claimed,completed},artifacts,messages/{inbox/{miniboss,GIGA,MEGA,MECHA,broadcast},archive},config}
 sudo chown -R aisvc:aisvc "${SWARM_ROOT}"
 sudo chmod -R 775 "${SWARM_ROOT}"
 

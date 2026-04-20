@@ -92,16 +92,16 @@ class TestTypedAccessors:
     def test_get_nodes(self):
         nodes = get_nodes()
         assert isinstance(nodes, dict)
-        # Should have at least node_gpu
-        assert "node_gpu" in nodes or len(nodes) > 0
+        # Should have at least GIGA
+        assert "GIGA" in nodes or len(nodes) > 0
 
     def test_get_node_config_exact(self):
-        node = get_node_config("node_gpu")
+        node = get_node_config("GIGA")
         if node:  # May not exist in test env
             assert "ip" in node or "capabilities" in node
 
     def test_get_node_config_case_insensitive(self):
-        node_upper = get_node_config("node_gpu")
+        node_upper = get_node_config("GIGA")
         node_lower = get_node_config("giga")
         assert node_upper == node_lower
 

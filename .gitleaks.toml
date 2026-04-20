@@ -3,5 +3,5 @@
 [allowlist]
 regexes = [
   "192\\.168\\.200\\.(163|213|87|141|13)",
-  "giga|node_primary|mecha|mega|node_miner"
+  "giga|miniboss|mecha|mega|rainbow"
 ]

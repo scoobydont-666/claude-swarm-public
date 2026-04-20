@@ -1192,8 +1192,8 @@ def smart_dispatch_cmd(
 
     Examples:
         swarm smart-dispatch "check ollama model list"
-        swarm smart-dispatch "debug why ProjectA RAG returns stale results" -p <project-a-path>
-        swarm smart-dispatch "implement ExamForge Stripe integration" -p /opt/examforge --host node_gpu
+        swarm smart-dispatch "debug why Christi RAG returns stale results" -p /opt/christi-project
+        swarm smart-dispatch "implement ExamForge Stripe integration" -p /opt/examforge --host GIGA
     """
     import socket
 
@@ -1438,7 +1438,7 @@ app.add_typer(collab_app, name="collab")
 @collab_app.command("start")
 def collab_start(
     task: str = typer.Argument(..., help="Task description for the worker"),
-    worker: str = typer.Option(..., "--worker", "-w", help="Worker host (e.g. node_gpu)"),
+    worker: str = typer.Option(..., "--worker", "-w", help="Worker host (e.g. GIGA)"),
     project: str = typer.Option("", "--project", "-p", help="Project directory"),
     model: str = typer.Option("sonnet", "--model", "-m", help="Model tier"),
 ) -> None:

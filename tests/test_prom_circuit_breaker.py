@@ -1,6 +1,6 @@
 """E7: Prometheus query circuit breaker tests.
 
-Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E7.
+Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E7.
 
 State machine:
     CLOSED → OPEN    (when failures in window ≥ threshold)
