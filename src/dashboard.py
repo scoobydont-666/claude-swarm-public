@@ -489,10 +489,20 @@ def get_metrics_api() -> dict[str, Any]:
     # Real cache hit rate from Context Bridge /stats endpoint
     # (falls through to 0.0 if CB unreachable — handled in the try block below).
     try:
+        import os as _os
         import subprocess as _sp
 
+        _cb_token_path = _os.environ.get("CB_TOKEN_FILE", "/opt/ai-shared/secrets/cb-mcp-token")
+        try:
+            with open(_cb_token_path) as _tf:
+                _cb_token = _tf.read().strip()
+        except OSError:
+            _cb_token = ""
+        _cb_cmd = ["curl", "-sf", "http://127.0.0.1:8520/stats"]
+        if _cb_token:
+            _cb_cmd.extend(["-H", f"Authorization: Bearer {_cb_token}"])
         _cb = _sp.run(
-            ["curl", "-sf", "http://127.0.0.1:8520/stats"],
+            _cb_cmd,
             capture_output=True,
             text=True,
             timeout=2,

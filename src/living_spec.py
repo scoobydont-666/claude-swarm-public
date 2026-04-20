@@ -9,11 +9,19 @@ Pattern from Augment Code Intent's bidirectional living specs.
 
 import json
 import logging
+import os
 import subprocess
 
 logger = logging.getLogger(__name__)
 
 CB_MCP_URL = "http://127.0.0.1:8520/mcp"
+
+_CB_TOKEN_PATH = os.environ.get("CB_TOKEN_FILE", "/opt/ai-shared/secrets/cb-mcp-token")
+try:
+    with open(_CB_TOKEN_PATH) as _tf:
+        _CB_TOKEN = _tf.read().strip()
+except OSError:
+    _CB_TOKEN = ""
 
 
 def _mcp_call(tool_name: str, arguments: dict) -> dict | None:
@@ -30,18 +38,20 @@ def _mcp_call(tool_name: str, arguments: dict) -> dict | None:
         }
     )
     try:
+        curl_cmd = [
+            "curl",
+            "-sf",
+            "-X",
+            "POST",
+            CB_MCP_URL,
+            "-H",
+            "Content-Type: application/json",
+        ]
+        if _CB_TOKEN:
+            curl_cmd.extend(["-H", f"Authorization: Bearer {_CB_TOKEN}"])
+        curl_cmd.extend(["-d", payload])
         result = subprocess.run(
-            [
-                "curl",
-                "-sf",
-                "-X",
-                "POST",
-                CB_MCP_URL,
-                "-H",
-                "Content-Type: application/json",
-                "-d",
-                payload,
-            ],
+            curl_cmd,
             capture_output=True,
             text=True,
             timeout=10,

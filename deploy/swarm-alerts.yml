@@ -84,6 +84,8 @@ groups:
         labels:
           severity: warning
           component: claude-swarm
+          # Suppress during Josh's documented sleep window (00:00-06:00 UTC)
+          mute_time_interval: sleep_hours
         annotations:
           summary: "No swarm task records for 30 minutes"
           description: |
