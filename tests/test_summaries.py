@@ -13,10 +13,10 @@ import swarm_lib as lib
 class TestSessionSummaryDataclass:
     def test_create_summary(self):
         summary = lib.SessionSummary(
-            hostname="GIGA",
+            hostname="node_gpu",
             session_id="sess-001",
             timestamp="2026-03-22T10:00:00Z",
-            project="/opt/christi-project",
+            project="<project-a-path>",
             task_id="task-001",
             duration_minutes=45,
             key_decisions=["Switched to ChromaDB v2", "Added retry logic"],
@@ -25,7 +25,7 @@ class TestSessionSummaryDataclass:
             artifacts_produced=["results.json"],
             context_for_next="RAG pipeline refactored. Need to test with full corpus next.",
         )
-        assert summary.hostname == "GIGA"
+        assert summary.hostname == "node_gpu"
         assert summary.duration_minutes == 45
         assert len(summary.key_decisions) == 2
         assert len(summary.files_changed) == 2
@@ -154,17 +154,17 @@ class TestGetLatestSummaryContext:
     def test_returns_context_string(self, swarm_tmpdir):
         with patch.object(lib, "_swarm_root", return_value=swarm_tmpdir):
             summary = lib.SessionSummary(
-                hostname="GIGA",
+                hostname="node_gpu",
                 session_id="sess-1",
                 timestamp="2026-03-22T14:00:00Z",
-                project="/opt/christi-project",
+                project="<project-a-path>",
                 duration_minutes=60,
                 context_for_next="RAG pipeline complete. Run integration tests next.",
             )
             lib.share_session_summary(summary)
 
-            ctx = lib.get_latest_summary_context("/opt/christi-project")
-            assert "GIGA" in ctx
+            ctx = lib.get_latest_summary_context("<project-a-path>")
+            assert "node_gpu" in ctx
             assert "RAG pipeline complete" in ctx
 
     def test_empty_when_no_summaries(self, swarm_tmpdir):
@@ -261,17 +261,17 @@ class TestSessionStartContextLoading:
         ):
             # Simulate a previous session leaving a summary
             summary = lib.SessionSummary(
-                hostname="GIGA",
+                hostname="node_gpu",
                 session_id="prev-sess",
                 timestamp="2026-03-22T13:00:00Z",
-                project="/opt/hydra-project",
+                project="<hydra-project-path>",
                 duration_minutes=90,
                 context_for_next="Finished Kin indexing. 78 entities. Run kin verify next.",
             )
             lib.share_session_summary(summary)
 
             # Now a new session starts and loads context
-            ctx = lib.get_latest_summary_context("/opt/hydra-project")
-            assert "GIGA" in ctx
+            ctx = lib.get_latest_summary_context("<hydra-project-path>")
+            assert "node_gpu" in ctx
             assert "Finished Kin indexing" in ctx
             assert "78 entities" in ctx

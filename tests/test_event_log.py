@@ -33,7 +33,7 @@ class TestEventLogRecord:
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
             row_id = log.record(
                 rule_name="disk_space_low",
-                host="miniboss",
+                host="node_primary",
                 severity="high",
                 description="Disk at 92%",
                 action_taken="alert_email",
@@ -46,7 +46,7 @@ class TestEventLogRecord:
         log, el = _make_event_log(tmp_path)
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
             for i in range(5):
-                log.record(rule_name=f"rule_{i}", host="GIGA")
+                log.record(rule_name=f"rule_{i}", host="node_gpu")
             rows = log.recent_events(limit=10)
         assert len(rows) == 5
 
@@ -55,9 +55,9 @@ class TestEventLogQuery:
     def test_filter_by_rule(self, tmp_path):
         log, el = _make_event_log(tmp_path)
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
-            log.record(rule_name="service_down", host="miniboss")
-            log.record(rule_name="disk_space_low", host="miniboss")
-            log.record(rule_name="service_down", host="GIGA")
+            log.record(rule_name="service_down", host="node_primary")
+            log.record(rule_name="disk_space_low", host="node_primary")
+            log.record(rule_name="service_down", host="node_gpu")
 
             rows = log.query(rule_name="service_down")
         assert len(rows) == 2
@@ -66,12 +66,12 @@ class TestEventLogQuery:
     def test_filter_by_host(self, tmp_path):
         log, el = _make_event_log(tmp_path)
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
-            log.record(rule_name="service_down", host="miniboss")
-            log.record(rule_name="service_down", host="GIGA")
+            log.record(rule_name="service_down", host="node_primary")
+            log.record(rule_name="service_down", host="node_gpu")
 
-            rows = log.query(host="miniboss")
+            rows = log.query(host="node_primary")
         assert len(rows) == 1
-        assert rows[0]["host"] == "miniboss"
+        assert rows[0]["host"] == "node_primary"
 
     def test_filter_by_timerange(self, tmp_path):
         log, el = _make_event_log(tmp_path)
@@ -80,7 +80,7 @@ class TestEventLogQuery:
         future = (now + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
-            log.record(rule_name="test_rule", host="miniboss")
+            log.record(rule_name="test_rule", host="node_primary")
             rows = log.query(since=past, until=future)
         assert len(rows) == 1
 
@@ -98,8 +98,8 @@ class TestEventLogLastActionTime:
         log, el = _make_event_log(tmp_path)
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
             # Record event with no action
-            log.record(rule_name="service_down", host="miniboss", action_taken="")
-            result = log.last_action_time("service_down", "miniboss")
+            log.record(rule_name="service_down", host="node_primary", action_taken="")
+            result = log.last_action_time("service_down", "node_primary")
         assert result is None
 
     def test_returns_timestamp_when_action_exists(self, tmp_path):
@@ -107,11 +107,11 @@ class TestEventLogLastActionTime:
         with patch.object(el, "DB_PATH", tmp_path / "test-health-events.db"):
             log.record(
                 rule_name="service_down",
-                host="miniboss",
+                host="node_primary",
                 action_taken="restart_service",
                 action_result="OK",
             )
-            result = log.last_action_time("service_down", "miniboss")
+            result = log.last_action_time("service_down", "node_primary")
         assert result is not None
         # Should be a valid ISO timestamp
         datetime.fromisoformat(result.replace("Z", "+00:00"))

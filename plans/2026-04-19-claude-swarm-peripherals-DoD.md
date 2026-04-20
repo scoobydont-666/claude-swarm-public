@@ -299,7 +299,7 @@
 ## Risk Register
 
 ### R1: Prism Central Access Blocker (S1-6, S4-3/S4-7/S4-9)
-**Impact**: HIGH | **Probability**: HIGH | **Status**: KNOWN BLOCKER (documented in /opt/hydra-project/docs/blocker-registry.yaml)
+**Impact**: HIGH | **Probability**: HIGH | **Status**: KNOWN BLOCKER (documented in <hydra-project-path>/docs/blocker-registry.yaml)
 - **Risk**: NAI projects parked pending NAI cluster access; S4 GPU collision + multi-tenant tests cannot run without real Prism API
 - **Mitigation**: 
   - Use enhanced synthetic tests with mock Prism responses for S4-3, S4-7, S4-9 (not blocked, delayed validation)
@@ -359,15 +359,15 @@
 
 **Constraints**:
 1. **Prism Central Access**: NAI projects remain in PILOT (parked) until NAI cluster available
-2. **K3s Cluster**: All Kubernetes manifests assume miniboss/GIGA cluster running (not tested on external K8s)
-3. **NFS Primary**: claude-swarm NFS primary on GIGA; failover to miniboss replica documented but not load-tested
+2. **K3s Cluster**: All Kubernetes manifests assume node_primary/node_gpu cluster running (not tested on external K8s)
+3. **NFS Primary**: claude-swarm NFS primary on node_gpu; failover to node_primary replica documented but not load-tested
 4. **No Database Replication**: PostgreSQL databases (nai-swarm, nai-reserve, nai-agent) are single-node (no HA replication planned in DoD scope)
 
 **Assumptions**:
 - Python 3.10+, Rust 1.75+, Node 18+ available on all deployment targets
-- Prometheus + Grafana running on GIGA (shared infra, not provisioned by these projects)
+- Prometheus + Grafana running on node_gpu (shared infra, not provisioned by these projects)
 - Redis 7+ available (single-node, no clustering)
-- Git access to scoobydont-666/claude-config for durability sync
+- Git access to your-github-user/claude-config for durability sync
 - Developer velocity: ~6–7h productive per day (meetings, context-switching deducted)
 
 ---
@@ -402,7 +402,7 @@
    - Document in `security_audit_2026-04-20.md`
 
 5. **S1-6: Confirm Blocker Status** (1h)
-   - Check `/opt/hydra-project/docs/blocker-registry.yaml` for "Prism Central Access"
+   - Check `<hydra-project-path>/docs/blocker-registry.yaml` for "Prism Central Access"
    - File GitHub issues for S4 work dependent on blocker (tag: `blocked-on-infra`)
 
 ### Day 3 (2026-04-21)
@@ -412,7 +412,7 @@
    - Document: `prometheus_metrics_inventory_2026-04-21.md`
 
 7. **S2-1 Prep: K3s Manifest Template** (1h)
-   - Copy `/opt/hydra-project/docs/k3s-template-*.yaml` (if available) or create minimal manifest:
+   - Copy `<hydra-project-path>/docs/k3s-template-*.yaml` (if available) or create minimal manifest:
      ```yaml
      apiVersion: apps/v1
      kind: Deployment
@@ -513,7 +513,7 @@
 /opt/nai-reserve/                   — GPU reservation system (pilot, parked)
 /opt/nai-agent/                     — Rust executor (dev-only, phase 5 in-progress)
 /opt/nai-control-center/            — Next.js dashboard (production-internal)
-/opt/hydra-project/docs/            — Cross-project reference docs (routing-protocol-v1.md, port-registry.md, blocker-registry.yaml)
+<hydra-project-path>/docs/            — Cross-project reference docs (routing-protocol-v1.md, port-registry.md, blocker-registry.yaml)
 ```
 
 ### Deliverables Location

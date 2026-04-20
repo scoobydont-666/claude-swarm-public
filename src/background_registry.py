@@ -8,7 +8,7 @@ Usage:
     from background_registry import BackgroundRegistry
 
     registry = BackgroundRegistry()
-    registry.register(dispatch_id, task_id="task-001", host="GIGA")
+    registry.register(dispatch_id, task_id="task-001", host="node_gpu")
     active = registry.active()
     completed = registry.poll()  # Check PIDs, return newly completed
 """

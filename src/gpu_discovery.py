@@ -1,7 +1,7 @@
 """
 GPU Discovery — Dynamic fleet GPU inventory via SSH nvidia-smi probing.
 
-Replaces hardcoded 2-slot GIGA model with dynamic discovery across all fleet hosts.
+Replaces hardcoded 2-slot node_gpu model with dynamic discovery across all fleet hosts.
 Stores inventory in SQLite for fast lookup by the GPU scheduler.
 """
 
@@ -22,7 +22,7 @@ NVIDIA_SMI_CMD = [
 ]
 
 # Default fleet hosts with GPUs
-DEFAULT_GPU_HOSTS = ["GIGA", "MEGA", "MECHA", "MONGO", "miniboss"]
+DEFAULT_GPU_HOSTS = ["node_gpu", "node_reserve1", "node_reserve2", "node_mongo", "node_primary"]
 
 # SQLite DB for GPU inventory
 DEFAULT_DB_PATH = "/opt/swarm/gpu/inventory.db"
@@ -85,7 +85,7 @@ def _is_localhost(host: str) -> bool:
     # Cheap path: well-known loopback names
     if norm in ("localhost", "127.0.0.1", "::1", socket.gethostname().lower()):
         return True
-    # Resolve and compare — catches DNS aliases like "miniboss.lan" → 127.0.0.1
+    # Resolve and compare — catches DNS aliases like "node_primary.lan" → 127.0.0.1
     try:
         resolved = socket.gethostbyname(norm)
         if resolved in ("127.0.0.1", "::1"):
@@ -352,7 +352,7 @@ MODEL_VRAM_REQUIREMENTS = {
     "devstral:latest": 14000,
     "deepseek-r1:32b": 20000,
     "llama3.3:70b": 42000,
-    "christi-14b": 10000,
+    "project-a-14b": 10000,
     "nomic-embed-text": 1000,
 }
 

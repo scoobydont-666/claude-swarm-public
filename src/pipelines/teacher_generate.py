@@ -22,7 +22,7 @@ Run: cd /opt/ntnx-codeforge && python3 -c "
 import json, os
 prompts = [json.loads(l) for l in open('{input.prompt_file}')]
 total = len(prompts)
-shard_size = (total + 1) // 2  # 2 shards: GIGA + MEGA
+shard_size = (total + 1) // 2  # 2 shards: node_gpu + node_reserve1
 for i in range(2):
     shard = prompts[i*shard_size:(i+1)*shard_size]
     path = '/opt/swarm/training/datasets/shard-{input.run_id}-' + str(i) + '.jsonl'
@@ -34,12 +34,12 @@ Report: shard count, prompts per shard.""",
         ),
         PipelineStage(
             name="generate_giga",
-            role="Generate responses on GIGA vLLM (Qwen3-32B, complex prompts)",
+            role="Generate responses on node_gpu vLLM (Qwen3-32B, complex prompts)",
             model="haiku",
             host="giga",
             requires=["gpu"],
             depends_on=["shard_prompts"],
-            prompt_template="""Generate teacher responses using GIGA vLLM (Qwen3-32B-AWQ).
+            prompt_template="""Generate teacher responses using node_gpu vLLM (Qwen3-32B-AWQ).
 Run: cd /opt/ntnx-codeforge && python3 scripts/vllm_batch_generate.py \
   --endpoint http://127.0.0.1:8000/v1 \
   --input /opt/swarm/training/datasets/shard-{input.run_id}-0.jsonl \
@@ -50,12 +50,12 @@ Report: records generated, average latency, errors.""",
         ),
         PipelineStage(
             name="generate_mega",
-            role="Generate responses on MEGA vLLM TP=2 (Qwen3-14B, simpler prompts)",
+            role="Generate responses on node_reserve1 vLLM TP=2 (Qwen3-14B, simpler prompts)",
             model="haiku",
             host="mega",
             requires=["gpu"],
             depends_on=["shard_prompts"],
-            prompt_template="""Generate teacher responses using MEGA vLLM TP=2 (Qwen3-14B-AWQ).
+            prompt_template="""Generate teacher responses using node_reserve1 vLLM TP=2 (Qwen3-14B-AWQ).
 Run: cd /opt/ntnx-codeforge && python3 scripts/vllm_batch_generate.py \
   --endpoint http://127.0.0.1:8000/v1 \
   --input /opt/swarm/training/datasets/shard-{input.run_id}-1.jsonl \

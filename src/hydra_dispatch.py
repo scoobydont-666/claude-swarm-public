@@ -2,15 +2,15 @@
 """
 Hydra Dispatch — Orchestrate Claude Code sessions across the fleet.
 
-The main head (miniboss) dispatches tasks to fleet members by starting
+The main head (node_primary) dispatches tasks to fleet members by starting
 Claude Code sessions via SSH. Each dispatch is a full autonomous session
 with all skills, hooks, and context.
 
 Usage:
-    python3 hydra_dispatch.py dispatch --host GIGA --task "Kin index /opt/christi-project"
+    python3 hydra_dispatch.py dispatch --host node_gpu --task "Kin index <project-a-path>"
     python3 hydra_dispatch.py dispatch --task-id task-001  # auto-routes by capabilities
     python3 hydra_dispatch.py status                        # show all running dispatches
-    python3 hydra_dispatch.py recall --host GIGA             # get output from last dispatch
+    python3 hydra_dispatch.py recall --host node_gpu             # get output from last dispatch
 """
 
 import logging
@@ -193,15 +193,15 @@ def _get_fleet() -> dict:
         return result
     # Fallback: env vars with hardcoded defaults
     return {
-        "miniboss": {
-            "ip": os.environ.get("MINIBOSS_HOST", "192.168.200.213"),
+        "node_primary": {
+            "ip": os.environ.get("MINIBOSS_HOST", "<orchestration-node-ip>"),
             "ssh_user": "josh",
             "claude_path": "/home/josh/.local/bin/claude",
             "capabilities": ["docker", "tailscale", "nfs_replica"],
             "default_model": "sonnet",
         },
-        "GIGA": {
-            "ip": os.environ.get("GIGA_HOST", "192.168.200.163"),
+        "node_gpu": {
+            "ip": os.environ.get("GIGA_HOST", "<primary-node-ip>"),
             "ssh_user": "josh",
             "claude_path": "/home/josh/.npm-global/bin/claude",
             "capabilities": ["gpu", "docker", "ollama", "nfs_primary"],
@@ -425,7 +425,7 @@ def dispatch(
     """Dispatch a Claude Code session to a fleet member.
 
     Args:
-        host: Fleet member hostname (e.g., "GIGA")
+        host: Fleet member hostname (e.g., "node_gpu")
         task: Natural language task description / prompt
         model: Override model (sonnet/opus/haiku). Auto-selects if None.
         project_dir: Working directory on the remote host
@@ -490,7 +490,7 @@ def dispatch(
         scheduler = GpuScheduler(exclude_hosts=os.environ.get("SWARM_EXCLUDE_HOSTS", "").split(","))
         # Check if model needs GPU
         model_needs_gpu = any(
-            kw in model.lower() for kw in ["qwen", "devstral", "deepseek", "llama", "christi"]
+            kw in model.lower() for kw in ["qwen", "devstral", "deepseek", "llama", "project-a"]
         )
         if model_needs_gpu or "gpu" in task.lower() or "inference" in task.lower():
             # KV-cache-aware routing: prefer host with model already warm

@@ -46,12 +46,12 @@ class TestNeedsRemoteResources:
     def test_gpu_task(self):
         needs, host = _needs_remote_resources("run inference on GPU with Ollama")
         assert needs is True
-        assert host == "GIGA"
+        assert host == "node_gpu"
 
     def test_docker_task(self):
         needs, host = _needs_remote_resources("deploy docker swarm stack")
         assert needs is True
-        assert host == "GIGA"
+        assert host == "node_gpu"
 
     def test_local_task(self):
         needs, host = _needs_remote_resources("edit the README file")
@@ -59,9 +59,9 @@ class TestNeedsRemoteResources:
         assert host == ""
 
     def test_christi_needs_giga(self):
-        needs, host = _needs_remote_resources("update Christi RAG embeddings")
+        needs, host = _needs_remote_resources("update ProjectA RAG embeddings")
         assert needs is True
-        assert host == "GIGA"
+        assert host == "node_gpu"
 
 
 class TestNeedsInteractive:
@@ -97,82 +97,82 @@ class TestSelectModel:
 
 class TestPlanExecution:
     def test_local_task_on_same_host(self):
-        plan = plan_execution("edit config file", current_host="miniboss")
+        plan = plan_execution("edit config file", current_host="node_primary")
         assert plan.strategy == ExecutionStrategy.LOCAL
-        assert plan.host == "miniboss"
+        assert plan.host == "node_primary"
 
     def test_gpu_task_routes_to_giga(self):
-        plan = plan_execution("run Ollama inference", current_host="miniboss")
-        assert plan.host == "GIGA"
+        plan = plan_execution("run Ollama inference", current_host="node_primary")
+        assert plan.host == "node_gpu"
         assert plan.needs_ollama is True
 
     def test_simple_remote_uses_dispatch(self):
         plan = plan_execution(
-            "install package on GIGA",
-            current_host="miniboss",
-            force_host="GIGA",
+            "install package on node_gpu",
+            current_host="node_primary",
+            force_host="node_gpu",
         )
         assert plan.strategy == ExecutionStrategy.REMOTE_DISPATCH
 
     def test_complex_remote_uses_session(self):
         plan = plan_execution(
             "debug complex race condition in Docker Swarm service",
-            current_host="miniboss",
+            current_host="node_primary",
         )
-        assert plan.host == "GIGA"  # Docker → GIGA
+        assert plan.host == "node_gpu"  # Docker → node_gpu
         assert plan.strategy == ExecutionStrategy.REMOTE_SESSION
         assert plan.model == "opus"
 
     def test_force_host_overrides(self):
-        plan = plan_execution("edit file", current_host="miniboss", force_host="GIGA")
-        assert plan.host == "GIGA"
+        plan = plan_execution("edit file", current_host="node_primary", force_host="node_gpu")
+        assert plan.host == "node_gpu"
 
     def test_project_affinity_christi(self):
         plan = plan_execution(
             "add new endpoint",
-            current_host="miniboss",
-            project_dir="/opt/christi-project",
+            current_host="node_primary",
+            project_dir="<project-a-path>",
         )
-        assert plan.host == "GIGA"  # Christi is a GPU project
+        assert plan.host == "node_gpu"  # ProjectA is a GPU project
 
     def test_project_affinity_local(self):
         plan = plan_execution(
             "update tests",
-            current_host="miniboss",
+            current_host="node_primary",
             project_dir="/opt/monero-farm",
         )
-        assert plan.host == "miniboss"
+        assert plan.host == "node_primary"
 
     def test_reasoning_populated(self):
-        plan = plan_execution("check Ollama model list", current_host="miniboss")
+        plan = plan_execution("check Ollama model list", current_host="node_primary")
         assert plan.reasoning  # Not empty
         assert (
-            "GIGA" in plan.reasoning
+            "node_gpu" in plan.reasoning
             or "GPU" in plan.reasoning.upper()
             or "resource" in plan.reasoning
         )
 
     def test_estimated_minutes(self):
-        trivial = plan_execution("check status", current_host="miniboss")
-        complex_ = plan_execution("architect new microservice", current_host="miniboss")
+        trivial = plan_execution("check status", current_host="node_primary")
+        complex_ = plan_execution("architect new microservice", current_host="node_primary")
         assert trivial.estimated_minutes < complex_.estimated_minutes
 
     def test_max_turns_trivial(self):
-        plan = plan_execution("check version", current_host="miniboss", force_host="GIGA")
+        plan = plan_execution("check version", current_host="node_primary", force_host="node_gpu")
         assert plan.max_turns == 3
 
     def test_max_turns_interactive(self):
         plan = plan_execution(
-            "debug why Christi embeddings are stale",
-            current_host="miniboss",
+            "debug why ProjectA embeddings are stale",
+            current_host="node_primary",
         )
         assert plan.max_turns == 0  # Unlimited for interactive
 
     def test_exploratory_gets_session(self):
         plan = plan_execution(
             "explore why the Docker Swarm pipeline is slow",
-            current_host="miniboss",
+            current_host="node_primary",
         )
-        assert plan.host == "GIGA"  # Docker → GIGA
+        assert plan.host == "node_gpu"  # Docker → node_gpu
         assert plan.strategy == ExecutionStrategy.REMOTE_SESSION
         assert plan.complexity == TaskComplexity.EXPLORATORY

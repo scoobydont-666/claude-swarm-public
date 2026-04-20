@@ -41,7 +41,7 @@ class TestRouting:
     def test_tax_domain(self, router):
         decision = router.route("Calculate Schedule C deductions for 2025")
         assert decision.tier == "local"
-        assert "christi" in decision.model
+        assert "project-a" in decision.model
 
     def test_default_fallback(self, router):
         decision = router.route("xyzzy random unknown task type")

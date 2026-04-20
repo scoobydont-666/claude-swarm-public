@@ -1,6 +1,6 @@
 """F1: Prometheus URL SSRF guard tests.
 
-Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase F1.
+Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase F1.
 
 Rule: config-loaded prometheus_url must be http/https + loopback or private IP.
 Named hosts and public IPs require explicit HEALTH_MONITOR_ALLOW_PUBLIC_PROM opt-in.

@@ -12,7 +12,7 @@ in strict mode, logs WARN in lax mode). Sentinel imports and reuses the
 same types via vendored copy (see /opt/hydra-sentinel/src/hydra_sentinel/
 events_schema.py — kept in sync manually until contract CI arrives in B4).
 
-Plan: /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase B2
+Plan: <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase B2
 """
 
 from __future__ import annotations

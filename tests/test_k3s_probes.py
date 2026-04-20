@@ -1,6 +1,6 @@
 """E6: K3s liveness + readiness probe tests.
 
-Covers /opt/hydra-project/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E6.
+Covers <hydra-project-path>/plans/claude-swarm-peripherals-dod-2026-04-18.md §Phase E6.
 
 Semantics:
 - /live is always 200 when the ASGI app is responding (lenient — restart
