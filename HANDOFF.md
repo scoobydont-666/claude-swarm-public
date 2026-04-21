@@ -54,7 +54,7 @@ doubt about concurrency, trust the file semantics — they're the contract.
 ├── summaries/                           # session summaries
 └── logs/                                # structured logs
 
-/opt/swarm-replica/                      # node_primary rsync replica (every 60s)
+/opt/swarm-replica/                      # node_primary rsync replica (cron + sleep 30 → 30s cadence)
 /opt/claude-swarm/                       # this repo (source of truth)
 ```
 
