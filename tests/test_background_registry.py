@@ -1,12 +1,13 @@
 """Tests for BackgroundRegistry — async dispatch tracking."""
 
 import os
+import signal
 import time
 
 import pytest
 import yaml
 
-from background_registry import BackgroundRegistry
+from background_registry import BackgroundRegistry, start_task
 
 
 @pytest.fixture
@@ -160,3 +161,184 @@ class TestPersistence:
         path.write_text("not: [valid: yaml: {")
         reg = BackgroundRegistry(registry_path=path)
         assert len(reg._tasks) == 0
+
+
+class TestCancel:
+    """U1 — cancel() method on BackgroundRegistry."""
+
+    def test_cancel_running_task(self, tmp_registry, monkeypatch):
+        # Use os.getpid() so the signal target is real but won't terminate the test runner
+        sent_signals = []
+        monkeypatch.setattr(
+            "background_registry.os.kill",
+            lambda pid, sig: sent_signals.append((pid, sig)),
+        )
+        tmp_registry.register("d-cancel", host="node_gpu", pid=99999999)
+        ok = tmp_registry.cancel("d-cancel")
+        assert ok is True
+        task = tmp_registry.get("d-cancel")
+        assert task.status == "canceled"
+        assert task.completed_at != ""
+        assert sent_signals == [(99999999, signal.SIGTERM)]
+
+    def test_cancel_unknown_dispatch_returns_false(self, tmp_registry):
+        assert tmp_registry.cancel("does-not-exist") is False
+
+    def test_cancel_already_completed_returns_false(self, tmp_registry, monkeypatch):
+        monkeypatch.setattr("background_registry.os.kill", lambda *args: None)
+        tmp_registry.register("d-done", host="node_gpu", pid=12345)
+        tmp_registry._tasks["d-done"].status = "completed"
+        assert tmp_registry.cancel("d-done") is False
+        # Status must not be downgraded from completed back to canceled
+        assert tmp_registry.get("d-done").status == "completed"
+
+    def test_cancel_tolerates_already_dead_pid(self, tmp_registry, monkeypatch):
+        def _raise_lookup(_pid, _sig):
+            raise ProcessLookupError("no such process")
+
+        monkeypatch.setattr("background_registry.os.kill", _raise_lookup)
+        tmp_registry.register("d-ghost", host="node_gpu", pid=99999999)
+        # Even though the PID is already gone, cancel() should still flip the
+        # task to canceled and persist — the user intent was to cancel.
+        assert tmp_registry.cancel("d-ghost") is True
+        assert tmp_registry.get("d-ghost").status == "canceled"
+
+    def test_cancel_accepts_custom_signal(self, tmp_registry, monkeypatch):
+        sent = []
+        monkeypatch.setattr(
+            "background_registry.os.kill",
+            lambda pid, sig: sent.append((pid, sig)),
+        )
+        tmp_registry.register("d-kill", host="node_gpu", pid=99999999)
+        tmp_registry.cancel("d-kill", sig=signal.SIGKILL)
+        assert sent == [(99999999, signal.SIGKILL)]
+
+    def test_cancel_persists_to_disk(self, tmp_registry, monkeypatch):
+        monkeypatch.setattr("background_registry.os.kill", lambda *args: None)
+        tmp_registry.register("d-persist", host="node_gpu", pid=99999999)
+        tmp_registry.cancel("d-persist")
+        # Read back from disk to confirm save
+        reg2 = BackgroundRegistry(registry_path=tmp_registry._path)
+        assert reg2.get("d-persist").status == "canceled"
+
+
+class TestCleanupIncludesCanceled:
+    """U1 — cleanup() must also reap canceled tasks."""
+
+    def test_cleanup_removes_old_canceled(self, tmp_registry, monkeypatch):
+        monkeypatch.setattr("background_registry.os.kill", lambda *args: None)
+        tmp_registry.register("d-1", host="node_gpu", pid=99999999)
+        tmp_registry.cancel("d-1")
+        tmp_registry._tasks["d-1"].completed_at = "2020-01-01T00:00:00Z"
+        removed = tmp_registry.cleanup(max_age_hours=1)
+        assert removed == 1
+        assert "d-1" not in tmp_registry._tasks
+
+
+class TestStartTask:
+    """U1 — start_task convenience wrapper around hydra_dispatch + register."""
+
+    def test_start_task_dispatches_and_registers(self, tmp_registry, monkeypatch):
+        """Happy path: dispatch returns running, registry gets the entry."""
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeResult:
+            dispatch_id: str = "dispatch-101"
+            host: str = "node_gpu"
+            task: str = "test task"
+            model: str = "sonnet"
+            status: str = "running"
+            output_file: str = "/tmp/out"
+            error: str = ""
+
+        captured_kwargs = {}
+
+        def fake_dispatch(**kwargs):
+            captured_kwargs.update(kwargs)
+            return FakeResult()
+
+        # Patch the name that start_task imports via local import
+        import hydra_dispatch as hd
+
+        monkeypatch.setattr(hd, "dispatch", fake_dispatch)
+
+        task = start_task(
+            tmp_registry,
+            host="node_gpu",
+            task="test task",
+            description="unit test",
+            model="sonnet",
+        )
+
+        assert task.dispatch_id == "dispatch-101"
+        assert task.host == "node_gpu"
+        assert task.description == "unit test"
+        assert task.status == "running"
+        assert captured_kwargs["background"] is True
+        assert captured_kwargs["task"] == "test task"
+
+    def test_start_task_falls_back_to_task_as_description(self, tmp_registry, monkeypatch):
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeResult:
+            dispatch_id: str = "dispatch-102"
+            host: str = "node_gpu"
+            task: str = "this is the task text that will be truncated to 80 chars " * 2
+            model: str = "sonnet"
+            status: str = "running"
+            output_file: str = ""
+            error: str = ""
+
+        import hydra_dispatch as hd
+
+        monkeypatch.setattr(hd, "dispatch", lambda **kwargs: FakeResult())
+
+        long_task = "z" * 200
+        task = start_task(tmp_registry, host="node_gpu", task=long_task)
+        # Description was not provided → falls back to task[:80]
+        assert task.description == "z" * 80
+
+    def test_start_task_raises_on_dispatch_failure(self, tmp_registry, monkeypatch):
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeResult:
+            dispatch_id: str = "dispatch-bad"
+            host: str = "node_gpu"
+            task: str = "bad"
+            model: str = "sonnet"
+            status: str = "failed"
+            output_file: str = ""
+            error: str = "ssh connection refused"
+
+        import hydra_dispatch as hd
+
+        monkeypatch.setattr(hd, "dispatch", lambda **kwargs: FakeResult())
+
+        with pytest.raises(RuntimeError, match="ssh connection refused"):
+            start_task(tmp_registry, host="node_gpu", task="bad")
+
+    def test_start_task_reads_pid_from_file(self, tmp_registry, monkeypatch, dispatch_dir):
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeResult:
+            dispatch_id: str = "dispatch-pid"
+            host: str = "node_gpu"
+            task: str = "pid test"
+            model: str = "sonnet"
+            status: str = "running"
+            output_file: str = ""
+            error: str = ""
+
+        # Write pid file BEFORE dispatching
+        (dispatch_dir / "dispatch-pid.pid").write_text("54321")
+
+        import hydra_dispatch as hd
+
+        monkeypatch.setattr(hd, "dispatch", lambda **kwargs: FakeResult())
+
+        task = start_task(tmp_registry, host="node_gpu", task="pid test")
+        assert task.pid == 54321
