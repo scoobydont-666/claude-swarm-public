@@ -632,22 +632,21 @@ def execute_plan(plan: ExecutionPlan, background: bool = True) -> SessionResult:
         if plan.max_turns > 0:
             claude_args.extend(["--max-turns", str(plan.max_turns)])
 
-    # Build the claude command with proper argument list (no shell escaping needed)
-    # We pass the prompt via stdin to avoid shell quoting nightmares
-    parts.append(" ".join(claude_args[:-1]))  # Everything except the prompt
+    # Build the claude command with a proper argv-quoted string.
+    # Fix 2026-04-22 (dogfood test): the prior version did `claude_args[:-1]`
+    # (dropping the last arg — which was the prompt for REMOTE_DISPATCH but
+    # was `--max-turns VALUE`'s VALUE for REMOTE_SESSION/COLLABORATIVE), then
+    # appended a heredoc-wrapped prompt AND re-appended `--max-turns` on the
+    # session paths. Result: two prompts + duplicate --max-turns + broken outer
+    # single-quotes from `'PROMPT_EOF'` inside `bash -c '...'`.
+    #
+    # Correct pattern: shlex.quote every argv element, join with spaces, emit
+    # a single well-formed shell command line. No heredoc, no re-append tricks.
+    import shlex as _shlex
+    claude_cmdline = " ".join(_shlex.quote(a) for a in claude_args)
+    parts.append(claude_cmdline)
     setup_cmd = " && ".join(parts)
-
-    # Use a here-document to pass the prompt safely — no quoting issues
-    # The prompt goes via stdin using <<'PROMPT_EOF' (single-quoted delimiter = no expansion)
-    remote_script = f"""{setup_cmd} "$(cat <<'PROMPT_EOF'
-{plan.prompt}
-PROMPT_EOF
-)" """
-    if plan.max_turns > 0:
-        remote_script = f"""{setup_cmd} "$(cat <<'PROMPT_EOF'
-{plan.prompt}
-PROMPT_EOF
-)" --max-turns {plan.max_turns}"""
+    remote_script = setup_cmd
 
     ssh_cmd = [
         "ssh",
