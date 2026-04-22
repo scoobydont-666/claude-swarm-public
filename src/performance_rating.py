@@ -495,7 +495,13 @@ def benchmark_host(hostname: str, ip: str, ssh_user: str = "josh") -> BenchmarkR
         return result
 
     # Batch probe: GPU, Ollama, Claude, disk
+    # CS6 fix (dogfood 2026-04-22): SSH non-interactive PATH omits ~/.local/bin,
+    # ~/.npm-global/bin, ~/.cargo/bin — same dirs smart-dispatch already exports.
+    # Without this, `which claude` misses user-local installs and reports NO_CLAUDE
+    # on hosts where claude IS installed + working (node_gpu reproducibly shows ✗).
     probe_script = """
+export PATH=$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/.cargo/bin:$PATH
+
 echo "DISK_START"
 dd if=/dev/zero of=/tmp/.bench_test bs=4k count=256 oflag=dsync 2>&1 | tail -1
 rm -f /tmp/.bench_test

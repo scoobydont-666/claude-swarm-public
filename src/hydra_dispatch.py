@@ -435,8 +435,12 @@ def dispatch(
     Returns:
         DispatchResult with dispatch_id and status
     """
-    if host not in FLEET:
+    # CS2 fix: case-insensitive hostname resolution
+    from util import resolve_host_key
+    canonical = resolve_host_key(host, FLEET)
+    if canonical is None:
         raise ValueError(f"Unknown host: {host}. Available: {list(FLEET.keys())}")
+    host = canonical
 
     config = FLEET[host]
     dispatch_id = f"dispatch-{int(time.time())}-{host}"

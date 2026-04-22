@@ -128,3 +128,24 @@ def fleet_from_config() -> dict[str, dict[str, Any]]:
                 "role": info.get("role", "client"),
             }
     return fleet
+
+
+def resolve_host_key(host: str, fleet: dict[str, Any]) -> str | None:
+    """Case-insensitive canonical hostname resolution against a fleet dict.
+
+    Returns the canonical (as-stored) key if `host` matches any key
+    case-insensitively, else None. Enables `swarm benchmark mega`,
+    `swarm benchmark node_reserve1`, and `swarm benchmark Mega` to all work.
+
+    CS2 fix (dogfood test 2026-04-22): benchmark + smart-dispatch had
+    inconsistent case handling; normalizing here gives one source of truth.
+    """
+    if not host:
+        return None
+    if host in fleet:
+        return host
+    lowered = host.lower()
+    for k in fleet:
+        if k.lower() == lowered:
+            return k
+    return None
