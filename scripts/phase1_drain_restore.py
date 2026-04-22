@@ -181,28 +181,70 @@ def redis_keyspace_checksum(db: int = 0) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+def _live_claimed_count(r: redis.Redis) -> tuple[int, int]:
+    """Return (total_claimed, live_claimed) for tasks:claimed in DB 0.
+
+    A claimed task is 'live' if its claimed_by host has an active agent key
+    (agent:{host}:* with non-expired TTL).  A task with no backing agent is
+    stale/orphaned and will be reconciled on restore.
+    """
+    total = r.zcard("tasks:claimed")
+    if total == 0:
+        return 0, 0
+
+    # Collect live agent host names from agent:* keys
+    live_hosts: set[str] = set()
+    cursor = 0
+    while True:
+        cursor, batch = r.scan(cursor, match="agent:*", count=500)
+        for key in batch:
+            # key format: agent:{host}:{pid}
+            parts = key.split(":", 2)
+            if len(parts) >= 2:
+                live_hosts.add(parts[1])
+        if cursor == 0:
+            break
+
+    # Count claimed tasks whose claimer has a live agent registration
+    task_ids = r.zrange("tasks:claimed", 0, -1)
+    live_claimed = 0
+    for tid in task_ids:
+        claimed_by = r.hget(f"task:{tid}", "claimed_by") or ""
+        if claimed_by in live_hosts:
+            live_claimed += 1
+
+    return total, live_claimed
+
+
 def drain() -> dict:
     """Checkpoint DB 0 and block further writes.
 
     Returns a summary dict with:
-        key_count    — number of keys snapshotted
-        claimed_count — number of active dispatches found (must be 0)
-        ts           — epoch timestamp of checkpoint
+        key_count      — number of keys snapshotted
+        claimed_count  — total tasks in tasks:claimed at drain time
+        live_claimed   — tasks held by agents with live heartbeats (must be 0)
+        ts             — epoch timestamp of checkpoint
 
     Raises:
         RuntimeError — if PHASE1_DOD_DRAIN_TEST gate is not set
-        RuntimeError — if tasks:claimed is non-empty (active dispatches)
+        RuntimeError — if any tasks:claimed entries belong to LIVE agents
+                       (stale/orphaned claimed tasks are allowed — restore
+                        will reconcile them via checkpoint replay)
     """
     _require_gate()
     global _CHECKPOINT, _CHECKPOINT_TS
 
     r = _client(0)
 
-    # Safety: refuse if active dispatches are in flight
-    claimed_count = r.zcard("tasks:claimed")
-    if claimed_count:
+    # Safety: refuse only if LIVE agents hold claimed tasks.
+    # Stale claimed tasks (agent TTL expired, no live heartbeat) are
+    # pre-existing orphans — the checkpoint captures them and restore
+    # replays the exact same claimed state, so they are preserved correctly.
+    claimed_count, live_claimed = _live_claimed_count(r)
+    if live_claimed:
         raise RuntimeError(
-            f"drain() refused: {claimed_count} tasks currently in tasks:claimed. "
+            f"drain() refused: {live_claimed} of {claimed_count} tasks:claimed "
+            "entries are held by agents with live heartbeats. "
             "Wait for active dispatches to complete before draining."
         )
 
@@ -225,6 +267,7 @@ def drain() -> dict:
     return {
         "key_count": len(checkpoint),
         "claimed_count": claimed_count,
+        "live_claimed": live_claimed,
         "ts": _CHECKPOINT_TS,
     }
 
