@@ -351,7 +351,7 @@ class TestBenchmark:
 
         with patch("performance_rating.subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("ssh", 10)
-            result = benchmark_host("offline", "192.168.0.99")
+            result = benchmark_host("offline", "192.0.2.99")
             assert not result.reachable
 
     def test_benchmark_result_structure(self, temp_db):
