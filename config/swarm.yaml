@@ -73,7 +73,7 @@ nodes:
     - prompt-forge
     - taxprep-project
   node_mongo:
-    ip: <worker-node-ip>
+    ip: 127.0.0.1
     role: worker
     capabilities:
     - gpu
@@ -199,7 +199,7 @@ health_monitor:
       ip: <gpu-node-ip>
       services: [fail2ban, crowdsec, prometheus-node-exporter]
     node_mongo:
-      ip: <worker-node-ip>
+      ip: 127.0.0.1
       services: [ollama, prometheus-node-exporter]
     node_reserve2:
       ip: <gpu-worker-ip>
