@@ -51,7 +51,7 @@ class TestHostValidation:
         _validate_prometheus_url("http://localhost:9090")
 
     def test_accepts_rfc1918(self):
-        _validate_prometheus_url("http://192.0.2.5:9090")
+        _validate_prometheus_url("http://192.168.1.5:9090")
         _validate_prometheus_url("http://10.0.0.1:9090")
         _validate_prometheus_url("http://172.16.0.1:9090")
 

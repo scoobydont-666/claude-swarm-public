@@ -155,7 +155,7 @@ class TestCustomConfig:
             yaml.dump(
                 {
                     "database_url": "${DB_URL:-postgresql://127.0.0.1/swarm}",
-                    "nodes": {"HOST": {"ip": "${HOST_IP:-192.0.2.1}"}},
+                    "nodes": {"HOST": {"ip": "${HOST_IP:-192.168.1.1}"}},
                 }
             )
         )
@@ -165,7 +165,7 @@ class TestCustomConfig:
         ):
             config = load_config(force_reload=True)
             assert config["database_url"] == "postgresql://prod/swarm"
-            assert config["nodes"]["HOST"]["ip"] == "192.0.2.1"  # default
+            assert config["nodes"]["HOST"]["ip"] == "192.168.1.1"  # default
 
         # Restore
         load_config(force_reload=True)

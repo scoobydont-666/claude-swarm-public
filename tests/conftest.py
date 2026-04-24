@@ -49,13 +49,13 @@ def swarm_tmpdir(tmp_path):
         "swarm": {"name": "test-swarm", "version": 1},
         "nodes": {
             "testhost": {
-                "ip": "192.0.2.99",
+                "ip": "192.168.200.99",
                 "role": "client",
                 "capabilities": ["docker", "gpu"],
                 "projects": ["test-project"],
             },
             "otherhost": {
-                "ip": "192.0.2.100",
+                "ip": "192.168.200.100",
                 "role": "client",
                 "capabilities": ["docker"],
                 "projects": [],

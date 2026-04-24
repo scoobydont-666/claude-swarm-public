@@ -29,7 +29,7 @@ class TestStatus:
             assert status["state"] == "active"
             assert status["current_task"] == "testing"
             assert status["model"] == "opus"
-            assert status["ip"] == "192.0.2.99"
+            assert status["ip"] == "192.168.200.99"
             assert status["capabilities"]["docker"] is True
             assert status["capabilities"]["gpu"] is True
 
