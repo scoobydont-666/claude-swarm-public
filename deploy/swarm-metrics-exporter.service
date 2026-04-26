@@ -1,7 +1,8 @@
+# plan-approved: claude-swarm-public-sanitize
 [Unit]
 Description=claude-swarm Prometheus Metrics Exporter (port 9191)
 After=network.target
-Documentation=https://github.com/scoobydont-666/claude-swarm
+Documentation=https://github.com/<your-github-org>/claude-swarm
 
 [Service]
 Type=simple

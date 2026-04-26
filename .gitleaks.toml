@@ -5,3 +5,12 @@ regexes = [
   "192\\.168\\.200\\.(163|213|87|141|13)",
   "giga|node_primary|mecha|mega|node_miner"
 ]
+
+# Custom rule: explicitly block known-leaked internal IPs that are NOT covered
+# by the test-fixture allowlist above. Added 2026-04-26 after Phase 2 audit
+# found 192.168.201.85 had been syncing through unredacted since 2026-04-14.
+[[rules]]
+id = "internal-leaked-ips"
+description = "Block specific internal IPs known to have leaked previously"
+regex = '''192\.168\.201\.85'''
+tags = ["internal-ip", "rfc1918"]

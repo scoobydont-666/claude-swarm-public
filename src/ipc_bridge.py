@@ -341,10 +341,10 @@ def discover_fleet_warm_models(fleet_ips: dict[str, str] | None = None) -> dict[
     """
     if fleet_ips is None:
         fleet_ips = {
-            "node_gpu": "<primary-node-ip>",
-            "node_reserve2": "<gpu-worker-ip>",
-            "node_reserve1": "<gpu-node-ip>",
-            "node_mongo": "192.168.201.85",
+            "node_gpu": os.environ.get("SWARM_NODE_GPU_IP", "<primary-node-ip>"),
+            "node_reserve2": os.environ.get("SWARM_NODE_RESERVE2_IP", "<gpu-worker-ip>"),
+            "node_reserve1": os.environ.get("SWARM_NODE_RESERVE1_IP", "<gpu-node-ip>"),
+            "node_mongo": os.environ.get("SWARM_NODE_MONGO_IP", "<node-mongo-ip>"),
         }
 
     result = {}

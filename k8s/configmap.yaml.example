@@ -9,7 +9,7 @@ data:
   NFS_MOUNT_POINT: "/opt/swarm"
 
   # Git configuration
-  GIT_REPO_URL: "https://github.com/scoobydont-666/claude-config.git"
+  GIT_REPO_URL: "https://github.com/<your-github-org>/claude-config.git"
   GIT_SYNC_INTERVAL_SECONDS: "60"
 
   # Routing protocol
