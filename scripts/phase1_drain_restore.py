@@ -113,8 +113,26 @@ def _serialise_key(r: redis.Redis, key: str) -> tuple[str, Any]:
     elif ktype == "stream":
         # Snapshot stream for checksum but do NOT attempt to restore it
         # (streams are append-only; restoration would create duplicates).
-        entries = r.xrange(key, "-", "+", count=5000)
-        return (ktype, [(sid, fields) for sid, fields in entries])
+        # Paginate xrange: a single call with count=5000 would truncate busy
+        # streams and silently corrupt the keyspace checksum — active streams
+        # could mutate beyond the first page while the checksum reports
+        # unchanged state.  Cursor forward by bumping the last-seen id's
+        # sequence by one (Redis stream ids are ms-seq; "ms-seq" + seq+1 is
+        # exclusive of the prior page's last entry).
+        entries: list[tuple[str, dict]] = []
+        start = "-"
+        page = 5000
+        while True:
+            batch = r.xrange(key, start, "+", count=page)
+            if not batch:
+                break
+            entries.extend((sid, fields) for sid, fields in batch)
+            if len(batch) < page:
+                break
+            last_id = batch[-1][0]
+            ms, seq = last_id.split("-")
+            start = f"{ms}-{int(seq) + 1}"
+        return (ktype, entries)
     else:
         return (ktype, None)
 

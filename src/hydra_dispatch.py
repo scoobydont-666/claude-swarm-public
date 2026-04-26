@@ -532,7 +532,9 @@ def dispatch(
         logger.warning(f"GPU scheduler error (continuing without): {e}")
 
     # ── Worktree isolation (v3) ──────────────────────────────────────────
+    # plan-approved: claude-swarm-scripts
     worktree_info = None
+    _original_project_dir = project_dir
     if project_dir:
         try:
             from worktree_dispatch import create_worktree
@@ -546,7 +548,31 @@ def dispatch(
                 logger.info(
                     f"Worktree created: {worktree_info.path} (branch {worktree_info.branch})"
                 )
-                project_dir = worktree_info.path  # redirect dispatch to worktree
+                # The worktree exists on whichever host create_worktree ran on:
+                # localhost (subprocess) or remote (SSH).  For localhost dispatches
+                # we can verify with os.path.isdir; if missing the subsequent cd
+                # in the dispatch command will fail with "No such file" (root
+                # cause of the fleet-capability-index preflight failure observed
+                # 2026-04-23 where the coordinator stage had no project_dir set
+                # but ran as localhost).  For REMOTE dispatches we trust the
+                # non-None return from create_worktree: it just ran the
+                # `git worktree add` over SSH and parsed returncode==0, so the
+                # path exists on the remote host even though coordinator cannot
+                # stat it locally.  A local isdir check would false-negative on
+                # every remote worktree and silently regress isolation + merge
+                # handling for all remote code-gen tasks.
+                from worktree_dispatch import _is_localhost
+                import os as _os
+                if _is_localhost(host) and not _os.path.isdir(worktree_info.path):
+                    logger.warning(
+                        f"Worktree path does not exist on localhost after creation: "
+                        f"{worktree_info.path} — falling back to original "
+                        f"project_dir {_original_project_dir}"
+                    )
+                    worktree_info = None  # don't attempt merge on completion
+                    project_dir = _original_project_dir
+                else:
+                    project_dir = worktree_info.path  # redirect dispatch to worktree
         except ImportError:
             pass
         except Exception as e:
