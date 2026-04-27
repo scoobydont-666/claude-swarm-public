@@ -42,6 +42,14 @@ app.add_typer(summaries_app, name="summaries")
 app.add_typer(pipeline_app, name="pipeline")
 app.add_typer(dispatches_app, name="dispatches")
 
+# GPU subcommand — Ollama/vLLM inference mode flips across the fleet
+try:
+    from gpu_cli import gpu_app
+
+    app.add_typer(gpu_app, name="gpu")
+except ImportError:
+    pass  # gpu_cli optional; skip if unavailable
+
 # IPC subcommand — agent-to-agent communication
 try:
     from ipc.cli import app as ipc_app

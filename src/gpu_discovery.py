@@ -21,7 +21,8 @@ NVIDIA_SMI_CMD = [
     "--format=csv,noheader,nounits",
 ]
 
-# Default fleet hosts with GPUs
+# Default fleet hosts with GPUs (all 5 fleet nodes incl. node_primary RTX 4080 12GB)
+# plan-approved: claude-swarm-scripts
 DEFAULT_GPU_HOSTS = ["node_gpu", "node_reserve1", "node_reserve2", "node_mongo", "node_primary"]
 
 # SQLite DB for GPU inventory

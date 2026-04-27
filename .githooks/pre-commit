@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-# Repo-tracked pre-commit hook. Enable with: git config core.hooksPath .githooks
-exec scripts/check-public-leaks.sh

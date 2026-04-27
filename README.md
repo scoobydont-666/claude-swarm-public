@@ -3,11 +3,6 @@
 Multi-instance Claude Code coordination system — NFS-backed task board, messaging, artifact
 sharing, worktree management, GPU slot allocation, and auto-dispatch across the Hydra cluster.
 
-> **Notice (2026-04-27)**: the `main` branch of this repository had its git history rewritten
-> on 2026-04-27 to scrub a private-network IP that had been inadvertently committed. If you
-> have a clone or fork, see [issue #4](https://github.com/scoobydont-666/claude-swarm-public/issues/4)
-> for re-sync guidance.
-
 ## Features
 
 ### Coordination primitives
@@ -263,6 +258,16 @@ Related environment variables:
 | `swarm summaries` | Show session summaries from all nodes |
 | `swarm context` | Aggregate context for current task |
 
+### GPU Operations
+
+| Command | Description |
+|---------|-------------|
+| `swarm gpu status` | List all GPU nodes with live kubectl-backed metrics (VRAM, utilization, temp) |
+| `swarm gpu flip <host> <mode>` | Toggle a host between Ollama (default) and vLLM K3s pod mode; preflight checks node_gpu for active training |
+| `swarm gpu flip-all <mode>` | Batch flip all fleet hosts; respects per-host mode preferences |
+
+**New in this session (PR #17):** Live GPU status queries and inference-mode flipping with built-in preflight guards.
+
 ### Pipelines and Dispatch
 
 | Command | Description |
@@ -350,6 +355,7 @@ Test files mirror source modules (e.g., `test_gpu_slots.py` → `gpu_slots.py`).
 │   └── pipelines/
 │       ├── bug_fix.py          # bug-fix pipeline definition
 │       ├── feature_build.py    # feature build pipeline
+│       ├── fleet_capability_index.py  # 7-stage fleet-wide LLM bakeoff (44 models × 12 classes)
 │       ├── question_generation.py  # ExamForge question gen pipeline
 │       └── security_audit.py   # security audit pipeline
 │
@@ -425,11 +431,18 @@ GPU slot utilization, rate-limit events.
 | v2 S8 | Performance rating, scored dispatch | Complete |
 | v2 S9 | Backend parity polish — 1,270 tests (69% coverage, gate ≥65%) | Complete |
 
+## Framework Sync
+
+**FRAMEWORK_SYNC.md** is the cherry-pick ledger for synchronizing improvements between `claude-swarm` (Hydra platform, open-source path) and `nai-swarm` (NAI production, Volcano/Kueue). See [FRAMEWORK_SYNC.md](FRAMEWORK_SYNC.md) for rationale, evaluation rubric, and sync history. Intentional duplication (not library merge) per Grill Decision 4.3.
+
+**Latest sync:** 2026-04-24 — batch evaluation of PR #14–#17 (fleet_capability_index, node_primary registration, worktree-dispatch, gpu_cli). Result: evaluate-and-skip; nai-swarm patterns diverge (Prism Central API, Volcano/Kueue).
+
 ## Related Projects
 
 | Project | Location | Relationship |
 |---------|----------|-------------|
 | Project Hydra | <hydra-project-path>/ | Umbrella — swarm coordinates all Hydra heads |
+| nai-swarm | /opt/nai-swarm/ (Nutanix private) | NAI production fork; cherry-pick ledger in FRAMEWORK_SYNC.md |
 | hydra-pulse | /opt/hydra-pulse/ | Consumes SWARM_TASK_ID for cost-per-task analytics |
 | claude-config | /opt/claude-configs/claude-config/ | Hook scripts + swarm config synced here |
 | ProjectA | <project-a-path>/ | Primary beneficiary of multi-agent dispatch |

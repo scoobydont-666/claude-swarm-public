@@ -344,7 +344,7 @@ def discover_fleet_warm_models(fleet_ips: dict[str, str] | None = None) -> dict[
             "node_gpu": "<primary-node-ip>",
             "node_reserve2": "<gpu-worker-ip>",
             "node_reserve1": "<gpu-node-ip>",
-            "node_mongo": "127.0.0.1",
+            "node_mongo": "192.168.201.85",
         }
 
     result = {}

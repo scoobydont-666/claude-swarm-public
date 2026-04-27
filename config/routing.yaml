@@ -277,3 +277,45 @@ review_coordinator:
   - multi_file_refactor
   - security_adjacent_code
   - infrastructure_as_code
+
+# ═══════════════════════════════════════════════════════════════════════════
+# FLEET GPU LOADOUT — locked 2026-04-26, provisioned 2026-04-27
+# Source of truth: ~/.claude/projects/-opt-hydra-project/memory/project_fleet_gpu_loadout_2026_04_26.md
+# Per-task-class routing for build-quality dogfood. Supersedes hydracoder:*
+# entries in tier_ladder above where applicable.
+# ═══════════════════════════════════════════════════════════════════════════
+
+fleet_gpu_loadout:
+  node_gpu:
+    gpu: "RTX PRO 6000 Blackwell 96GB"
+    models:
+      primary: "qwen3.6:27b"            # code-gen primary
+      review: "hydra-coder-32b-grok:v1" # code-review
+      planning: "llama3.3:70b"          # architecture
+  node_reserve1:
+    gpu: "2x RTX 5080 32GB total"
+    models:
+      gpu0: "qwen2.5-coder:14b"  # code overflow, Q4 KV @ 32K
+      gpu1: "devstral:latest"    # function-calling specialist (won bakeoff)
+  node_mongo:
+    gpu: "RTX 5080 16GB"
+    models:
+      reasoning: "phi-4:14b"     # RAG synthesis, deep reasoning
+  node_reserve2:
+    gpu: "RTX 5060 Ti 16GB"
+    models:
+      lint: "qwen2.5-coder:7b"   # structured extraction
+      fallback: "phi4:14b"
+  node_primary:
+    gpu: "RTX 4080 Laptop 12GB"
+    dedicated: "hydra-neuronet"
+    model: "qwen3:14b-hnn"       # Q4 KV @ 32K, locked for HNN
+
+task_class_routing:
+  code_generation: { primary: [node_gpu, "qwen3.6:27b"], fallback: [node_reserve1, "qwen2.5-coder:14b"] }
+  code_review:     { primary: [node_gpu, "hydra-coder-32b-grok:v1"], deep: [node_mongo, "phi-4:14b"] }
+  architecture:    { primary: [node_gpu, "llama3.3:70b"], cloud_fallback: "claude-sonnet-4-6" }
+  function_calling:{ primary: [node_reserve1, "devstral:latest"] }
+  lint_extract:    { primary: [node_reserve2, "qwen2.5-coder:7b"], fallback: [node_reserve2, "phi4:14b"] }
+  rag_synthesis:   { primary: [node_mongo, "phi-4:14b"], hnn: [node_primary, "qwen3:14b-hnn"] }
+  hard_reasoning:  { cloud_only: "claude-opus-4-7" }

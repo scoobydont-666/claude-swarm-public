@@ -26,6 +26,7 @@ Extracting to a shared library risks polluting both codebases with unwanted coup
 | Date | Direction | Source Commit SHA | Source Repo | Target Commit SHA | Reviewer | Notes |
 |------|-----------|-------------------|-------------|-------------------|----------|-------|
 | 2026-04-23 | — | — | — | — | — | **Ledger established; first real cherry-pick replaces this row** |
+| 2026-04-24 | claude-swarm → nai-swarm (evaluated, declined) | `2ddb7f9` (#15), `fdf1141` (#16), `02dce1a` (#14), PR #17 open | claude-swarm | — (not ported) | Claude Opus 4.7 + Josh | **Batch eval, no ports.** nai-swarm's `gpu_discovery.py` uses NAI/Prism Central API (no `DEFAULT_GPU_HOSTS` list) — PR #15 has no target. nai-swarm's `hydra_dispatch.py` has no worktree-dispatch code path (451 LOC vs 963) — PR #16 has no target. `fleet_capability_index` pipeline (PR #14) and `swarm gpu flip-all` (PR #17) reference Hydra-fleet primitives (Ollama/vLLM pod flips, NFS bakeoff-cells dir); nai-swarm runs on Volcano/Kueue — fresh design required, not cherry-pick. **Decision:** evaluate-and-skip is the correct answer for this batch. Parity benchmarking could be authored fresh for nai-swarm as a separate design task. |
 
 ---
 

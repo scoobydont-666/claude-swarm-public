@@ -398,7 +398,10 @@ class HealthMonitor:
                 if not updated:
                     continue
                 try:
-                    dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                    if isinstance(updated, (int, float)):
+                        dt = datetime.fromtimestamp(updated, tz=UTC)
+                    else:
+                        dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
                     age = (now - dt).total_seconds()
                     if age > threshold:
                         stale.append(
@@ -407,7 +410,7 @@ class HealthMonitor:
                                 "age_seconds": int(age),
                             }
                         )
-                except ValueError:
+                except (ValueError, TypeError):
                     continue
             return stale
         except ImportError:
