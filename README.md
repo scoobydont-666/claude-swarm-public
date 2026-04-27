@@ -3,6 +3,11 @@
 Multi-instance Claude Code coordination system — NFS-backed task board, messaging, artifact
 sharing, worktree management, GPU slot allocation, and auto-dispatch across the Hydra cluster.
 
+> **Notice (2026-04-27)**: the `main` branch of this repository had its git history rewritten
+> on 2026-04-27 to scrub a private-network IP that had been inadvertently committed. If you
+> have a clone or fork, see [issue #4](https://github.com/scoobydont-666/claude-swarm-public/issues/4)
+> for re-sync guidance.
+
 ## Features
 
 ### Coordination primitives
