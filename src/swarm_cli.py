@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 LOG = logging.getLogger(__name__)
 
@@ -19,12 +20,8 @@ try:
     from backend import lib
 except ImportError:
     import swarm_lib as lib
-from datetime import UTC
-
 from registry import STALE_THRESHOLD
-from util import fleet_from_config
-from util import relative_time as _relative_time
-
+from util import relative_time as _relative_time, fleet_from_config
 # work_generator and auto_dispatch are imported lazily inside commands to
 # avoid import-time side-effects when the module is loaded in test contexts.
 
@@ -42,18 +39,9 @@ app.add_typer(summaries_app, name="summaries")
 app.add_typer(pipeline_app, name="pipeline")
 app.add_typer(dispatches_app, name="dispatches")
 
-# GPU subcommand — Ollama/vLLM inference mode flips across the fleet
-try:
-    from gpu_cli import gpu_app
-
-    app.add_typer(gpu_app, name="gpu")
-except ImportError:
-    pass  # gpu_cli optional; skip if unavailable
-
 # IPC subcommand — agent-to-agent communication
 try:
     from ipc.cli import app as ipc_app
-
     app.add_typer(ipc_app, name="ipc")
 except ImportError:
     pass  # IPC module not available
@@ -88,9 +76,9 @@ def status() -> None:
     }
 
     # Flag nodes as stale if active/busy and >5 min since update
-    from datetime import datetime
+    from datetime import datetime, timezone
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
 
     for node in nodes:
         state = node.get("state", "unknown")
@@ -178,7 +166,7 @@ def tasks_create(
     description: str = typer.Option("", "--desc", "-d", help="Task description"),
     project: str = typer.Option("", "--project", "-p", help="Project path"),
     priority: str = typer.Option("medium", "--priority", help="high/medium/low"),
-    requires: list[str] | None = typer.Option(
+    requires: Optional[list[str]] = typer.Option(
         None, "--requires", "-r", help="Required capabilities"
     ),
     minutes: int = typer.Option(0, "--minutes", "-m", help="Estimated minutes"),
@@ -198,7 +186,9 @@ def tasks_create(
 @tasks_app.command("claim")
 def tasks_claim(
     task_id: str = typer.Argument(..., help="Task ID to claim"),
-    isolate: bool = typer.Option(False, "--isolate", help="Create git worktree for isolated work"),
+    isolate: bool = typer.Option(
+        False, "--isolate", help="Create git worktree for isolated work"
+    ),
     project: str = typer.Option(
         "", "--project", "-p", help="Project path (required with --isolate)"
     ),
@@ -228,7 +218,9 @@ def tasks_complete(
     task_id: str = typer.Argument(..., help="Task ID to complete"),
     artifact: str = typer.Option("", "--artifact", "-a", help="Result artifact path"),
     merge: bool = typer.Option(False, "--merge", help="Merge worktree branch to main"),
-    branch: bool = typer.Option(False, "--branch", help="Push worktree branch only (no merge)"),
+    branch: bool = typer.Option(
+        False, "--branch", help="Push worktree branch only (no merge)"
+    ),
     project: str = typer.Option(
         "", "--project", "-p", help="Project path (for worktree operations)"
     ),
@@ -245,11 +237,15 @@ def tasks_complete(
             else:
                 proj = project
             if not proj:
-                console.print("[red]Error:[/red] --project required for worktree operations")
+                console.print(
+                    "[red]Error:[/red] --project required for worktree operations"
+                )
                 raise typer.Exit(1)
             wt_result = lib.complete_worktree(proj, task_id, merge=merge)
             action = wt_result.get("action", "unknown")
-            console.print(f"[green]Worktree {action}:[/green] {wt_result.get('branch', '')}")
+            console.print(
+                f"[green]Worktree {action}:[/green] {wt_result.get('branch', '')}"
+            )
 
         task = lib.complete_task(task_id, result_artifact=artifact)
         console.print(f"[green]Completed {task_id}[/green] by {task['completed_by']}")
@@ -321,17 +317,17 @@ def message(
 ) -> None:
     """Send a message to another instance."""
     if broadcast or target == "--broadcast":
-        lib.broadcast_message(text)
+        paths = lib.broadcast_message(text)
         console.print("[green]Broadcast sent[/green]")
     else:
-        lib.send_message(target, text)
+        path = lib.send_message(target, text)
         console.print(f"[green]Message sent to {target}[/green]")
 
 
 @app.command()
 def inbox(
     clear: bool = typer.Option(False, "--clear", help="Archive all messages"),
-    clear_rule: str | None = typer.Option(
+    clear_rule: Optional[str] = typer.Option(
         None, "--clear-rule", help="Archive messages matching a rule name"
     ),
 ) -> None:
@@ -356,7 +352,8 @@ def inbox(
     for msg in messages:
         source_tag = "[broadcast]" if msg.get("_source") == "broadcast" else ""
         console.print(
-            f"[bold]{msg.get('from', '?')}[/bold] {source_tag} ({msg.get('sent_at', '?')}):"
+            f"[bold]{msg.get('from', '?')}[/bold] {source_tag} "
+            f"({msg.get('sent_at', '?')}):"
         )
         console.print(f"  {msg.get('text', '')}")
         console.print()
@@ -530,15 +527,25 @@ def context(
 
 @app.command()
 def health(
-    rules: bool = typer.Option(False, "--rules", help="Show all rules and last trigger time"),
-    events: bool = typer.Option(False, "--events", help="Show recent events from the event log"),
-    start: bool = typer.Option(False, "--start", help="Start the health monitor daemon"),
+    rules: bool = typer.Option(
+        False, "--rules", help="Show all rules and last trigger time"
+    ),
+    events: bool = typer.Option(
+        False, "--events", help="Show recent events from the event log"
+    ),
+    start: bool = typer.Option(
+        False, "--start", help="Start the health monitor daemon"
+    ),
     stop: bool = typer.Option(False, "--stop", help="Stop the health monitor daemon"),
-    prune: bool = typer.Option(False, "--prune", help="Prune events older than --prune-days"),
+    prune: bool = typer.Option(
+        False, "--prune", help="Prune events older than --prune-days"
+    ),
     prune_days: int = typer.Option(
         30, "--prune-days", help="Days to keep (default: 30, used with --prune)"
     ),
-    limit: int = typer.Option(20, "--limit", "-n", help="Number of events to show (with --events)"),
+    limit: int = typer.Option(
+        20, "--limit", "-n", help="Number of events to show (with --events)"
+    ),
 ) -> None:
     """Full health check of the swarm. Use flags for rule status, event log, or daemon control."""
     import subprocess as _sp
@@ -605,8 +612,8 @@ def health(
         import sys as _sys
 
         _sys.path.insert(0, str(_Path(__file__).resolve().parent))
-        from event_log import EventLog as _EventLog
         from health_rules import RULES as _RULES
+        from event_log import EventLog as _EventLog
 
         ev = _EventLog()
         summary = {r["rule_name"]: r for r in ev.rule_summary()}
@@ -623,7 +630,9 @@ def health(
         for rule in _RULES:
             name = rule["name"]
             stat = summary.get(name, {})
-            auto = "[green]yes[/green]" if rule.get("auto_remediate") else "[dim]no[/dim]"
+            auto = (
+                "[green]yes[/green]" if rule.get("auto_remediate") else "[dim]no[/dim]"
+            )
             table.add_row(
                 name,
                 rule.get("check", "-"),
@@ -719,7 +728,9 @@ def cleanup(
     threshold: int = typer.Option(
         300, "--threshold", "-t", help="Stale threshold in seconds (default: 300)"
     ),
-    no_verify: bool = typer.Option(False, "--no-verify", help="Skip SSH PID verification"),
+    no_verify: bool = typer.Option(
+        False, "--no-verify", help="Skip SSH PID verification"
+    ),
 ) -> None:
     """Detect and clean up stale nodes + orphaned tasks.
 
@@ -730,7 +741,9 @@ def cleanup(
     console.print(
         f"[bold]Cleaning up stale nodes[/bold] (threshold: {threshold}s, verify PID: {not no_verify})"
     )
-    result = lib.cleanup_stale_nodes(threshold_seconds=threshold, verify_pid=not no_verify)
+    result = lib.cleanup_stale_nodes(
+        threshold_seconds=threshold, verify_pid=not no_verify
+    )
 
     cleaned = result.get("cleaned", [])
     orphaned = result.get("orphaned_tasks", [])
@@ -838,7 +851,9 @@ def generate(
                 proj,
             )
         console.print(table)
-        console.print(f"\nRun with [bold]--apply[/bold] to create these {len(proposed)} tasks.")
+        console.print(
+            f"\nRun with [bold]--apply[/bold] to create these {len(proposed)} tasks."
+        )
         return
 
     # Apply: create tasks
@@ -867,8 +882,12 @@ def auto_dispatch_cmd(
     mode: str = typer.Option(
         "", "--mode", "-m", help="Set mode: off|dry_run|haiku_only|sonnet|full"
     ),
-    enable: bool = typer.Option(False, "--enable", help="Enable (shortcut for --mode sonnet)"),
-    disable: bool = typer.Option(False, "--disable", help="Disable (shortcut for --mode off)"),
+    enable: bool = typer.Option(
+        False, "--enable", help="Enable (shortcut for --mode sonnet)"
+    ),
+    disable: bool = typer.Option(
+        False, "--disable", help="Disable (shortcut for --mode off)"
+    ),
 ) -> None:
     """Run auto-dispatcher or set its mode.
 
@@ -881,7 +900,7 @@ def auto_dispatch_cmd(
       sonnet     — haiku + sonnet tasks
       full       — all tiers, model routing via token-miser
     """
-    from auto_dispatch import DISPATCH_MODES, AutoDispatcher
+    from auto_dispatch import AutoDispatcher, DISPATCH_MODES
 
     try:
         config = lib.load_config()
@@ -981,9 +1000,15 @@ def pipeline_list() -> None:
 @pipeline_app.command("run")
 def pipeline_run(
     name: str = typer.Argument(..., help="Pipeline name (see 'pipeline list')"),
-    input_task: str = typer.Option("", "--input", "-i", help="Task description / input"),
-    project: str = typer.Option("", "--project", "-p", help="Project directory on remote hosts"),
-    cert: str = typer.Option("", "--cert", help="CPA cert section (question-gen pipeline)"),
+    input_task: str = typer.Option(
+        "", "--input", "-i", help="Task description / input"
+    ),
+    project: str = typer.Option(
+        "", "--project", "-p", help="Project directory on remote hosts"
+    ),
+    cert: str = typer.Option(
+        "", "--cert", help="CPA cert section (question-gen pipeline)"
+    ),
     domain: str = typer.Option("", "--domain", help="Domain (question-gen pipeline)"),
     count: str = typer.Option("10", "--count", help="Count (question-gen pipeline)"),
 ) -> None:
@@ -995,8 +1020,8 @@ def pipeline_run(
       swarm pipeline run security-audit
       swarm pipeline run question-gen --cert FAR --domain Revenue --count 20
     """
-    from pipeline import PipelineExecutor
     from pipeline_registry import get_pipeline
+    from pipeline import PipelineExecutor
 
     try:
         pipeline = get_pipeline(name)
@@ -1065,13 +1090,17 @@ def pipeline_run(
     console.print(table)
 
     if result.status == "completed":
-        console.print(f"\n[dim]Full outputs: swarm pipeline status {result.pipeline_id}[/dim]")
+        console.print(
+            f"\n[dim]Full outputs: swarm pipeline status {result.pipeline_id}[/dim]"
+        )
 
 
 @pipeline_app.command("status")
 def pipeline_status(
     pipeline_id: str = typer.Argument(..., help="Pipeline ID"),
-    stage: str = typer.Option("", "--stage", "-s", help="Show output for a specific stage"),
+    stage: str = typer.Option(
+        "", "--stage", "-s", help="Show output for a specific stage"
+    ),
 ) -> None:
     """Show pipeline progress and stage outputs.
 
@@ -1089,7 +1118,9 @@ def pipeline_status(
     if stage:
         output = get_stage_output(pipeline_id, stage)
         if output is None:
-            console.print(f"[red]Stage '{stage}' not found in pipeline {pipeline_id}.[/red]")
+            console.print(
+                f"[red]Stage '{stage}' not found in pipeline {pipeline_id}.[/red]"
+            )
             raise typer.Exit(1)
         console.print(f"[bold]Pipeline {pipeline_id} / Stage {stage}:[/bold]")
         console.print(output)
@@ -1102,7 +1133,9 @@ def pipeline_status(
     )
     console.print(f"[bold]Pipeline:[/bold] {run.get('pipeline_name', pipeline_id)}")
     console.print(f"[bold]ID:[/bold] {pipeline_id}")
-    console.print(f"[bold]Status:[/bold] [{status_color}]{run.get('status', '?')}[/{status_color}]")
+    console.print(
+        f"[bold]Status:[/bold] [{status_color}]{run.get('status', '?')}[/{status_color}]"
+    )
     console.print(f"[bold]Started:[/bold] {run.get('started_at', '?')}")
     if run.get("completed_at"):
         console.print(f"[bold]Completed:[/bold] {run.get('completed_at')}")
@@ -1121,7 +1154,11 @@ def pipeline_status(
 
         for sname, sr in stage_results.items():
             st = sr.get("status", "?")
-            color = "green" if st == "completed" else ("yellow" if st == "running" else "red")
+            color = (
+                "green"
+                if st == "completed"
+                else ("yellow" if st == "running" else "red")
+            )
             table.add_row(
                 sname,
                 f"[{color}]{st}[/{color}]",
@@ -1156,7 +1193,9 @@ def pipeline_history(
 
     for run in runs:
         st = run.get("status", "?")
-        color = "green" if st == "completed" else ("yellow" if st == "running" else "red")
+        color = (
+            "green" if st == "completed" else ("yellow" if st == "running" else "red")
+        )
         n_stages = len(run.get("stage_results", {}))
         table.add_row(
             run.get("pipeline_id", "?"),
@@ -1177,7 +1216,9 @@ def pipeline_history(
 @app.command(name="smart-dispatch")
 def smart_dispatch_cmd(
     task: str = typer.Argument(..., help="Task description in natural language"),
-    project: str = typer.Option("", "--project", "-p", help="Project directory on remote host"),
+    project: str = typer.Option(
+        "", "--project", "-p", help="Project directory on remote host"
+    ),
     host: str = typer.Option("", "--host", help="Force dispatch to specific host"),
     strategy: str = typer.Option(
         "",
@@ -1188,7 +1229,9 @@ def smart_dispatch_cmd(
     plan_only: bool = typer.Option(
         False, "--plan-only", help="Show execution plan without running"
     ),
-    sync: bool = typer.Option(False, "--sync", help="Wait for completion (default: background)"),
+    sync: bool = typer.Option(
+        False, "--sync", help="Wait for completion (default: background)"
+    ),
 ) -> None:
     """Intelligently dispatch a task — decides WHERE, HOW, and WHICH MODEL.
 
@@ -1203,9 +1246,9 @@ def smart_dispatch_cmd(
         swarm smart-dispatch "debug why ProjectA RAG returns stale results" -p <project-a-path>
         swarm smart-dispatch "implement ExamForge Stripe integration" -p /opt/examforge --host node_gpu
     """
-    import socket
+    from remote_session import plan_execution, execute_plan, ExecutionStrategy
 
-    from remote_session import ExecutionStrategy, execute_plan, plan_execution
+    import socket
 
     plan = plan_execution(
         task=task,
@@ -1230,7 +1273,9 @@ def smart_dispatch_cmd(
     console.print(f"  Model:      {plan.model}")
     console.print(f"  Complexity: {plan.complexity.value}")
     console.print(f"  Est. time:  {plan.estimated_minutes}m")
-    console.print(f"  Max turns:  {'unlimited' if plan.max_turns == 0 else plan.max_turns}")
+    console.print(
+        f"  Max turns:  {'unlimited' if plan.max_turns == 0 else plan.max_turns}"
+    )
     console.print(f"  Reasoning:  [dim]{plan.reasoning}[/dim]")
     if plan.project_dir:
         console.print(f"  Project:    {plan.project_dir}")
@@ -1274,7 +1319,7 @@ def dispatches_list(ctx: typer.Context) -> None:
     if ctx.invoked_subcommand is not None:
         return
 
-    from datetime import datetime
+    from datetime import datetime, timezone
     from pathlib import Path
 
     dispatches_dir = Path("/opt/swarm/artifacts/dispatches")
@@ -1284,7 +1329,7 @@ def dispatches_list(ctx: typer.Context) -> None:
 
     # Collect dispatch info from .plan.yaml files
     dispatches = []
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
 
     for plan_file in sorted(dispatches_dir.glob("*.plan.yaml"), reverse=True):
         dispatch_id = plan_file.stem
@@ -1294,13 +1339,15 @@ def dispatches_list(ctx: typer.Context) -> None:
             started_dt = None
             if started_at:
                 try:
-                    started_dt = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+                    started_dt = datetime.fromisoformat(
+                        started_at.replace("Z", "+00:00")
+                    )
                 except (ValueError, AttributeError):
                     pass
 
             # Check if still running
             pid_file = dispatches_dir / f"{dispatch_id}.pid"
-            dispatches_dir / f"{dispatch_id}.output"
+            output_file = dispatches_dir / f"{dispatch_id}.output"
             status = "completed"
             if pid_file.exists():
                 try:
@@ -1343,7 +1390,9 @@ def dispatches_list(ctx: typer.Context) -> None:
                 }
             )
         except Exception as exc:
-            console.print(f"[yellow]Warning:[/yellow] Could not parse {plan_file}: {exc}")
+            console.print(
+                f"[yellow]Warning:[/yellow] Could not parse {plan_file}: {exc}"
+            )
 
     if not dispatches:
         console.print("[dim]No dispatches found.[/dim]")
@@ -1406,7 +1455,7 @@ def dispatches_show(
     output_file = dispatches_dir / f"{dispatch_id}.output"
     if output_file.exists():
         console.print("\n[bold]Last 50 lines of output:[/bold]")
-        with open(output_file) as f:
+        with open(output_file, "r") as f:
             lines = f.readlines()
             for line in lines[-50:]:
                 console.print(line.rstrip())
@@ -1417,8 +1466,8 @@ def dispatches_tail(
     dispatch_id: str = typer.Argument(..., help="Dispatch ID to monitor"),
 ) -> None:
     """Tail the output of a running dispatch (live monitoring)."""
-    import subprocess
     from pathlib import Path
+    import subprocess
 
     dispatches_dir = Path("/opt/swarm/artifacts/dispatches")
     output_file = dispatches_dir / f"{dispatch_id}.output"
@@ -1470,7 +1519,7 @@ def collab_status(
     session_id: str = typer.Argument("", help="Session ID (omit for all sessions)"),
 ) -> None:
     """Show status of collaborative session(s)."""
-    from collaborative import get_session_status, list_sessions
+    from collaborative import list_sessions, get_session_status
 
     if session_id:
         status = get_session_status(session_id)
@@ -1506,14 +1555,18 @@ def collab_status(
 @collab_app.command("resolve")
 def collab_resolve(
     session_id: str = typer.Argument(..., help="Session ID"),
-    blocker_id: str = typer.Option(..., "--blocker-id", "-b", help="Blocker ID to resolve"),
+    blocker_id: str = typer.Option(
+        ..., "--blocker-id", "-b", help="Blocker ID to resolve"
+    ),
     resolution: str = typer.Option(..., "--resolution", "-r", help="Resolution text"),
 ) -> None:
     """Resolve a blocker in a collaborative session."""
     from collaborative import resolve_blocker
 
     resolve_blocker(session_id, blocker_id, {"resolution": resolution})
-    console.print(f"[green]Resolved blocker {blocker_id} in session {session_id}[/green]")
+    console.print(
+        f"[green]Resolved blocker {blocker_id} in session {session_id}[/green]"
+    )
 
 
 @collab_app.command("blockers")
@@ -1530,7 +1583,9 @@ def collab_blockers(
 
     for b in blockers:
         resolved = "[green]RESOLVED[/green]" if b.get("resolved") else "[red]OPEN[/red]"
-        console.print(f"  {b.get('blocker_id', '?')}: {resolved} — {b.get('description', '?')}")
+        console.print(
+            f"  {b.get('blocker_id', '?')}: {resolved} — {b.get('description', '?')}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1559,7 +1614,11 @@ def ratings_show() -> None:
     console.print("─" * 70)
     for r in sorted(ratings, key=lambda x: x.composite_score, reverse=True):
         score_color = (
-            "green" if r.composite_score >= 600 else "yellow" if r.composite_score >= 400 else "red"
+            "green"
+            if r.composite_score >= 600
+            else "yellow"
+            if r.composite_score >= 400
+            else "red"
         )
         console.print(
             f"{r.hostname:15s} [{score_color}]{r.composite_score:>7.0f}[/{score_color}] "
@@ -1575,14 +1634,9 @@ def ratings_benchmark(
     from performance_rating import benchmark_host
 
     fleet = fleet_from_config() or {}
-    # CS2 fix: case-insensitive hostname resolution
-    from util import resolve_host_key
-
-    canonical = resolve_host_key(host, fleet)
-    if canonical is None:
+    if host not in fleet:
         console.print(f"[red]Unknown host: {host}. Known: {list(fleet.keys())}[/red]")
         raise typer.Exit(1)
-    host = canonical
 
     config = fleet[host]
     ip = config.get("ip", "")
@@ -1653,8 +1707,8 @@ app.add_typer(hooks_app, name="hooks")
 @hooks_app.command("session-start")
 def hook_session_start() -> None:
     """SessionStart hook: register, report peers, load summaries."""
-    import os
     import socket
+    import os
 
     hostname = socket.gethostname()
     session_id = os.environ.get("CLAUDE_SESSION_ID", "unknown")
@@ -1703,9 +1757,7 @@ def hook_session_start() -> None:
 
     # IPC auto-registration
     try:
-        from ipc.agent import list_agents as ipc_list
-        from ipc.agent import register as ipc_register
-
+        from ipc.agent import register as ipc_register, list_agents as ipc_list
         ipc_id = ipc_register(project=project, model=model, auto_heartbeat=False)
         ipc_peers = ipc_list()
         peer_count = len([a for a in ipc_peers if a.get("agent_id") != ipc_id])
@@ -1746,7 +1798,6 @@ def hook_session_end() -> None:
     # IPC deregister
     try:
         from ipc.agent import deregister as ipc_deregister
-
         ipc_deregister()
     except Exception:
         pass
@@ -1789,10 +1840,9 @@ def hook_heartbeat() -> None:
 
     # IPC heartbeat + inbox check
     try:
-        from ipc.agent import get_current_agent_id, refresh_heartbeat
-        from ipc.direct import inbox_depth
+        from ipc.agent import refresh_heartbeat, get_current_agent_id
+        from ipc.direct import recv as ipc_recv, inbox_depth
         from ipc.dlq import sweep_pending
-
         refresh_heartbeat()
         sweep_pending()
         aid = get_current_agent_id()
@@ -1838,8 +1888,8 @@ def hook_test() -> None:
         start = time.time()
         try:
             # Suppress output during test
-            import contextlib
             import io
+            import contextlib
 
             f = io.StringIO()
             with contextlib.redirect_stdout(f):

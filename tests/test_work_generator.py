@@ -9,8 +9,6 @@ import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from datetime import UTC
-
 from work_generator import (
     WorkGenerator,
     infer_model,
@@ -19,6 +17,7 @@ from work_generator import (
     load_scan_state,
     save_scan_state,
 )
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -116,7 +115,10 @@ class TestScanProjectPlans:
     def test_finds_first_incomplete_item(self, swarm_tmpdir, project_dir):
         plan = project_dir / "plans" / "my-project-plan.md"
         plan.write_text(
-            "# Phase 1 Setup\n- [x] Done item\n- [ ] Implement authentication\n- [ ] Write tests\n"
+            "# Phase 1 Setup\n"
+            "- [x] Done item\n"
+            "- [ ] Implement authentication\n"
+            "- [ ] Write tests\n"
         )
         wg = _make_generator(
             swarm_tmpdir,
@@ -128,7 +130,9 @@ class TestScanProjectPlans:
 
     def test_skips_human_tasks(self, swarm_tmpdir, project_dir):
         plan = project_dir / "plans" / "my-project-plan.md"
-        plan.write_text("# Phase 1\n- [ ] Josh reviews the draft\n- [ ] Run automated tests\n")
+        plan.write_text(
+            "# Phase 1\n- [ ] Josh reviews the draft\n- [ ] Run automated tests\n"
+        )
         wg = _make_generator(
             swarm_tmpdir,
             {"my-project": {"path": str(project_dir), "host": "node_primary"}},
@@ -240,7 +244,9 @@ class TestScanPrometheusAlerts:
         wg = _make_generator(swarm_tmpdir)
         from urllib.error import URLError
 
-        with patch("work_generator.urlopen", side_effect=URLError("connection refused")):
+        with patch(
+            "work_generator.urlopen", side_effect=URLError("connection refused")
+        ):
             tasks = wg.scan_prometheus_alerts()
         assert tasks == []
 
@@ -295,6 +301,8 @@ class TestScanGitChanges:
             swarm_tmpdir,
             {"active-proj": {"path": str(proj), "host": "node_primary"}},
         )
+
+        call_count = {"n": 0}
 
         def fake_run(cmd, **kwargs):
             result = MagicMock()
@@ -474,9 +482,9 @@ class TestScheduledMaintenance:
         assert any("Kin commit" in t for t in titles)
 
     def test_daily_tasks_not_duplicated(self, swarm_tmpdir):
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         save_scan_state(swarm_tmpdir, {"maintenance": {"last_daily": today}})
 
         # daily_hour=0 so it should run... but last_daily is today so it shouldn't
@@ -491,5 +499,7 @@ class TestScheduledMaintenance:
         wg = WorkGenerator(config)
         tasks = wg.scan_scheduled_maintenance()
         # Should be empty or only weekly tasks (if today is the right day)
-        daily_titles = [t["title"] for t in tasks if t.get("source") == "scheduled_daily"]
+        daily_titles = [
+            t["title"] for t in tasks if t.get("source") == "scheduled_daily"
+        ]
         assert daily_titles == []

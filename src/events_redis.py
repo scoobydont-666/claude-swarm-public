@@ -98,7 +98,9 @@ def since_last_session(host: str = "") -> list[dict]:
     return query(limit=50)
 
 
-def emit_commit(project: str, commit_hash: str, message: str, files_changed: int = 0) -> str:
+def emit_commit(
+    project: str, commit_hash: str, message: str, files_changed: int = 0
+) -> str:
     """Emit a commit event."""
     return emit(
         "commit",
@@ -136,7 +138,9 @@ def emit_task_complete(task_id: str, project: str = "", result: str = "") -> str
     )
 
 
-def emit_rate_limit(profile: str = "", limit_type: str = "", reset_hint: str = "") -> str:
+def emit_rate_limit(
+    profile: str = "", limit_type: str = "", reset_hint: str = ""
+) -> str:
     """Emit a rate-limit event."""
     return emit(
         "rate_limit",

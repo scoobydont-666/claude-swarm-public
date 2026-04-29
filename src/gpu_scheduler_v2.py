@@ -12,17 +12,13 @@ Replaces the lockfile-based gpu_slots.py with a proper scheduler that:
 import logging
 import time
 from dataclasses import dataclass
+from typing import Optional
 
 from gpu_discovery import (
+    GpuInfo, discover_fleet, save_inventory,
+    get_available_gpus, allocate_gpu, release_gpu,
+    find_best_gpu_for_model, init_db, MODEL_VRAM_REQUIREMENTS,
     DEFAULT_DB_PATH,
-    MODEL_VRAM_REQUIREMENTS,
-    GpuInfo,
-    allocate_gpu,
-    discover_fleet,
-    get_available_gpus,
-    init_db,
-    release_gpu,
-    save_inventory,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,11 +35,10 @@ MODEL_SIZE_TIERS = {
 @dataclass
 class ScheduleResult:
     """Result of a GPU scheduling request."""
-
     success: bool
-    host: str | None = None
+    host: Optional[str] = None
     gpu_indices: list[int] = None
-    model_name: str | None = None
+    model_name: Optional[str] = None
     vram_allocated_mb: int = 0
     reason: str = ""
 
@@ -117,34 +112,22 @@ class GpuScheduler:
             preferred = [g for g in available if g.host.upper() == prefer_host.upper()]
             if preferred:
                 gpu = preferred[0]
-                if allocate_gpu(
-                    gpu.host, gpu.gpu_index, task_id, model_name, required_vram_mb, self.db_path
-                ):
+                if allocate_gpu(gpu.host, gpu.gpu_index, task_id, model_name, required_vram_mb, self.db_path):
                     return ScheduleResult(
-                        success=True,
-                        host=gpu.host,
-                        gpu_indices=[gpu.gpu_index],
-                        model_name=model_name,
-                        vram_allocated_mb=required_vram_mb,
+                        success=True, host=gpu.host, gpu_indices=[gpu.gpu_index],
+                        model_name=model_name, vram_allocated_mb=required_vram_mb,
                         reason=f"Allocated on preferred host {gpu.host}",
                     )
 
         # Find best GPU across fleet (use explicit VRAM requirement)
-        available = get_available_gpus(
-            min_vram_mb=required_vram_mb, exclude_hosts=self.exclude_hosts, db_path=self.db_path
-        )
+        available = get_available_gpus(min_vram_mb=required_vram_mb, exclude_hosts=self.exclude_hosts, db_path=self.db_path)
         # Sort by least excess VRAM (tight packing)
         available.sort(key=lambda g: g.vram_free_mb)
         gpu = available[0] if available else None
-        if gpu and allocate_gpu(
-            gpu.host, gpu.gpu_index, task_id, model_name, required_vram_mb, self.db_path
-        ):
+        if gpu and allocate_gpu(gpu.host, gpu.gpu_index, task_id, model_name, required_vram_mb, self.db_path):
             return ScheduleResult(
-                success=True,
-                host=gpu.host,
-                gpu_indices=[gpu.gpu_index],
-                model_name=model_name,
-                vram_allocated_mb=required_vram_mb,
+                success=True, host=gpu.host, gpu_indices=[gpu.gpu_index],
+                model_name=model_name, vram_allocated_mb=required_vram_mb,
                 reason=f"Best-fit allocation on {gpu.host} GPU {gpu.gpu_index} ({gpu.vram_free_mb}MB free)",
             )
 
@@ -159,16 +142,12 @@ class GpuScheduler:
             reason=f"No GPU available with {required_vram_mb}MB VRAM (excluded: {self.exclude_hosts})",
         )
 
-    def _try_multi_gpu(
-        self, task_id: str, model_name: str, required_vram_mb: int
-    ) -> ScheduleResult:
+    def _try_multi_gpu(self, task_id: str, model_name: str, required_vram_mb: int) -> ScheduleResult:
         """Try to allocate multiple GPUs on the same host for tensor parallelism."""
         conn = init_db(self.db_path)
         try:
             # Group available GPUs by host
-            all_gpus = get_available_gpus(
-                min_vram_mb=0, exclude_hosts=self.exclude_hosts, db_path=self.db_path
-            )
+            all_gpus = get_available_gpus(min_vram_mb=0, exclude_hosts=self.exclude_hosts, db_path=self.db_path)
             by_host: dict[str, list[GpuInfo]] = {}
             for gpu in all_gpus:
                 by_host.setdefault(gpu.host, []).append(gpu)
@@ -180,23 +159,14 @@ class GpuScheduler:
                     # Allocate all GPUs on this host
                     allocated_indices = []
                     for gpu in gpus:
-                        if allocate_gpu(
-                            host,
-                            gpu.gpu_index,
-                            task_id,
-                            model_name,
-                            required_vram_mb // len(gpus),
-                            self.db_path,
-                        ):
+                        if allocate_gpu(host, gpu.gpu_index, task_id, model_name,
+                                       required_vram_mb // len(gpus), self.db_path):
                             allocated_indices.append(gpu.gpu_index)
 
                     if len(allocated_indices) >= 2:
                         return ScheduleResult(
-                            success=True,
-                            host=host,
-                            gpu_indices=allocated_indices,
-                            model_name=model_name,
-                            vram_allocated_mb=combined_vram,
+                            success=True, host=host, gpu_indices=allocated_indices,
+                            model_name=model_name, vram_allocated_mb=combined_vram,
                             reason=f"Multi-GPU on {host}: {len(allocated_indices)} GPUs, {combined_vram}MB combined",
                         )
                     else:
@@ -204,9 +174,7 @@ class GpuScheduler:
                         for idx in allocated_indices:
                             release_gpu(host, idx, self.db_path)
 
-            return ScheduleResult(
-                success=False, reason="No host has enough combined VRAM for multi-GPU"
-            )
+            return ScheduleResult(success=False, reason="No host has enough combined VRAM for multi-GPU")
         finally:
             conn.close()
 
@@ -220,9 +188,7 @@ class GpuScheduler:
         """Get current GPU allocation status."""
         conn = init_db(self.db_path)
         try:
-            inventory = conn.execute(
-                "SELECT host, gpu_index, gpu_model, vram_total_mb, vram_free_mb FROM gpu_inventory"
-            ).fetchall()
+            inventory = conn.execute("SELECT host, gpu_index, gpu_model, vram_total_mb, vram_free_mb FROM gpu_inventory").fetchall()
             allocations = conn.execute(
                 "SELECT host, gpu_index, task_id, model_name, vram_required_mb, allocated_at FROM gpu_allocations WHERE released_at IS NULL"
             ).fetchall()
@@ -232,24 +198,11 @@ class GpuScheduler:
                 "allocated_gpus": len(allocations),
                 "available_gpus": len(inventory) - len(allocations),
                 "inventory": [
-                    {
-                        "host": r[0],
-                        "gpu_index": r[1],
-                        "model": r[2],
-                        "vram_total_mb": r[3],
-                        "vram_free_mb": r[4],
-                    }
+                    {"host": r[0], "gpu_index": r[1], "model": r[2], "vram_total_mb": r[3], "vram_free_mb": r[4]}
                     for r in inventory
                 ],
                 "allocations": [
-                    {
-                        "host": r[0],
-                        "gpu_index": r[1],
-                        "task_id": r[2],
-                        "model": r[3],
-                        "vram_mb": r[4],
-                        "since": r[5],
-                    }
+                    {"host": r[0], "gpu_index": r[1], "task_id": r[2], "model": r[3], "vram_mb": r[4], "since": r[5]}
                     for r in allocations
                 ],
                 "excluded_hosts": self.exclude_hosts,

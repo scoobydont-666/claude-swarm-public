@@ -120,7 +120,7 @@ data_sources:
       - ntnx-cursor-env
       - nai-agent
       - nai-control-center
-      - nai-incidents
+      - nai-sentinel
       - prism-mcp-server
       - hydra-sentinel
       - ntnx-common

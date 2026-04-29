@@ -9,52 +9,31 @@ Pattern from Augment Code Intent's bidirectional living specs.
 
 import json
 import logging
-import os
 import subprocess
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 CB_MCP_URL = "http://127.0.0.1:8520/mcp"
 
-_CB_TOKEN_PATH = os.environ.get("CB_TOKEN_FILE", "/opt/ai-shared/secrets/cb-mcp-token")
-try:
-    with open(_CB_TOKEN_PATH) as _tf:
-        _CB_TOKEN = _tf.read().strip()
-except OSError:
-    _CB_TOKEN = ""
 
-
-def _mcp_call(tool_name: str, arguments: dict) -> dict | None:
+def _mcp_call(tool_name: str, arguments: dict) -> Optional[dict]:
     """Call a Context Bridge MCP tool via HTTP."""
-    payload = json.dumps(
-        {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments,
-            },
-        }
-    )
+    payload = json.dumps({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": tool_name,
+            "arguments": arguments,
+        },
+    })
     try:
-        curl_cmd = [
-            "curl",
-            "-sf",
-            "-X",
-            "POST",
-            CB_MCP_URL,
-            "-H",
-            "Content-Type: application/json",
-        ]
-        if _CB_TOKEN:
-            curl_cmd.extend(["-H", f"Authorization: Bearer {_CB_TOKEN}"])
-        curl_cmd.extend(["-d", payload])
         result = subprocess.run(
-            curl_cmd,
-            capture_output=True,
-            text=True,
-            timeout=10,
+            ["curl", "-sf", "-X", "POST", CB_MCP_URL,
+             "-H", "Content-Type: application/json",
+             "-d", payload],
+            capture_output=True, text=True, timeout=10,
         )
         if result.returncode == 0 and result.stdout:
             resp = json.loads(result.stdout)
@@ -79,23 +58,20 @@ def create_spec(pipeline_id: str, spec_content: str, title: str = "") -> bool:
         True if successfully stored
     """
     alias = f"spec:{pipeline_id}"
-    result = _mcp_call(
-        "cb_ingest",
-        {
-            "source_type": "raw",
-            "content": spec_content,
-            "alias": alias,
-            "content_type": "markdown",
-            "namespace": "pipeline_specs",
-        },
-    )
+    result = _mcp_call("cb_ingest", {
+        "source_type": "raw",
+        "content": spec_content,
+        "alias": alias,
+        "content_type": "markdown",
+        "namespace": "pipeline_specs",
+    })
     if result and result.get("status") in ("cached", "deduped"):
         logger.info(f"Living spec created: {alias} ({result.get('chunk_count', 0)} chunks)")
         return True
     return False
 
 
-def read_spec(pipeline_id: str) -> str | None:
+def read_spec(pipeline_id: str) -> Optional[str]:
     """Read a living specification from Context Bridge.
 
     Args:
@@ -105,16 +81,16 @@ def read_spec(pipeline_id: str) -> str | None:
         Spec content or None if not found
     """
     alias = f"spec:{pipeline_id}"
-    result = _mcp_call(
-        "cb_peek",
-        {
-            "alias": alias,
-            "namespace": "pipeline_specs",
-        },
-    )
+    result = _mcp_call("cb_peek", {
+        "alias": alias,
+        "namespace": "pipeline_specs",
+    })
     if result and result.get("results"):
         # Concatenate all chunks
-        return "\n".join(chunk.get("content", "") for chunk in result["results"])
+        return "\n".join(
+            chunk.get("content", "")
+            for chunk in result["results"]
+        )
     return None
 
 
@@ -129,15 +105,12 @@ def search_spec(pipeline_id: str, query: str) -> list[dict]:
         List of matching chunks
     """
     alias = f"spec:{pipeline_id}"
-    result = _mcp_call(
-        "cb_search",
-        {
-            "query": query,
-            "alias": alias,
-            "namespace": "pipeline_specs",
-            "include_chunk_content": True,
-        },
-    )
+    result = _mcp_call("cb_search", {
+        "query": query,
+        "alias": alias,
+        "namespace": "pipeline_specs",
+        "include_chunk_content": True,
+    })
     if result:
         return result.get("results", result.get("grouped_results", []))
     return []
@@ -151,11 +124,8 @@ def update_spec(pipeline_id: str, new_content: str) -> bool:
 def delete_spec(pipeline_id: str) -> bool:
     """Delete a living specification."""
     alias = f"spec:{pipeline_id}"
-    result = _mcp_call(
-        "cb_manage",
-        {
-            "action": "evict_alias",
-            "alias": alias,
-        },
-    )
+    result = _mcp_call("cb_manage", {
+        "action": "evict_alias",
+        "alias": alias,
+    })
     return result is not None and result.get("evicted", False)

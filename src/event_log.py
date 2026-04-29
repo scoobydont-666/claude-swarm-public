@@ -2,8 +2,10 @@
 
 import fcntl
 import sqlite3
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
+
 
 DB_PATH = Path("/opt/claude-swarm/data/health-events.db")
 
@@ -76,7 +78,7 @@ class EventLog:
         action_taken: str = "",
         action_result: str = "",
         escalated_to: str = "",
-        timestamp: str | None = None,
+        timestamp: Optional[str] = None,
     ) -> int:
         """Insert one event row. Returns the new row id."""
         ts = timestamp or _now_iso()
@@ -108,10 +110,10 @@ class EventLog:
 
     def query(
         self,
-        rule_name: str | None = None,
-        host: str | None = None,
-        since: str | None = None,
-        until: str | None = None,
+        rule_name: Optional[str] = None,
+        host: Optional[str] = None,
+        since: Optional[str] = None,
+        until: Optional[str] = None,
         limit: int = 100,
     ) -> list[dict]:
         """Query events with optional filters.
@@ -158,7 +160,7 @@ class EventLog:
         finally:
             conn.close()
 
-    def last_action_time(self, rule_name: str, host: str = "") -> str | None:
+    def last_action_time(self, rule_name: str, host: str = "") -> Optional[str]:
         """Return the timestamp of the most recent action for rule+host, or None."""
         conn = _get_conn()
         try:
@@ -192,11 +194,15 @@ class EventLog:
         """Delete events older than N days. Returns count of deleted rows."""
         from datetime import timedelta
 
-        cutoff = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
         with self._write_lock():
             conn = _get_conn()
             try:
-                cur = conn.execute("DELETE FROM health_events WHERE timestamp < ?", (cutoff,))
+                cur = conn.execute(
+                    "DELETE FROM health_events WHERE timestamp < ?", (cutoff,)
+                )
                 deleted = cur.rowcount
                 conn.commit()
                 if deleted > 0:

@@ -26,7 +26,9 @@ logger = logging.getLogger(__name__)
 CLAUDE_CONFIG_DIR = "/opt/claude-configs/claude-config"
 
 
-def _run(cmd: list[str], cwd: str | None = None, timeout: int = 15) -> subprocess.CompletedProcess:
+def _run(
+    cmd: list[str], cwd: str | None = None, timeout: int = 15
+) -> subprocess.CompletedProcess:
     """Run a command, return result. Never raises."""
     try:
         return subprocess.run(
@@ -133,7 +135,9 @@ def push_all_dirty() -> dict[str, Any]:
     results: dict[str, Any] = {}
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        future_to_proj = {executor.submit(_fetch_and_push, proj): proj for proj in projects}
+        future_to_proj = {
+            executor.submit(_fetch_and_push, proj): proj for proj in projects
+        }
         try:
             for future in concurrent.futures.as_completed(future_to_proj, timeout=120):
                 proj = future_to_proj[future]

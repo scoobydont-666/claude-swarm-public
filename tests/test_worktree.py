@@ -23,11 +23,15 @@ def git_repo(tmp_path):
         cwd=str(repo_dir),
         capture_output=True,
     )
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=str(repo_dir), capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.name", "Test"], cwd=str(repo_dir), capture_output=True
+    )
     # Create initial commit so HEAD exists
     (repo_dir / "README.md").write_text("test")
     subprocess.run(["git", "add", "README.md"], cwd=str(repo_dir), capture_output=True)
-    subprocess.run(["git", "commit", "-m", "init"], cwd=str(repo_dir), capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"], cwd=str(repo_dir), capture_output=True
+    )
     return repo_dir
 
 
@@ -71,7 +75,9 @@ class TestCreateWorktree:
     def test_create_worktree_success(self, swarm_tmpdir, git_repo):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             worktree_path = lib.create_worktree(str(git_repo), "task-001")
@@ -82,7 +88,9 @@ class TestCreateWorktree:
     def test_create_worktree_branch_naming(self, swarm_tmpdir, git_repo):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.create_worktree(str(git_repo), "task-002")
@@ -98,7 +106,9 @@ class TestCreateWorktree:
     def test_create_worktree_not_git_repo(self, swarm_tmpdir, tmp_path):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             plain_dir = tmp_path / "not-git"
@@ -109,7 +119,9 @@ class TestCreateWorktree:
     def test_create_worktree_records_in_task(self, swarm_tmpdir, git_repo):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             # Create and claim a task first
@@ -129,14 +141,18 @@ class TestCompleteWorktree:
     def test_complete_worktree_merge(self, swarm_tmpdir, git_repo):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             wt_path = lib.create_worktree(str(git_repo), "task-010")
 
             # Make a change in the worktree
             (Path(wt_path) / "new-file.txt").write_text("from worktree")
-            subprocess.run(["git", "add", "new-file.txt"], cwd=wt_path, capture_output=True)
+            subprocess.run(
+                ["git", "add", "new-file.txt"], cwd=wt_path, capture_output=True
+            )
             subprocess.run(
                 ["git", "commit", "-m", "worktree change"],
                 cwd=wt_path,
@@ -157,10 +173,12 @@ class TestCompleteWorktree:
     def test_complete_worktree_branch_only(self, swarm_tmpdir, git_repo):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
-            lib.create_worktree(str(git_repo), "task-011")
+            wt_path = lib.create_worktree(str(git_repo), "task-011")
 
             # No remote, so push will fail gracefully
             result = lib.complete_worktree(str(git_repo), "task-011", merge=False)
@@ -175,7 +193,9 @@ class TestListWorktrees:
     def test_list_worktrees(self, swarm_tmpdir, git_repo):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.create_worktree(str(git_repo), "task-020")

@@ -46,7 +46,6 @@ def _resolve_env_vars(value: str) -> str:
     Returns:
         String with env vars resolved.
     """
-
     def _replace(match: re.Match) -> str:
         var_name = match.group(1)
         default = match.group(2)
@@ -118,12 +117,7 @@ def load_config(force_reload: bool = False) -> dict:
     except OSError:
         return _cached_config or {}
 
-    if (
-        not force_reload
-        and _cached_config is not None
-        and _cached_path == config_path
-        and mtime == _cached_mtime
-    ):
+    if not force_reload and _cached_config is not None and _cached_path == config_path and mtime == _cached_mtime:
         return _cached_config
 
     try:

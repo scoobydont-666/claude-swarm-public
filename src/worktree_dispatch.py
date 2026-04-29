@@ -9,10 +9,11 @@ Patterns from Cursor Background Agents and Claude Code Agent Teams.
 
 import logging
 import shlex
-import socket
 import subprocess
 import time
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,30 +21,9 @@ WORKTREE_BASE = "/tmp/swarm-worktrees"
 BRANCH_PREFIX = "swarm"
 
 
-def _is_localhost(host: str) -> bool:
-    """Socket-based localhost detection (audit remediation #3).
-
-    Handles hostname synonyms and DNS aliases via resolution.
-    """
-    if not host:
-        return False
-    norm = host.strip().lower()
-    if norm in ("localhost", "127.0.0.1", "::1", socket.gethostname().lower()):
-        return True
-    if norm in ("mega", "$(hostname)"):
-        # Legacy script-artifact values that mean "run locally".
-        return True
-    try:
-        resolved = socket.gethostbyname(norm)
-        return resolved in ("127.0.0.1", "::1")
-    except (socket.gaierror, socket.herror):
-        return False
-
-
 @dataclass
 class WorktreeInfo:
     """Info about a created worktree."""
-
     path: str
     branch: str
     repo_path: str
@@ -57,7 +37,7 @@ def create_worktree(
     host: str = "localhost",
     base_branch: str = "main",
     worktree_base: str = WORKTREE_BASE,
-) -> WorktreeInfo | None:
+) -> Optional[WorktreeInfo]:
     """Create a git worktree for isolated agent work.
 
     Args:
@@ -83,19 +63,15 @@ def create_worktree(
     full_cmd = " && ".join(cmds)
 
     try:
-        if _is_localhost(host):
+        if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
             result = subprocess.run(
                 ["bash", "-c", full_cmd],
-                capture_output=True,
-                text=True,
-                timeout=30,
+                capture_output=True, text=True, timeout=30,
             )
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
-                capture_output=True,
-                text=True,
-                timeout=30,
+                capture_output=True, text=True, timeout=30,
             )
 
         if result.returncode == 0:
@@ -152,19 +128,15 @@ def merge_worktree(
     full_cmd = " && ".join(cmds)
 
     try:
-        if _is_localhost(host):
+        if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
             result = subprocess.run(
                 ["bash", "-c", full_cmd],
-                capture_output=True,
-                text=True,
-                timeout=60,
+                capture_output=True, text=True, timeout=60,
             )
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
-                capture_output=True,
-                text=True,
-                timeout=60,
+                capture_output=True, text=True, timeout=60,
             )
 
         if result.returncode == 0:
@@ -195,13 +167,12 @@ def cleanup_worktree(
     full_cmd = " && ".join(cmds)
 
     try:
-        if _is_localhost(host):
+        if host == "localhost" or host.lower() in ("mega", "$(hostname)"):
             subprocess.run(["bash", "-c", full_cmd], capture_output=True, timeout=15)
         else:
             subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", full_cmd],
-                capture_output=True,
-                timeout=15,
+                capture_output=True, timeout=15,
             )
         logger.info(f"Worktree cleaned: {worktree.path}")
         return True
@@ -214,14 +185,12 @@ def list_worktrees(repo_path: str, host: str = "localhost") -> list[str]:
     """List active worktrees for a repo."""
     cmd = f"cd {shlex.quote(repo_path)} && git worktree list --porcelain"
     try:
-        if _is_localhost(host):
+        if host == "localhost":
             result = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True, timeout=10)
         else:
             result = subprocess.run(
                 ["ssh", "-o", "ConnectTimeout=5", f"josh@{host}", cmd],
-                capture_output=True,
-                text=True,
-                timeout=10,
+                capture_output=True, text=True, timeout=10,
             )
         if result.returncode == 0:
             return [

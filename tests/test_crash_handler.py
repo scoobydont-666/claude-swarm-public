@@ -3,16 +3,17 @@
 import signal
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from crash_handler import (
-    _crash_callbacks,
-    _session_info,
     install_crash_handlers,
     register_crash_callback,
     set_session_info,
+    _crash_callbacks,
+    _session_info,
 )
 
 

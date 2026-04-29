@@ -45,7 +45,7 @@ class TestRegister:
 
 class TestHeartbeat:
     def test_heartbeat_updates_file(self, tmp_agents_dir):
-        from registry import heartbeat, register
+        from registry import register, heartbeat
 
         agent = register()
         old_mtime = agent.agent_file.stat().st_mtime
@@ -62,7 +62,7 @@ class TestHeartbeat:
 
 class TestDeregister:
     def test_deregister_removes_file(self, tmp_agents_dir):
-        from registry import deregister, register
+        from registry import register, deregister
 
         agent = register()
         assert agent.agent_file.exists()
@@ -77,7 +77,7 @@ class TestListAgents:
         assert list_agents() == []
 
     def test_list_after_register(self, tmp_agents_dir):
-        from registry import list_agents, register
+        from registry import register, list_agents
 
         register(model="test")
         agents = list_agents()

@@ -171,14 +171,18 @@ class TestParentAutoComplete:
 
             # Parent should NOT be complete yet
             assert (swarm_tmpdir / "tasks" / "decomposed" / f"{task_id}.yaml").exists()
-            assert not (swarm_tmpdir / "tasks" / "completed" / f"{task_id}.yaml").exists()
+            assert not (
+                swarm_tmpdir / "tasks" / "completed" / f"{task_id}.yaml"
+            ).exists()
 
             # Claim and complete sub B
             lib.claim_task(sub_b)
             lib.complete_task(sub_b)
 
             # Now parent should auto-complete
-            assert not (swarm_tmpdir / "tasks" / "decomposed" / f"{task_id}.yaml").exists()
+            assert not (
+                swarm_tmpdir / "tasks" / "decomposed" / f"{task_id}.yaml"
+            ).exists()
             assert (swarm_tmpdir / "tasks" / "completed" / f"{task_id}.yaml").exists()
 
             # Verify parent data

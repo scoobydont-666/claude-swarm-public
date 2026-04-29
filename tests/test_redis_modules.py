@@ -21,7 +21,7 @@ def mock_redis(monkeypatch):
 
     # Skip Redis health check at import time
     monkeypatch.setenv("SWARM_REDIS_SKIP_CHECK", "1")
-    from src import events_redis, gpu_slots_redis, registry_redis
+    from src import registry_redis, events_redis, gpu_slots_redis
 
     monkeypatch.setattr(registry_redis._rc, "get_client", lambda: fake_client)
     monkeypatch.setattr(registry_redis._rc, "health_check", lambda: True)
@@ -34,7 +34,7 @@ def mock_redis(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def mock_util(monkeypatch):
-    from src import events_redis, gpu_slots_redis, registry_redis
+    from src import registry_redis, events_redis, gpu_slots_redis
 
     monkeypatch.setattr(registry_redis, "hostname", lambda: "test-host")
     monkeypatch.setattr(registry_redis, "now_iso", lambda: "2026-04-01T00:00:00Z")
@@ -50,7 +50,7 @@ def mock_util(monkeypatch):
 
 class TestRegistry:
     def test_register_and_list(self):
-        from src.registry_redis import list_agents, register
+        from src.registry_redis import register, list_agents
 
         agent = register(model="opus", project="hydra")
         assert agent.hostname == "test-host"
@@ -58,7 +58,7 @@ class TestRegistry:
         assert len(agents) >= 1
 
     def test_deregister(self):
-        from src.registry_redis import deregister, list_agents, register
+        from src.registry_redis import register, deregister, list_agents
 
         agent = register()
         deregister(agent)
@@ -66,7 +66,7 @@ class TestRegistry:
         assert len(agents) == 0
 
     def test_heartbeat(self):
-        from src.registry_redis import heartbeat, register
+        from src.registry_redis import register, heartbeat
 
         agent = register()
         heartbeat(agent)  # Should not raise
@@ -80,7 +80,7 @@ class TestRegistry:
         assert agent.task_id == "task-001"
 
     def test_get_live_agents(self):
-        from src.registry_redis import get_live_agents, register
+        from src.registry_redis import register, get_live_agents
 
         register()
         live = get_live_agents()
@@ -92,7 +92,7 @@ class TestRegistry:
         assert get_stale_agents() == []
 
     def test_heartbeat_thread(self):
-        from src.registry_redis import HeartbeatThread, register
+        from src.registry_redis import register, HeartbeatThread
 
         agent = register()
         hb = HeartbeatThread(agent, interval=1)
@@ -142,7 +142,7 @@ class TestEvents:
 
         for i in range(10):
             emit("test", details={"i": i})
-        rotate(max_files=5)
+        trimmed = rotate(max_files=5)
         # Should not raise
 
 
@@ -153,7 +153,7 @@ class TestEvents:
 
 class TestGPUSlots:
     def test_claim_and_release(self):
-        from src.gpu_slots_redis import claim_slot, is_slot_available, release_slot
+        from src.gpu_slots_redis import claim_slot, release_slot, is_slot_available
 
         assert is_slot_available(0)
         assert claim_slot(0)
@@ -176,7 +176,7 @@ class TestGPUSlots:
         assert status[0]["gpu_id"] == 0
 
     def test_setup_ollama(self):
-        from src.gpu_slots_redis import is_slot_available, setup_ollama_slot
+        from src.gpu_slots_redis import setup_ollama_slot, is_slot_available
 
         assert setup_ollama_slot()
         assert not is_slot_available(0)

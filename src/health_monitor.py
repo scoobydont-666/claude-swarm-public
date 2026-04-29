@@ -18,9 +18,9 @@ import signal
 import socket
 import sys
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
 import yaml
@@ -31,10 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from event_log import EventLog
 from health_rules import RULES
 from remediations import RemediationEngine
-from ttl_cache import ttl_cache
-from util import now_iso as _now_iso
-from util import now_ts as _now_ts
-from util import projects_for_host
+from util import now_iso as _now_iso, now_ts as _now_ts, projects_for_host
 
 # ---------------------------------------------------------------------------
 # Logging setup
@@ -121,80 +118,17 @@ def _merge_config(base: dict, override: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
-# F1 — SSRF guard on the Prometheus URL loaded from config.
-# Without this, a malicious config file could point the health monitor at
-# an arbitrary internal service (SSH banner grab, SMTP relay probe, etc).
-# We require: scheme in {http, https}, hostname set, and (by default) the
-# URL must point to localhost or an RFC1918/link-local net.
-_ALLOWED_PROM_SCHEMES = {"http", "https"}
-
-
-def _validate_prometheus_url(raw: str) -> str:
-    """Parse + validate a Prometheus URL. Raise ValueError on malformed or
-    disallowed URLs. Returns the normalized URL on success.
-
-    Rules:
-        - scheme must be http or https (file://, gopher://, etc rejected)
-        - hostname must be present (empty-host URLs rejected)
-        - if HEALTH_MONITOR_ALLOW_PUBLIC_PROM is NOT set, hostname must
-          be loopback (127.0.0.1 / ::1 / localhost) or RFC1918/link-local
-        - user:pass@host form rejected (credentials in URLs are a smell)
-    """
-    import ipaddress
-    import os as _o
-    from urllib.parse import urlparse
-
-    parsed = urlparse(raw)
-    if parsed.scheme not in _ALLOWED_PROM_SCHEMES:
-        raise ValueError(
-            f"prometheus_url scheme '{parsed.scheme}' not in {sorted(_ALLOWED_PROM_SCHEMES)}"
-        )
-    if not parsed.hostname:
-        raise ValueError(f"prometheus_url has no hostname: {raw!r}")
-    if parsed.username or parsed.password:
-        raise ValueError(
-            "prometheus_url must not embed credentials (user:pass@host); "
-            "use an env var or a proxy if auth is needed"
-        )
-
-    # Allow public URLs only when explicitly opted in
-    if _o.environ.get("HEALTH_MONITOR_ALLOW_PUBLIC_PROM"):
-        return raw
-
-    host = parsed.hostname
-    if host in {"localhost", "127.0.0.1", "::1"}:
-        return raw
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        # Non-IP hostname (e.g., "prometheus.svc.cluster.local") — we
-        # can't easily validate without DNS; reject by default to avoid
-        # SSRF to arbitrary names. Set HEALTH_MONITOR_ALLOW_PUBLIC_PROM
-        # to override.
-        raise ValueError(
-            f"prometheus_url host '{host}' is not an IP and not loopback; "
-            f"set HEALTH_MONITOR_ALLOW_PUBLIC_PROM=1 to allow named hosts"
-        ) from None
-
-    if not (ip.is_private or ip.is_loopback or ip.is_link_local):
-        raise ValueError(
-            f"prometheus_url points to a public IP {host}; "
-            f"set HEALTH_MONITOR_ALLOW_PUBLIC_PROM=1 to allow"
-        )
-    return raw
-
-
 class HealthMonitor:
     """Watches Prometheus, services, NFS, and git state. Auto-remediates or escalates."""
 
-    def __init__(self, config: dict | None = None) -> None:
+    def __init__(self, config: Optional[dict] = None) -> None:
         yaml_cfg = _load_swarm_config()
         self.config: dict[str, Any] = _merge_config(DEFAULT_CONFIG, yaml_cfg)
         if config:
             self.config = _merge_config(self.config, config)
 
-        self.prometheus_url: str = _validate_prometheus_url(
-            self.config.get("prometheus_url", "http://127.0.0.1:9090")
+        self.prometheus_url: str = self.config.get(
+            "prometheus_url", "http://127.0.0.1:9090"
         )
         self.check_interval: int = int(self.config.get("check_interval_seconds", 60))
         self.hosts: dict[str, Any] = self.config.get("hosts", {})
@@ -296,51 +230,18 @@ class HealthMonitor:
 
     # ── Prometheus helpers ─────────────────────────────────────────────────
 
-    @ttl_cache(ttl_seconds=5.0, max_size=64)
     def _prom_query(self, query: str) -> list[dict]:
-        """Execute an instant PromQL query. Returns list of result dicts.
-
-        F5: wrapped in a 5s TTL cache — duplicate rules inside the 1s
-        health_monitor loop would hammer Prometheus with identical queries;
-        5s staleness is acceptable for rule evaluation and 10-50x reduces
-        outbound request volume in practice.
-
-        E7: also wrapped in a circuit breaker — when Prometheus fails 5
-        times in the trailing window of 10 queries, the breaker opens and
-        further queries short-circuit to [] for 30s (exponential backoff
-        to max 5m). Prevents the 1s health_monitor loop from hammering a
-        down Prometheus during incidents.
-        """
-        if not hasattr(self, "_prom_breaker"):
-            from prom_circuit_breaker import CircuitBreaker, CircuitBreakerOpen
-
-            self._prom_breaker = CircuitBreaker(
-                failure_threshold=5,
-                window_size=10,
-                cooldown_seconds=30.0,
-                max_cooldown_seconds=300.0,
-                name="prometheus",
-            )
-            self._CircuitBreakerOpen = CircuitBreakerOpen
-
+        """Execute an instant PromQL query. Returns list of result dicts."""
         url = f"{self.prometheus_url}/api/v1/query"
-
-        def _do_query() -> list[dict]:
+        try:
             resp = requests.get(url, params={"query": query}, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             if data.get("status") == "success":
                 return data.get("data", {}).get("result", [])
-            return []
-
-        try:
-            return self._prom_breaker.call(_do_query)
-        except self._CircuitBreakerOpen as exc:
-            log.debug("Prometheus query short-circuited: %s", exc)
-            return []
         except requests.RequestException as exc:
             log.warning("Prometheus query failed (%s): %s", query, exc)
-            return []
+        return []
 
     # ── Individual check implementations ──────────────────────────────────
 
@@ -392,16 +293,13 @@ class HealthMonitor:
             from swarm_lib import get_all_status
 
             stale = []
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)
             for status in get_all_status():
                 updated = status.get("updated_at", "")
                 if not updated:
                     continue
                 try:
-                    if isinstance(updated, (int, float)):
-                        dt = datetime.fromtimestamp(updated, tz=UTC)
-                    else:
-                        dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                    dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
                     age = (now - dt).total_seconds()
                     if age > threshold:
                         stale.append(
@@ -410,7 +308,7 @@ class HealthMonitor:
                                 "age_seconds": int(age),
                             }
                         )
-                except (ValueError, TypeError):
+                except ValueError:
                     continue
             return stale
         except ImportError:
@@ -457,7 +355,9 @@ class HealthMonitor:
                     for line in result.stdout.strip().splitlines():
                         # git status --porcelain format: XY filename
                         filepath = line[3:].strip().strip('"')
-                        if not any(fnmatch.fnmatch(filepath, pat) for pat in exclude_patterns):
+                        if not any(
+                            fnmatch.fnmatch(filepath, pat) for pat in exclude_patterns
+                        ):
                             dirty_lines.append(line)
 
                     if not dirty_lines:
@@ -477,7 +377,9 @@ class HealthMonitor:
                             last_commit_ts = float(age_result.stdout.strip())
                         except ValueError:
                             pass
-                    age_minutes = (_now_ts() - last_commit_ts) / 60 if last_commit_ts else 9999
+                    age_minutes = (
+                        (_now_ts() - last_commit_ts) / 60 if last_commit_ts else 9999
+                    )
                     if age_minutes >= threshold_minutes:
                         triggered.append(
                             {
@@ -538,7 +440,7 @@ class HealthMonitor:
 
             # Read it back
             start = time.time()
-            with open(test_file) as f:
+            with open(test_file, "r") as f:
                 content = f.read()
             read_time = time.time() - start
 
@@ -567,7 +469,7 @@ class HealthMonitor:
                     }
                 )
 
-        except (OSError, TimeoutError) as exc:
+        except (OSError, IOError, TimeoutError) as exc:
             triggered.append(
                 {
                     "host": socket.gethostname(),
@@ -592,7 +494,7 @@ class HealthMonitor:
         if not claimed_dir.is_dir():
             return triggered
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
 
         for task_file in claimed_dir.glob("*.yaml"):
             try:
@@ -607,8 +509,10 @@ class HealthMonitor:
                     continue
 
                 try:
-                    claimed_dt = datetime.fromisoformat(claimed_at_str.replace("Z", "+00:00"))
-                    deadline = claimed_dt.replace(tzinfo=UTC) + timedelta(
+                    claimed_dt = datetime.fromisoformat(
+                        claimed_at_str.replace("Z", "+00:00")
+                    )
+                    deadline = claimed_dt.replace(tzinfo=timezone.utc) + timedelta(
                         minutes=estimated_minutes * 2
                     )
 
@@ -673,7 +577,7 @@ class HealthMonitor:
 
         # Build email subject with hostname convention
         hostname = socket.gethostname()
-        date_str = datetime.now(UTC).strftime("%Y-%m-%d")
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         email_subject = f"{hostname}-health-alert-{rule['name']}-{date_str}"
 
         # Build readable body
@@ -725,7 +629,8 @@ class HealthMonitor:
                     if not success and rule.get("escalate") == "email":
                         _, email_detail = self.remediation.send_alert_email(
                             subject=kwargs["subject"],
-                            body=kwargs["body"] + f"\nRemediation result: {action_result}",
+                            body=kwargs["body"]
+                            + f"\nRemediation result: {action_result}",
                         )
                         escalated_to = f"email: {email_detail}"
                         log.warning("Escalated to email: %s", email_detail)
@@ -751,7 +656,9 @@ class HealthMonitor:
                     log.error("Notification failed: %s", exc)
         else:
             if self._in_cooldown(rule, host):
-                log.debug("Rule '%s' host '%s' is in cooldown — skipping", rule_name, host)
+                log.debug(
+                    "Rule '%s' host '%s' is in cooldown — skipping", rule_name, host
+                )
             action_result = "skipped (cooldown or no action configured)"
 
         # Always record in event log
@@ -779,7 +686,9 @@ class HealthMonitor:
         if available:
             self._prom_consecutive_failures = 0
         else:
-            self._prom_consecutive_failures = getattr(self, "_prom_consecutive_failures", 0) + 1
+            self._prom_consecutive_failures = (
+                getattr(self, "_prom_consecutive_failures", 0) + 1
+            )
 
         return available
 
@@ -827,7 +736,9 @@ class HealthMonitor:
         # Pre-check Prometheus once per cycle to avoid repeated failures
         prom_ok = self._prometheus_available()
         if not prom_ok:
-            log.debug("Prometheus unreachable — skipping prometheus_query rules this cycle")
+            log.debug(
+                "Prometheus unreachable — skipping prometheus_query rules this cycle"
+            )
 
         futures: dict[concurrent.futures.Future, dict] = {}
         for rule in self.rules:
@@ -878,30 +789,4 @@ if __name__ == "__main__":
     if not monitor.config.get("enabled", True):
         log.info("Health monitor disabled in config — exiting")
         sys.exit(0)
-
-    # E5 — prune DLQ on startup (72h default window, covers weekends + 48h D3
-    # staging windows with a buffer day). Runs once per process start —
-    # long-running monitor gets one prune; systemd restarts trigger fresh ones.
-    try:
-        from ipc.dlq import prune_old_messages
-
-        pruned = prune_old_messages(hours=72)
-        if pruned:
-            log.info("DLQ startup prune: removed %d entries older than 72h", pruned)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("DLQ startup prune skipped: %s", exc)
-
-    # F4 — prune health-events SQLite (30d default) + VACUUM to reclaim space.
-    # event_log.prune() already does DELETE + VACUUM together; we just call
-    # it at startup so operators don't need a separate cron. Daily VACUUM
-    # overhead on ~30d of rows is negligible.
-    try:
-        from event_log import EventLog
-
-        elog_pruned = EventLog().prune(days=30)
-        if elog_pruned:
-            log.info("Event log startup prune: removed %d rows older than 30d", elog_pruned)
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Event log startup prune skipped: %s", exc)
-
     monitor.run()

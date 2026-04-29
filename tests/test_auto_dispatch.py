@@ -8,9 +8,9 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import swarm_lib as lib
-from auto_dispatch import AutoDispatcher, _tier_of
-from model_router import get_model_for_task
-from work_generator import infer_model  # noqa: F401  (legacy; used by other tests)
+from auto_dispatch import AutoDispatcher
+from work_generator import infer_model
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -63,8 +63,8 @@ class TestApprovalGating:
                 requires=[],
             )
 
-        # model_router "architecture" rule matches → opus tier (claude-opus-4-7).
-        assert _tier_of(get_model_for_task("Design the entire system architecture")) == "opus"
+        # infer_model on that title → "opus"
+        assert infer_model("Design the entire system architecture") == "opus"
 
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
@@ -89,8 +89,7 @@ class TestApprovalGating:
                 requires=[],
             )
 
-        # model_router "code_gen" rule matches implement/build → sonnet tier.
-        assert _tier_of(get_model_for_task("Implement logging middleware")) == "sonnet"
+        assert infer_model("Implement logging middleware") == "sonnet"
 
         fake_dispatch_result = MagicMock()
         fake_dispatch_result.dispatch_id = "dispatch-999-testhost"
@@ -104,8 +103,7 @@ class TestApprovalGating:
             dispatched = dispatcher.process_pending_tasks()
 
         assert len(dispatched) == 1
-        # Dispatcher stores full model ID; sonnet tier → claude-sonnet-4-6.
-        assert _tier_of(dispatched[0]["model"]) == "sonnet"
+        assert dispatched[0]["model"] == "sonnet"
 
     def test_haiku_task_dispatched(self, swarm_tmpdir):
         config = _make_config(swarm_tmpdir, enabled=True, require_approval_for=["opus"])
@@ -116,14 +114,13 @@ class TestApprovalGating:
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.create_task(
-                title="Find all README files",
-                description="Search repo",
+                title="Run tests on examforge",
+                description="Test run",
                 priority="medium",
                 requires=[],
             )
 
-        # model_router "search" rule matches find/grep/locate → haiku tier.
-        assert _tier_of(get_model_for_task("Find all README files")) == "haiku"
+        assert infer_model("Run tests on examforge") == "haiku"
 
         fake_result = MagicMock()
         fake_result.dispatch_id = "dispatch-123-testhost"
@@ -137,8 +134,7 @@ class TestApprovalGating:
             dispatched = dispatcher.process_pending_tasks()
 
         assert len(dispatched) == 1
-        # Dispatcher stores the full model ID from the router.
-        assert _tier_of(dispatched[0]["model"]) == "haiku"
+        assert dispatched[0]["model"] == "haiku"
 
     def test_haiku_only_mode_blocks_sonnet(self, swarm_tmpdir):
         """In haiku_only mode, sonnet tasks are not dispatched."""
@@ -297,7 +293,7 @@ class TestHostMatching:
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
             patch("auto_dispatch._find_best_host", return_value="node_gpu") as mock_host,
-            patch("auto_dispatch.dispatch", return_value=fake_result),
+            patch("auto_dispatch.dispatch", return_value=fake_result) as mock_dispatch,
         ):
             dispatched = dispatcher.process_pending_tasks()
 
@@ -338,8 +334,7 @@ class TestModelRouting:
 
         task_data = {"title": "Build the authentication module", "description": ""}
         model = dispatcher._infer_model(task_data)
-        # Full model ID from router; tier is sonnet ("build" → code_gen rule).
-        assert _tier_of(model) == "sonnet"
+        assert model == "sonnet"
 
 
 # ---------------------------------------------------------------------------

@@ -19,6 +19,8 @@ import logging
 import os
 import sqlite3
 import time
+from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 LOG = logging.getLogger(__name__)
@@ -111,17 +113,8 @@ class SQLiteTaskBackend:
                 """INSERT INTO tasks (id, title, description, project, priority,
                    requires, state, created_by, created_at, estimated_minutes)
                    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
-                (
-                    task_id,
-                    title,
-                    description,
-                    project,
-                    priority,
-                    requires_json,
-                    created_by,
-                    created_at,
-                    estimated_minutes,
-                ),
+                (task_id, title, description, project, priority,
+                 requires_json, created_by, created_at, estimated_minutes),
             )
             conn.commit()
             LOG.info("SQLite: task created %s (P%d)", task_id, priority)
@@ -178,7 +171,9 @@ class SQLiteTaskBackend:
         finally:
             conn.close()
 
-    def claim_matching(self, capabilities: list[str], claimer: str) -> dict | None:
+    def claim_matching(
+        self, capabilities: list[str], claimer: str
+    ) -> dict | None:
         """Claim highest-priority task matching capabilities.
 
         Args:
@@ -223,15 +218,13 @@ class SQLiteTaskBackend:
 
     def complete(self, task_id: str, result: str = "") -> dict | None:
         """Mark task as completed."""
-        return self._transition(
-            task_id, "completed", ("claimed", "running"), result=result, completed_at=time.time()
-        )
+        return self._transition(task_id, "completed", ("claimed", "running"),
+                                result=result, completed_at=time.time())
 
     def fail(self, task_id: str, error: str = "") -> dict | None:
         """Mark task as failed."""
-        return self._transition(
-            task_id, "failed", ("claimed", "running"), error=error, completed_at=time.time()
-        )
+        return self._transition(task_id, "failed", ("claimed", "running"),
+                                error=error, completed_at=time.time())
 
     def start(self, task_id: str) -> dict | None:
         """Transition claimed → running."""
@@ -251,9 +244,8 @@ class SQLiteTaskBackend:
         finally:
             conn.close()
 
-    def _transition(
-        self, task_id: str, new_state: str, valid_from: tuple[str, ...], **kwargs: object
-    ) -> dict | None:
+    def _transition(self, task_id: str, new_state: str,
+                    valid_from: tuple[str, ...], **kwargs: object) -> dict | None:
         """Generic state transition with validation."""
         values: list = [new_state]
         set_clause = "state = ?"

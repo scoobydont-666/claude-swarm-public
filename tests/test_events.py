@@ -2,7 +2,7 @@
 
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -133,7 +133,6 @@ class TestSinceLastSession:
 
     def test_returns_events_after_session_end(self, tmp_events_dir):
         import time
-
         from events import emit, since_last_session
 
         emit("commit", project="/opt/a")
@@ -176,7 +175,6 @@ class TestEventSequence:
 class TestEventWatcher:
     def test_watcher_starts_and_stops(self, tmp_events_dir):
         import time
-
         from events import EventWatcher
 
         with patch("events.EventWatcher._check_for_commits"):
@@ -190,7 +188,6 @@ class TestEventWatcher:
 
     def test_watcher_calls_check_for_commits(self, tmp_events_dir):
         import time
-
         from events import EventWatcher
 
         with patch(
@@ -218,7 +215,9 @@ class TestEventWatcher:
 class TestRotate:
     """Tests for event rotation and archive pruning."""
 
-    def _make_event_file(self, events_dir: Path, ts: datetime, suffix: str = "host-1234") -> Path:
+    def _make_event_file(
+        self, events_dir: Path, ts: datetime, suffix: str = "host-1234"
+    ) -> Path:
         """Write a minimal event JSON with a timestamp-prefixed filename."""
         filename = ts.strftime("%Y%m%dT%H%M%S") + f"000000-{suffix}.json"
         path = events_dir / filename
@@ -228,7 +227,7 @@ class TestRotate:
     def test_rotate_moves_old_files(self, tmp_events_dir):
         from events import rotate
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         old_ts = now.replace(year=now.year - 1)  # 1 year ago — definitely old
         new_ts = now  # right now — should NOT be rotated
 
@@ -248,7 +247,7 @@ class TestRotate:
     def test_rotate_keeps_recent_files(self, tmp_events_dir):
         from events import rotate
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         recent_ts = now  # within max_age_days
 
         f = self._make_event_file(tmp_events_dir, recent_ts, "host-003")
@@ -260,7 +259,7 @@ class TestRotate:
     def test_rotate_creates_archive_subdirs(self, tmp_events_dir):
         from events import rotate
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         old_ts = now.replace(year=now.year - 1)
         self._make_event_file(tmp_events_dir, old_ts, "host-004")
 
@@ -273,7 +272,7 @@ class TestRotate:
         """When total files exceed max_files, oldest files beyond the cap are archived."""
         from events import rotate
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         # Create 5 files all within max_age_days, but cap at 3
         for i in range(5):
             ts = now.replace(hour=(i % 24))
@@ -288,7 +287,7 @@ class TestRotate:
     def test_prune_archive_deletes_old(self, tmp_events_dir):
         from events import prune_archive
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         very_old_ts = now.replace(year=now.year - 1)
 
         archive_dir = tmp_events_dir / "archive" / very_old_ts.strftime("%Y-%m")
@@ -304,7 +303,7 @@ class TestRotate:
     def test_prune_archive_keeps_recent(self, tmp_events_dir):
         from events import prune_archive
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         # File 10 days old — keep it (max_age_days=30)
         recent_ts = now
 
@@ -321,7 +320,7 @@ class TestRotate:
     def test_prune_archive_removes_empty_dirs(self, tmp_events_dir):
         from events import prune_archive
 
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         very_old_ts = now.replace(year=now.year - 1)
 
         archive_dir = tmp_events_dir / "archive" / very_old_ts.strftime("%Y-%m")

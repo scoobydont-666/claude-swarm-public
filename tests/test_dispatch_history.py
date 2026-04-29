@@ -86,7 +86,7 @@ class TestDispatchOutputStreaming:
 
                 from remote_session import execute_plan
 
-                execute_plan(plan, background=True)
+                result = execute_plan(plan, background=True)
 
                 # Verify stdbuf was used in the SSH command
                 call_args = mock_popen.call_args
@@ -172,7 +172,7 @@ class TestDispatchCostEstimation:
 
                 from remote_session import execute_plan
 
-                execute_plan(plan, background=True)
+                result = execute_plan(plan, background=True)
 
                 # Check plan file was created with cost field
                 plan_files = list(tmp_path.glob("*.plan.yaml"))
@@ -201,8 +201,8 @@ class TestDispatchHistoryCLI:
         """Test showing a non-existent dispatch."""
         from unittest.mock import patch
 
-        with patch("swarm_cli.Path"):
-            with patch("swarm_cli.console"):
+        with patch("swarm_cli.Path") as mock_path:
+            with patch("swarm_cli.console") as mock_console:
                 from swarm_cli import dispatches_show
 
                 # Should exit with error

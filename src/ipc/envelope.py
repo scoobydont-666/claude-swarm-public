@@ -32,19 +32,17 @@ def _uuid7() -> str:
 
 
 # Valid message types
-MESSAGE_TYPES = frozenset(
-    {
-        "direct",
-        "channel",
-        "rpc_request",
-        "rpc_response",
-        "rpc_stream",
-        "broadcast",
-        "presence",
-        "ping",
-        "pong",
-    }
-)
+MESSAGE_TYPES = frozenset({
+    "direct",
+    "channel",
+    "rpc_request",
+    "rpc_response",
+    "rpc_stream",
+    "broadcast",
+    "presence",
+    "ping",
+    "pong",
+})
 
 
 @dataclass
@@ -89,7 +87,9 @@ class Envelope:
             return False
         return time.time() > self.timestamp + self.ttl
 
-    def make_reply(self, payload: dict, message_type: str = "direct") -> Envelope:
+    def make_reply(
+        self, payload: dict, message_type: str = "direct"
+    ) -> Envelope:
         """Create a reply envelope addressed to the sender."""
         return Envelope(
             sender=self.recipient,

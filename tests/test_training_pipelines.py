@@ -8,11 +8,12 @@ import pytest
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from pipelines.benchmark_run import BENCHMARK_RUN
+from pipeline import Pipeline, PipelineStage
 from pipelines.corpus_build import CORPUS_BUILD
-from pipelines.export_promote import EXPORT_PROMOTE
-from pipelines.student_train import STUDENT_TRAIN
 from pipelines.teacher_generate import TEACHER_GENERATE
+from pipelines.student_train import STUDENT_TRAIN
+from pipelines.benchmark_run import BENCHMARK_RUN
+from pipelines.export_promote import EXPORT_PROMOTE
 
 
 class TestCorpusBuild:
@@ -177,30 +178,30 @@ class TestExportPromote:
 class TestAllPipelines:
     """Cross-pipeline validation tests."""
 
-    @pytest.mark.parametrize(
-        "pipeline", [CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE]
-    )
+    @pytest.mark.parametrize("pipeline", [
+        CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE
+    ])
     def test_all_validate(self, pipeline):
         errors = pipeline.validate()
         assert errors == [], f"{pipeline.name}: {errors}"
 
-    @pytest.mark.parametrize(
-        "pipeline", [CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE]
-    )
+    @pytest.mark.parametrize("pipeline", [
+        CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE
+    ])
     def test_all_have_description(self, pipeline):
         assert pipeline.description
         assert len(pipeline.description) > 10
 
-    @pytest.mark.parametrize(
-        "pipeline", [CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE]
-    )
+    @pytest.mark.parametrize("pipeline", [
+        CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE
+    ])
     def test_all_stages_have_prompt_templates(self, pipeline):
         for stage in pipeline.stages:
             assert stage.prompt_template, f"{pipeline.name}.{stage.name} missing prompt"
 
-    @pytest.mark.parametrize(
-        "pipeline", [CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE]
-    )
+    @pytest.mark.parametrize("pipeline", [
+        CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE
+    ])
     def test_all_use_valid_models(self, pipeline):
         valid = {"opus", "sonnet", "haiku"}
         for stage in pipeline.stages:
@@ -208,8 +209,5 @@ class TestAllPipelines:
             assert stage.model in valid, f"{pipeline.name}.{stage.name}: {stage.model}"
 
     def test_pipeline_names_unique(self):
-        names = [
-            p.name
-            for p in [CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE]
-        ]
+        names = [p.name for p in [CORPUS_BUILD, TEACHER_GENERATE, STUDENT_TRAIN, BENCHMARK_RUN, EXPORT_PROMOTE]]
         assert len(names) == len(set(names))

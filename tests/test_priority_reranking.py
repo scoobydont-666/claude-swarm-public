@@ -66,7 +66,6 @@ class TestRerankTasks:
 
     def test_rerank_maintains_order(self, tmp_swarm_root, config_with_auto_dispatch):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create tasks with different priorities
@@ -87,9 +86,10 @@ class TestRerankTasks:
         priorities = [t.get("priority") for t in pending]
         assert priorities == ["P0", "P1", "P3", "P5"]
 
-    def test_rerank_with_default_priority(self, tmp_swarm_root, config_with_auto_dispatch):
+    def test_rerank_with_default_priority(
+        self, tmp_swarm_root, config_with_auto_dispatch
+    ):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create tasks, some without explicit priority
@@ -111,7 +111,6 @@ class TestRerankTasks:
 class TestInterruptForPriority:
     def test_p0_preempts_p5_task(self, tmp_swarm_root, config_with_auto_dispatch):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create a P5 claimed task
@@ -148,7 +147,6 @@ class TestInterruptForPriority:
 
     def test_p1_does_preempt_p5(self, tmp_swarm_root, config_with_auto_dispatch):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create a P5 claimed task
@@ -185,7 +183,6 @@ class TestInterruptForPriority:
 
     def test_p0_preempts_p3_and_below(self, tmp_swarm_root, config_with_auto_dispatch):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create claimed tasks at different priorities
@@ -225,7 +222,6 @@ class TestInterruptForPriority:
 
     def test_p2_does_not_preempt_p3(self, tmp_swarm_root, config_with_auto_dispatch):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create P3 claimed task
@@ -258,9 +254,10 @@ class TestInterruptForPriority:
 
 
 class TestPreemptionMessaging:
-    def test_preempt_task_sends_message(self, tmp_swarm_root, config_with_auto_dispatch):
+    def test_preempt_task_sends_message(
+        self, tmp_swarm_root, config_with_auto_dispatch
+    ):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create a claimed task
@@ -283,9 +280,10 @@ class TestPreemptionMessaging:
         messages = list(inbox_dir.glob("*.yaml"))
         assert len(messages) > 0
 
-    def test_preempt_task_moves_to_preempted(self, tmp_swarm_root, config_with_auto_dispatch):
+    def test_preempt_task_moves_to_preempted(
+        self, tmp_swarm_root, config_with_auto_dispatch
+    ):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create a claimed task
@@ -310,7 +308,6 @@ class TestPreemptionMessaging:
 class TestProcessPendingTasksWithPriority:
     def test_process_respects_priority(self, tmp_swarm_root, config_with_auto_dispatch):
         import yaml
-
         from auto_dispatch import AutoDispatcher
 
         # Create tasks with different priorities

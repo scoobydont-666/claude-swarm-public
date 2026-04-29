@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -187,7 +187,9 @@ class TestSwarmSessionUpdate:
 
 
 class TestSwarmSessionCleanup:
-    def test_cleanup_is_idempotent(self, mock_registry, mock_events, mock_sync, tmp_path):
+    def test_cleanup_is_idempotent(
+        self, mock_registry, mock_events, mock_sync, tmp_path
+    ):
         from session import SwarmSession
 
         with patch("session.SUMMARIES_DIR", tmp_path):
@@ -217,13 +219,15 @@ class TestSwarmSessionElapsed:
 
 
 class TestModuleLevelFunctions:
-    def test_start_and_end_session(self, mock_registry, mock_events, mock_sync, tmp_path):
-        from session import end_session, get_session, start_session
+    def test_start_and_end_session(
+        self, mock_registry, mock_events, mock_sync, tmp_path
+    ):
+        from session import start_session, end_session, get_session
 
         with patch("session.SUMMARIES_DIR", tmp_path):
-            start_session(model="sonnet")
+            result = start_session(model="sonnet")
             assert get_session() is not None
-            end_session()
+            end_result = end_session()
             assert get_session() is None
 
     def test_end_session_without_start(self):

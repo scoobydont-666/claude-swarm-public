@@ -5,12 +5,14 @@ Replaces hardcoded 2-slot node_gpu model with dynamic discovery across all fleet
 Stores inventory in SQLite for fast lookup by the GPU scheduler.
 """
 
+import json
 import logging
-import sqlite3
 import subprocess
+import sqlite3
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +23,7 @@ NVIDIA_SMI_CMD = [
     "--format=csv,noheader,nounits",
 ]
 
-# Default fleet hosts with GPUs (all 5 fleet nodes incl. node_primary RTX 4080 12GB)
-# plan-approved: claude-swarm-scripts
+# Default fleet hosts with GPUs
 DEFAULT_GPU_HOSTS = ["node_gpu", "node_reserve1", "node_reserve2", "node_mongo", "node_primary"]
 
 # SQLite DB for GPU inventory
@@ -32,7 +33,6 @@ DEFAULT_DB_PATH = "/opt/swarm/gpu/inventory.db"
 @dataclass
 class GpuInfo:
     """Single GPU on a host."""
-
     host: str
     gpu_index: int
     gpu_model: str
@@ -54,11 +54,10 @@ class GpuInfo:
 @dataclass
 class HostGpuInventory:
     """All GPUs on a single host."""
-
     host: str
     gpus: list[GpuInfo] = field(default_factory=list)
     reachable: bool = True
-    error: str | None = None
+    error: Optional[str] = None
     discovered_at: float = field(default_factory=time.time)
 
     @property
@@ -74,79 +73,42 @@ class HostGpuInventory:
         return sum(g.vram_free_mb for g in self.gpus)
 
 
-def _is_localhost(host: str) -> bool:
-    """Socket-based localhost detection — resolves DNS + matches loopback
-    addresses + hostname synonyms. Replaces brittle string comparison
-    (audit remediation #3 from docs/churn-analysis-2026-04-17.md)."""
-    import socket
-
-    if not host:
-        return False
-    norm = host.strip().lower()
-    # Cheap path: well-known loopback names
-    if norm in ("localhost", "127.0.0.1", "::1", socket.gethostname().lower()):
-        return True
-    # Resolve and compare — catches DNS aliases like "node_primary.lan" → 127.0.0.1
-    try:
-        resolved = socket.gethostbyname(norm)
-        if resolved in ("127.0.0.1", "::1"):
-            return True
-        # Also true if it resolves to any local interface
-        local_ips = set()
-        for iface in socket.getaddrinfo(socket.gethostname(), None):
-            local_ips.add(iface[4][0])
-        return resolved in local_ips
-    except (socket.gaierror, socket.herror):
-        return False
-
-
 def probe_host(host: str, timeout: int = 10) -> HostGpuInventory:
     """Probe a single host via SSH nvidia-smi and return GPU inventory."""
     try:
-        if _is_localhost(host):
+        import socket
+        if host.lower() in ("localhost", socket.gethostname().lower()):
             # Local host — no SSH needed
             result = subprocess.run(
                 NVIDIA_SMI_CMD,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
+                capture_output=True, text=True, timeout=timeout,
             )
         else:
             result = subprocess.run(
-                [
-                    "ssh",
-                    "-o",
-                    "ConnectTimeout=5",
-                    "-o",
-                    "StrictHostKeyChecking=accept-new",
-                    f"josh@{host}",
-                ]
-                + NVIDIA_SMI_CMD,
-                capture_output=True,
-                text=True,
-                timeout=timeout,
+                ["ssh", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=accept-new",
+                 f"josh@{host}"] + NVIDIA_SMI_CMD,
+                capture_output=True, text=True, timeout=timeout,
             )
 
         if result.returncode != 0:
             return HostGpuInventory(
-                host=host, reachable=True, error=f"nvidia-smi failed: {result.stderr.strip()}"
+                host=host, reachable=True,
+                error=f"nvidia-smi failed: {result.stderr.strip()}"
             )
 
         gpus = []
         for line in result.stdout.strip().splitlines():
             parts = [p.strip() for p in line.split(",")]
             if len(parts) >= 6:
-                gpus.append(
-                    GpuInfo(
-                        host=host,
-                        gpu_index=int(parts[0]),
-                        gpu_model=parts[1],
-                        vram_total_mb=int(parts[2]),
-                        vram_free_mb=int(parts[3]),
-                        vram_used_mb=int(parts[4]),
-                        utilization_pct=int(parts[5]),
-                    )
-                )
+                gpus.append(GpuInfo(
+                    host=host,
+                    gpu_index=int(parts[0]),
+                    gpu_model=parts[1],
+                    vram_total_mb=int(parts[2]),
+                    vram_free_mb=int(parts[3]),
+                    vram_used_mb=int(parts[4]),
+                    utilization_pct=int(parts[5]),
+                ))
 
         return HostGpuInventory(host=host, gpus=gpus)
 
@@ -225,24 +187,14 @@ def save_inventory(inventories: list[HostGpuInventory], db_path: str = DEFAULT_D
             if not inv.reachable or inv.error:
                 continue
             for gpu in inv.gpus:
-                conn.execute(
-                    """
+                conn.execute("""
                     INSERT OR REPLACE INTO gpu_inventory
                     (host, gpu_index, gpu_model, vram_total_mb, vram_free_mb,
                      vram_used_mb, utilization_pct, discovered_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    (
-                        gpu.host,
-                        gpu.gpu_index,
-                        gpu.gpu_model,
-                        gpu.vram_total_mb,
-                        gpu.vram_free_mb,
-                        gpu.vram_used_mb,
-                        gpu.utilization_pct,
-                        gpu.discovered_at,
-                    ),
-                )
+                """, (gpu.host, gpu.gpu_index, gpu.gpu_model, gpu.vram_total_mb,
+                      gpu.vram_free_mb, gpu.vram_used_mb, gpu.utilization_pct,
+                      gpu.discovered_at))
         conn.commit()
     finally:
         conn.close()
@@ -258,8 +210,7 @@ def get_available_gpus(
     exclude = set(h.upper() for h in (exclude_hosts or []))
 
     try:
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT g.host, g.gpu_index, g.gpu_model, g.vram_total_mb,
                    g.vram_free_mb, g.vram_used_mb, g.utilization_pct, g.discovered_at
             FROM gpu_inventory g
@@ -268,61 +219,43 @@ def get_available_gpus(
             WHERE a.id IS NULL
             AND g.vram_free_mb >= ?
             ORDER BY g.vram_free_mb DESC
-        """,
-            (min_vram_mb,),
-        ).fetchall()
+        """, (min_vram_mb,)).fetchall()
 
         gpus = []
         for row in rows:
             if row[0].upper() in exclude:
                 continue
-            gpus.append(
-                GpuInfo(
-                    host=row[0],
-                    gpu_index=row[1],
-                    gpu_model=row[2],
-                    vram_total_mb=row[3],
-                    vram_free_mb=row[4],
-                    vram_used_mb=row[5],
-                    utilization_pct=row[6],
-                    discovered_at=row[7],
-                )
-            )
+            gpus.append(GpuInfo(
+                host=row[0], gpu_index=row[1], gpu_model=row[2],
+                vram_total_mb=row[3], vram_free_mb=row[4], vram_used_mb=row[5],
+                utilization_pct=row[6], discovered_at=row[7],
+            ))
         return gpus
     finally:
         conn.close()
 
 
 def allocate_gpu(
-    host: str,
-    gpu_index: int,
-    task_id: str,
-    model_name: str = "",
-    vram_required_mb: int = 0,
+    host: str, gpu_index: int, task_id: str,
+    model_name: str = "", vram_required_mb: int = 0,
     db_path: str = DEFAULT_DB_PATH,
 ) -> bool:
     """Allocate a GPU for a task. Returns True if successful."""
     conn = init_db(db_path)
     try:
         # Check not already allocated
-        existing = conn.execute(
-            """
+        existing = conn.execute("""
             SELECT id FROM gpu_allocations
             WHERE host = ? AND gpu_index = ? AND released_at IS NULL
-        """,
-            (host, gpu_index),
-        ).fetchone()
+        """, (host, gpu_index)).fetchone()
 
         if existing:
             return False
 
-        conn.execute(
-            """
+        conn.execute("""
             INSERT INTO gpu_allocations (host, gpu_index, task_id, model_name, vram_required_mb, allocated_at)
             VALUES (?, ?, ?, ?, ?, ?)
-        """,
-            (host, gpu_index, task_id, model_name, vram_required_mb, time.time()),
-        )
+        """, (host, gpu_index, task_id, model_name, vram_required_mb, time.time()))
         conn.commit()
         return True
     finally:
@@ -333,13 +266,10 @@ def release_gpu(host: str, gpu_index: int, db_path: str = DEFAULT_DB_PATH):
     """Release a GPU allocation."""
     conn = init_db(db_path)
     try:
-        conn.execute(
-            """
+        conn.execute("""
             UPDATE gpu_allocations SET released_at = ?
             WHERE host = ? AND gpu_index = ? AND released_at IS NULL
-        """,
-            (time.time(), host, gpu_index),
-        )
+        """, (time.time(), host, gpu_index))
         conn.commit()
     finally:
         conn.close()
@@ -362,12 +292,10 @@ def find_best_gpu_for_model(
     model_name: str,
     exclude_hosts: list[str] | None = None,
     db_path: str = DEFAULT_DB_PATH,
-) -> GpuInfo | None:
+) -> Optional[GpuInfo]:
     """Find the best available GPU for a given model based on VRAM requirements."""
     required_vram = MODEL_VRAM_REQUIREMENTS.get(model_name, 8000)  # default 8GB
-    available = get_available_gpus(
-        min_vram_mb=required_vram, exclude_hosts=exclude_hosts, db_path=db_path
-    )
+    available = get_available_gpus(min_vram_mb=required_vram, exclude_hosts=exclude_hosts, db_path=db_path)
 
     if not available:
         return None

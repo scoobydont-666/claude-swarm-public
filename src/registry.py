@@ -12,7 +12,7 @@ import os
 import socket
 import threading
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -74,7 +74,7 @@ from util import now_iso as _now_iso
 
 def _detect_capabilities() -> dict[str, bool]:
     """Auto-detect host capabilities."""
-    socket.gethostname()
+    hostname = socket.gethostname()
     caps = {
         "gpu": False,
         "ollama": False,
@@ -86,7 +86,9 @@ def _detect_capabilities() -> dict[str, bool]:
     if os.path.exists("/usr/bin/nvidia-smi"):
         try:
             result = (
-                os.popen("nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null")
+                os.popen(
+                    "nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null"
+                )
                 .read()
                 .strip()
             )
@@ -191,7 +193,7 @@ def list_agents() -> list[AgentInfo]:
 
 def get_live_agents() -> list[AgentInfo]:
     """List agents with recent heartbeats (not stale)."""
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     live = []
     for agent in list_agents():
         try:
@@ -228,7 +230,7 @@ def get_stale_agents() -> list[AgentInfo]:
     before being reported as stale. This prevents network jitter from causing
     false dead-node detection and duplicate task execution.
     """
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     tracker = _load_stale_tracker()
     stale = []
     changed = False

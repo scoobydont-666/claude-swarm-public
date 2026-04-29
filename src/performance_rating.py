@@ -18,7 +18,7 @@ import sqlite3
 import subprocess
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from util import now_iso as _now_iso
@@ -290,7 +290,7 @@ def compute_rating(hostname: str) -> HostRating:
         conn.close()
         return rating
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     weighted_success = 0.0
     weighted_total = 0.0
     weighted_duration_ratio = 0.0
@@ -328,7 +328,9 @@ def compute_rating(hostname: str) -> HostRating:
 
     completion_rate = weighted_success / weighted_total if weighted_total > 0 else 1.0
     avg_duration_ratio = (
-        weighted_duration_ratio / duration_weight_total if duration_weight_total > 0 else 1.0
+        weighted_duration_ratio / duration_weight_total
+        if duration_weight_total > 0
+        else 1.0
     )
     error_rate = error_count / weighted_total if weighted_total > 0 else 0.0
 
@@ -418,7 +420,7 @@ def get_rating(hostname: str) -> HostRating:
         last = row["last_computed"] or ""
         try:
             last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
-            age_hours = (datetime.now(UTC) - last_dt).total_seconds() / 3600
+            age_hours = (datetime.now(timezone.utc) - last_dt).total_seconds() / 3600
             if age_hours < 1:  # Cache for 1 hour
                 return HostRating(
                     hostname=row["hostname"],
@@ -495,13 +497,7 @@ def benchmark_host(hostname: str, ip: str, ssh_user: str = "josh") -> BenchmarkR
         return result
 
     # Batch probe: GPU, Ollama, Claude, disk
-    # CS6 fix (dogfood 2026-04-22): SSH non-interactive PATH omits ~/.local/bin,
-    # ~/.npm-global/bin, ~/.cargo/bin — same dirs smart-dispatch already exports.
-    # Without this, `which claude` misses user-local installs and reports NO_CLAUDE
-    # on hosts where claude IS installed + working (node_gpu reproducibly shows ✗).
     probe_script = """
-export PATH=$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/.cargo/bin:$PATH
-
 echo "DISK_START"
 dd if=/dev/zero of=/tmp/.bench_test bs=4k count=256 oflag=dsync 2>&1 | tail -1
 rm -f /tmp/.bench_test
@@ -546,13 +542,19 @@ echo "CLAUDE_END"
 
         # Parse Ollama
         if "OLLAMA_START" in output:
-            ollama_section = output.split("OLLAMA_START")[1].split("OLLAMA_END")[0].strip()
+            ollama_section = (
+                output.split("OLLAMA_START")[1].split("OLLAMA_END")[0].strip()
+            )
             result.ollama_healthy = ollama_section.strip() == "200"
 
         # Parse Claude
         if "CLAUDE_START" in output:
-            claude_section = output.split("CLAUDE_START")[1].split("CLAUDE_END")[0].strip()
-            result.claude_available = "NO_CLAUDE" not in claude_section and claude_section != ""
+            claude_section = (
+                output.split("CLAUDE_START")[1].split("CLAUDE_END")[0].strip()
+            )
+            result.claude_available = (
+                "NO_CLAUDE" not in claude_section and claude_section != ""
+            )
 
         # Parse disk latency (rough)
         if "DISK_START" in output:

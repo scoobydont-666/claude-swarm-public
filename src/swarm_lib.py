@@ -9,24 +9,20 @@ import shutil
 import subprocess
 import threading
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 LOG = logging.getLogger(__name__)
 
 import yaml
 
 from util import (
+    now_iso as _now_iso_util,
+    hostname as _hostname_util,
+    swarm_root,
     atomic_write_json,
     atomic_write_yaml,
-    swarm_root,
-)
-from util import (
-    hostname as _hostname_util,
-)
-from util import (
-    now_iso as _now_iso_util,
 )
 
 
@@ -161,7 +157,9 @@ def get_all_status() -> list[dict]:
     agents_dir = Path(_swarm_root()) / "agents"
     if agents_dir.exists():
         # Build map: hostname → most recent agent heartbeat
-        agent_heartbeats: dict[str, tuple[str, dict]] = {}  # hostname → (timestamp, agent_data)
+        agent_heartbeats: dict[
+            str, tuple[str, dict]
+        ] = {}  # hostname → (timestamp, agent_data)
         for af in agents_dir.glob("*.json"):
             try:
                 agent = json.loads(af.read_text())
@@ -206,9 +204,9 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
     Separated from get_all_status() so cleanup_stale_nodes() gets raw data
     while the CLI display gets corrected state. Call this from the display layer.
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     local_hostname = _hostname()
 
     for node in nodes:
@@ -278,7 +276,7 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
     return nodes
 
 
-def get_status(hostname: str | None = None) -> dict | None:
+def get_status(hostname: Optional[str] = None) -> Optional[dict]:
     """Return status for a specific node."""
     hostname = hostname or _hostname()
     path = _status_dir() / f"{hostname}.json"
@@ -297,8 +295,8 @@ def update_status(
     project: str = "",
     session_id: str = "",
     model: str = "",
-    pid: int | None = None,
-    capabilities: dict | None = None,
+    pid: Optional[int] = None,
+    capabilities: Optional[dict] = None,
     skills_loaded: int = 0,
     uptime_seconds: int = 0,
 ) -> dict:
@@ -387,7 +385,7 @@ def mark_stale_nodes(threshold_seconds: int = 300) -> list[str]:
     """Mark active nodes as offline if their status is older than threshold. Returns list of stale hostnames.
     Only marks 'active' or 'busy' nodes as stale — 'idle' is a valid resting state."""
     stale = []
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     for status in get_all_status():
         state = status.get("state", "")
         if state in ("offline", "idle"):
@@ -419,7 +417,7 @@ def cleanup_stale_nodes(threshold_seconds: int = 300, verify_pid: bool = True) -
     """
     cleaned = []
     orphaned_tasks = []
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
 
     for status in get_all_status():
         state = status.get("state", "")
@@ -564,7 +562,7 @@ class TaskIndex:
             self._mtimes[stage] = current_mtime
             return list(tasks)
 
-    def invalidate(self, stage: str | None = None) -> None:
+    def invalidate(self, stage: Optional[str] = None) -> None:
         """Force cache invalidation. If stage given, invalidate only that stage."""
         with self._lock:
             if stage:
@@ -578,7 +576,7 @@ class TaskIndex:
 _task_index = TaskIndex()  # Module-level singleton
 
 
-def list_tasks(stage: str | None = None) -> list[dict]:
+def list_tasks(stage: Optional[str] = None) -> list[dict]:
     """List tasks, optionally filtered by stage."""
     stages = [stage] if stage else ["pending", "claimed", "completed", "decomposed"]
     results = []
@@ -592,7 +590,7 @@ def create_task(
     description: str = "",
     project: str = "",
     priority: str = "medium",
-    requires: list[str] | None = None,
+    requires: Optional[list[str]] = None,
     estimated_minutes: int = 0,
 ) -> dict:
     """Create a new pending task."""
@@ -655,7 +653,9 @@ def _reconcile_local_tasks() -> list[str]:
                     task_file.stem,
                 )
             except (OSError, yaml.YAMLError) as exc:
-                _log.warning("reconcile_local_tasks: failed to move %s: %s", task_file, exc)
+                _log.warning(
+                    "reconcile_local_tasks: failed to move %s: %s", task_file, exc
+                )
 
     return moved
 
@@ -679,7 +679,9 @@ def claim_task(task_id: str) -> dict:
         fcntl.flock(lock_f, fcntl.LOCK_EX)
         try:
             if not src.exists():
-                raise FileNotFoundError(f"Task {task_id} already claimed by another node")
+                raise FileNotFoundError(
+                    f"Task {task_id} already claimed by another node"
+                )
             task = yaml.safe_load(open(src)) or {}
             hostname = _hostname()
             task["claimed_by"] = hostname
@@ -793,7 +795,7 @@ def complete_task(task_id: str, result_artifact: str = "") -> dict:
     return task
 
 
-def get_matching_tasks(capabilities: dict | None = None) -> list[dict]:
+def get_matching_tasks(capabilities: Optional[dict] = None) -> list[dict]:
     """Find pending tasks that match this node's capabilities."""
     if capabilities is None:
         status = get_status()
@@ -816,7 +818,7 @@ def get_matching_tasks(capabilities: dict | None = None) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _inbox_dir(target: str | None = None) -> Path:
+def _inbox_dir(target: Optional[str] = None) -> Path:
     target = target or _hostname()
     d = _swarm_root() / "messages" / "inbox" / target
     d.mkdir(parents=True, exist_ok=True)
@@ -829,10 +831,10 @@ def _archive_dir() -> Path:
     return d
 
 
-def send_message(target: str, text: str, sender: str | None = None) -> Path:
+def send_message(target: str, text: str, sender: Optional[str] = None) -> Path:
     """Send a message to a specific host or 'broadcast'."""
     sender = sender or _hostname()
-    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     filename = f"{ts}-from-{sender}.yaml"
     msg = {
         "from": sender,
@@ -846,12 +848,12 @@ def send_message(target: str, text: str, sender: str | None = None) -> Path:
     return path
 
 
-def broadcast_message(text: str, sender: str | None = None) -> list[Path]:
+def broadcast_message(text: str, sender: Optional[str] = None) -> list[Path]:
     """Send a message to broadcast inbox."""
     return [send_message("broadcast", text, sender)]
 
 
-def read_inbox(hostname: str | None = None) -> list[dict]:
+def read_inbox(hostname: Optional[str] = None) -> list[dict]:
     """Read all messages in this node's inbox + broadcast."""
     hostname = hostname or _hostname()
     messages = []
@@ -898,15 +900,15 @@ def list_artifacts() -> list[dict]:
                     "name": f.name,
                     "path": str(f),
                     "size_bytes": f.stat().st_size,
-                    "modified_at": datetime.fromtimestamp(f.stat().st_mtime, tz=UTC).strftime(
-                        "%Y-%m-%dT%H:%M:%SZ"
-                    ),
+                    "modified_at": datetime.fromtimestamp(
+                        f.stat().st_mtime, tz=timezone.utc
+                    ).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 }
             )
     return results
 
 
-def share_artifact(source_path: str, name: str | None = None) -> Path:
+def share_artifact(source_path: str, name: Optional[str] = None) -> Path:
     """Copy a file to the shared artifacts directory."""
     src = Path(source_path)
     if not src.exists():
@@ -941,7 +943,7 @@ def health_check() -> dict:
     }
 
     # Node health
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     for status in get_all_status():
         hostname = status.get("hostname", "unknown")
         updated = status.get("updated_at", "")
@@ -985,7 +987,9 @@ class TaskDecomposer:
     SPLIT_PATTERNS = {
         "all_sections": re.compile(r"\ball\s+sections?\b", re.IGNORECASE),
         "across": re.compile(r"\bacross\b", re.IGNORECASE),
-        "generate_and_validate": re.compile(r"\bgenerate\b.*\bvalidate\b", re.IGNORECASE),
+        "generate_and_validate": re.compile(
+            r"\bgenerate\b.*\bvalidate\b", re.IGNORECASE
+        ),
         "multiple_projects": re.compile(
             r"\b(project-a|monero|str[- ]intel|taxprep|examforge|audit[- ]sentinel|hashrate|clausehound|prompt[- ]forge|documint)\b",
             re.IGNORECASE,
@@ -994,7 +998,9 @@ class TaskDecomposer:
 
     # Capability inference from task text
     CAPABILITY_KEYWORDS = {
-        "ollama": re.compile(r"\b(ollama|llm|inference|generate|embed)\b", re.IGNORECASE),
+        "ollama": re.compile(
+            r"\b(ollama|llm|inference|generate|embed)\b", re.IGNORECASE
+        ),
         "gpu": re.compile(r"\b(gpu|cuda|tensor|train|comfyui)\b", re.IGNORECASE),
         "docker": re.compile(r"\b(docker|container|swarm|deploy)\b", re.IGNORECASE),
     }
@@ -1219,7 +1225,9 @@ def _validate_git_repo(project_path: str) -> bool:
     return git_dir.exists() or (Path(project_path) / "HEAD").exists()
 
 
-def _safe_subprocess(cmd: list[str], cwd: str | None = None) -> subprocess.CompletedProcess:
+def _safe_subprocess(
+    cmd: list[str], cwd: Optional[str] = None
+) -> subprocess.CompletedProcess:
     """Run a subprocess with validated inputs — no shell injection."""
     # Validate: no shell metacharacters in any argument
     for arg in cmd:
@@ -1238,7 +1246,9 @@ def _is_path_within_base(base: str, candidate: str) -> bool:
     base_resolved = str(Path(base).resolve())
     candidate_resolved = str(Path(candidate).resolve())
     # Exact match (base itself) or within base (with separator)
-    return candidate_resolved == base_resolved or candidate_resolved.startswith(base_resolved + "/")
+    return candidate_resolved == base_resolved or candidate_resolved.startswith(
+        base_resolved + "/"
+    )
 
 
 def create_worktree(project_path: str, task_id: str) -> str:
@@ -1401,7 +1411,7 @@ class SessionSummary:
     session_id: str
     timestamp: str
     project: str
-    task_id: str | None = None
+    task_id: Optional[str] = None
     duration_minutes: int = 0
     key_decisions: list[str] = field(default_factory=list)
     files_changed: list[str] = field(default_factory=list)
@@ -1469,11 +1479,11 @@ def get_latest_summary_context(project: str) -> str:
 def generate_session_summary(
     project: str,
     session_id: str = "",
-    task_id: str | None = None,
+    task_id: Optional[str] = None,
     duration_minutes: int = 0,
-    key_decisions: list[str] | None = None,
-    issues_found: list[str] | None = None,
-    artifacts_produced: list[str] | None = None,
+    key_decisions: Optional[list[str]] = None,
+    issues_found: Optional[list[str]] = None,
+    artifacts_produced: Optional[list[str]] = None,
     context_for_next: str = "",
 ) -> SessionSummary:
     """Generate a session summary, auto-detecting files changed from git diff."""
@@ -1485,10 +1495,14 @@ def generate_session_summary(
         result = _safe_subprocess(["git", "diff", "--name-only", "HEAD"], cwd=project)
         if result.returncode == 0 and result.stdout.strip():
             files_changed = [
-                line.strip() for line in result.stdout.strip().splitlines() if line.strip()
+                line.strip()
+                for line in result.stdout.strip().splitlines()
+                if line.strip()
             ]
         # Also check staged
-        result2 = _safe_subprocess(["git", "diff", "--name-only", "--cached"], cwd=project)
+        result2 = _safe_subprocess(
+            ["git", "diff", "--name-only", "--cached"], cwd=project
+        )
         if result2.returncode == 0 and result2.stdout.strip():
             for line in result2.stdout.strip().splitlines():
                 if line.strip() and line.strip() not in files_changed:

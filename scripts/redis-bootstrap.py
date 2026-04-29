@@ -37,7 +37,7 @@ PRIORITY_MAP = {
 
 def iso_to_epoch(iso_str: str) -> float:
     """Convert ISO timestamp to epoch seconds."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     try:
         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
@@ -87,9 +87,10 @@ def bootstrap_tasks(dry_run: bool = False) -> dict:
                 "state": stage,
                 "priority": str(priority),
                 "created_at": str(created_at),
-                "data": json.dumps(
-                    {k: v for k, v in task.items() if k not in ("id", "priority", "created_at")}
-                ),
+                "data": json.dumps({
+                    k: v for k, v in task.items()
+                    if k not in ("id", "priority", "created_at")
+                }),
             }
 
             if stage == "claimed":

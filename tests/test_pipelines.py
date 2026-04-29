@@ -7,10 +7,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from pipeline_registry import PIPELINES, get_pipeline, list_pipelines
-from pipelines.bug_fix import BUG_FIX
 from pipelines.feature_build import FEATURE_BUILD
-from pipelines.question_generation import QUESTION_GEN
+from pipelines.bug_fix import BUG_FIX
 from pipelines.security_audit import SECURITY_AUDIT
+from pipelines.question_generation import QUESTION_GEN
 
 
 class TestPipelineRegistry:

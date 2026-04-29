@@ -3,16 +3,17 @@
 import sys
 from pathlib import Path
 
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from remote_session import (
     ExecutionStrategy,
     TaskComplexity,
-    _classify_complexity,
-    _needs_interactive,
-    _needs_remote_resources,
-    _select_model,
     plan_execution,
+    _classify_complexity,
+    _needs_remote_resources,
+    _needs_interactive,
+    _select_model,
 )
 
 
@@ -24,7 +25,9 @@ class TestClassifyComplexity:
         assert _classify_complexity("install kin binary") == TaskComplexity.SIMPLE
 
     def test_moderate(self):
-        assert _classify_complexity("implement JWT auth layer") == TaskComplexity.MODERATE
+        assert (
+            _classify_complexity("implement JWT auth layer") == TaskComplexity.MODERATE
+        )
 
     def test_complex(self):
         assert (
@@ -39,7 +42,10 @@ class TestClassifyComplexity:
         )
 
     def test_default_moderate(self):
-        assert _classify_complexity("do something with the config") == TaskComplexity.MODERATE
+        assert (
+            _classify_complexity("do something with the config")
+            == TaskComplexity.MODERATE
+        )
 
 
 class TestNeedsRemoteResources:
@@ -66,13 +72,21 @@ class TestNeedsRemoteResources:
 
 class TestNeedsInteractive:
     def test_debug_is_interactive(self):
-        assert _needs_interactive("debug why tests fail", TaskComplexity.MODERATE) is True
+        assert (
+            _needs_interactive("debug why tests fail", TaskComplexity.MODERATE) is True
+        )
 
     def test_investigate_is_interactive(self):
-        assert _needs_interactive("investigate memory leak", TaskComplexity.MODERATE) is True
+        assert (
+            _needs_interactive("investigate memory leak", TaskComplexity.MODERATE)
+            is True
+        )
 
     def test_complex_is_interactive(self):
-        assert _needs_interactive("refactor the auth module", TaskComplexity.COMPLEX) is True
+        assert (
+            _needs_interactive("refactor the auth module", TaskComplexity.COMPLEX)
+            is True
+        )
 
     def test_simple_not_interactive(self):
         assert _needs_interactive("copy file to server", TaskComplexity.SIMPLE) is False
@@ -158,7 +172,9 @@ class TestPlanExecution:
         assert trivial.estimated_minutes < complex_.estimated_minutes
 
     def test_max_turns_trivial(self):
-        plan = plan_execution("check version", current_host="node_primary", force_host="node_gpu")
+        plan = plan_execution(
+            "check version", current_host="node_primary", force_host="node_gpu"
+        )
         assert plan.max_turns == 3
 
     def test_max_turns_interactive(self):

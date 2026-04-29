@@ -12,6 +12,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import swarm_lib as lib
 
+
 # ---------------------------------------------------------------------------
 # Status tests
 # ---------------------------------------------------------------------------
@@ -21,10 +22,14 @@ class TestStatus:
     def test_update_and_get_status(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
-            status = lib.update_status(state="active", current_task="testing", model="opus")
+            status = lib.update_status(
+                state="active", current_task="testing", model="opus"
+            )
             assert status["hostname"] == "testhost"
             assert status["state"] == "active"
             assert status["current_task"] == "testing"
@@ -41,14 +46,18 @@ class TestStatus:
     def test_get_all_status(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active")
 
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="otherhost"),
         ):
             lib.update_status(state="idle")
@@ -66,7 +75,9 @@ class TestStatus:
     def test_mark_stale_nodes(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             # Write a status with old timestamp
@@ -91,7 +102,9 @@ class TestStatus:
         """cleanup_stale_nodes should reset dead nodes to idle and requeue orphaned tasks."""
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             # Create a stale active node
@@ -142,7 +155,9 @@ class TestStatus:
         """cleanup_stale_nodes should skip nodes within threshold."""
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active", current_task="working")
@@ -154,7 +169,9 @@ class TestStatus:
         """cleanup_stale_nodes with verify_pid checks local PID."""
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             # Create stale node on same host with dead PID
@@ -274,7 +291,9 @@ class TestTasks:
     def test_get_matching_tasks(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             # Update status so capabilities are known
@@ -380,7 +399,9 @@ class TestHealthCheck:
     def test_health_check_runs(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active")
@@ -405,7 +426,9 @@ class TestNFSFallbackClaimTask:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
         ):
             task = lib.create_task(title="NFS fallback test")
             task_id = task["id"]
@@ -425,7 +448,9 @@ class TestNFSFallbackClaimTask:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_atomic_write_yaml", side_effect=patched_atomic_write),
             patch.object(lib, "_is_nfs_healthy", return_value=False),
             patch.object(lib, "_local_tasks_dir", return_value=local_claimed),
@@ -442,7 +467,9 @@ class TestNFSFallbackClaimTask:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
         ):
             task = lib.create_task(title="Should raise test")
             task_id = task["id"]
@@ -457,7 +484,9 @@ class TestNFSFallbackClaimTask:
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
             patch.object(lib, "_hostname", return_value="testhost"),
-            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
+            patch.object(
+                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
+            ),
             patch.object(lib, "_atomic_write_yaml", side_effect=patched_atomic_write),
             patch.object(lib, "_is_nfs_healthy", return_value=True),
         ):
@@ -500,8 +529,12 @@ class TestReconcileLocalTasks:
             moved = lib._reconcile_local_tasks()
 
         assert "task-cached-001" in moved
-        assert not local_file.exists(), "Local cached file should be removed after reconcile"
-        assert (nfs_claimed / "task-cached-001.yaml").exists(), "File should appear on NFS"
+        assert not local_file.exists(), (
+            "Local cached file should be removed after reconcile"
+        )
+        assert (nfs_claimed / "task-cached-001.yaml").exists(), (
+            "File should appear on NFS"
+        )
 
     def test_reconcile_skips_when_nfs_unhealthy(self, swarm_tmpdir, tmp_path):
         """When NFS is unhealthy, reconciliation does nothing."""
@@ -528,14 +561,16 @@ class TestReconcileLocalTasks:
 
     def test_reconcile_no_local_dir(self, tmp_path):
         """If local task dirs are empty, reconcile returns empty list."""
-        tmp_path / ".swarm-tasks" / "claimed"
+        empty_dir = tmp_path / ".swarm-tasks" / "claimed"
         # Do NOT create the dir — _local_tasks_dir creates it on demand but it will be empty.
         # Patch _is_nfs_healthy to True and _local_tasks_dir to point to non-existent path.
         nonexistent = tmp_path / "does-not-exist"
 
         with (
             patch.object(lib, "_is_nfs_healthy", return_value=True),
-            patch.object(lib, "_local_tasks_dir", side_effect=lambda stage: nonexistent / stage),
+            patch.object(
+                lib, "_local_tasks_dir", side_effect=lambda stage: nonexistent / stage
+            ),
         ):
             moved = lib._reconcile_local_tasks()
         assert moved == []
@@ -549,7 +584,9 @@ class TestReconcileLocalTasks:
 class TestTaskIndex:
     """Tests for TaskIndex mtime-based cache."""
 
-    def _write_task(self, stage_dir: Path, task_id: str, title: str = "Test task") -> Path:
+    def _write_task(
+        self, stage_dir: Path, task_id: str, title: str = "Test task"
+    ) -> Path:
         """Write a minimal task YAML file."""
         path = stage_dir / f"{task_id}.yaml"
         with open(path, "w") as f:

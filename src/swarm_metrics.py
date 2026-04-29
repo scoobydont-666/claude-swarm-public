@@ -21,13 +21,13 @@ import os
 import sqlite3
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Ensure src/ imports resolve when run directly
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prometheus_client import Counter, Gauge, start_http_server
+from prometheus_client import Gauge, Counter, start_http_server
 
 # ---------------------------------------------------------------------------
 # Config
@@ -43,10 +43,8 @@ DB_PATH = Path("/opt/claude-swarm/data/health-events.db")
 # Node states tracked in status JSON files
 NODE_STATES = ("active", "idle", "offline")
 
-# Task subdirectory names map directly to states.
-# "failed" is included so that swarm_tasks_total{state="failed"} is always
-# exported (even as 0) and alert expressions that reference it are valid.
-TASK_STATES = ("pending", "claimed", "completed", "failed")
+# Task subdirectory names map directly to states
+TASK_STATES = ("pending", "claimed", "completed")
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -108,27 +106,6 @@ DISPATCH_COST_BY_HOST = Counter(
     ["hostname"],
 )
 
-# Routing Protocol v1 DLQ observability. Source: src/ipc/dlq_persist.py,
-# which mirrors Redis-stream DLQ events into a SQLite store so a Redis
-# restart does not lose triage history.
-ROUTING_DLQ_DEPTH = Gauge(
-    "routing_dlq_depth_total",
-    "Unresolved entries in the persisted DLQ store (SQLite mirror).",
-)
-
-ROUTING_DLQ_FP_RATE = Gauge(
-    "routing_dlq_false_positive_rate",
-    "Rolling-window false-positive rate: requeued / (requeued + expired). "
-    "Purged entries (operator cleanup) are excluded from the denominator.",
-    ["window"],
-)
-
-ROUTING_DLQ_RESOLVED_TOTAL = Gauge(
-    "routing_dlq_resolved_window_total",
-    "Count of DLQ entries resolved (requeued + expired) in the rolling window.",
-    ["window"],
-)
-
 # ---------------------------------------------------------------------------
 # Data collection helpers
 # ---------------------------------------------------------------------------
@@ -150,7 +127,7 @@ def _collect_node_metrics() -> tuple[dict[str, int], int, list[tuple[str, float]
         log.warning("STATUS_DIR does not exist: %s", STATUS_DIR)
         return state_counts, active_sessions, heartbeat_ages
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
 
     for path in STATUS_DIR.glob("*.json"):
         try:
@@ -198,7 +175,9 @@ def _collect_task_metrics() -> dict[str, int]:
         state_dir = TASKS_DIR / state
         if state_dir.is_dir():
             try:
-                counts[state] = sum(1 for name in os.listdir(state_dir) if name.endswith(".yaml"))
+                counts[state] = sum(
+                    1 for name in os.listdir(state_dir) if name.endswith(".yaml")
+                )
             except OSError:
                 counts[state] = 0
 
@@ -338,22 +317,6 @@ def _update_all_metrics() -> None:
             current_count,
         )
         _last_event_count = current_count
-
-    # --- routing v1 DLQ observability ---
-    try:
-        from ipc import dlq_persist
-
-        ROUTING_DLQ_DEPTH.set(dlq_persist.depth_persisted())
-        for window_label, window_seconds in (("1h", 3600), ("24h", 86_400)):
-            fp_rate, _requeued, resolved_total = dlq_persist.false_positive_rate(
-                window_seconds=window_seconds
-            )
-            ROUTING_DLQ_FP_RATE.labels(window=window_label).set(fp_rate)
-            ROUTING_DLQ_RESOLVED_TOTAL.labels(window=window_label).set(resolved_total)
-    except Exception as exc:  # noqa: BLE001
-        # DLQ persist is a soft dependency — a schema-init failure or missing
-        # SQLite file should not stop the rest of the metrics loop.
-        log.debug("Routing DLQ metrics skipped: %s", exc)
 
     # --- dispatch costs ---
     total_cost, host_costs = _collect_dispatch_costs()

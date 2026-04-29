@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 import yaml
@@ -126,14 +126,14 @@ class TestDispatch:
             patch("hydra_dispatch.FLEET", fleet),
             patch("hydra_dispatch.DISPATCH_DIR", dispatch_dir),
             patch("subprocess.Popen") as mock_popen,
-            patch("hydra_dispatch.swarm"),
+            patch("hydra_dispatch.swarm") as mock_swarm,
         ):
             mock_popen.return_value = MagicMock(pid=12345)
             result = dispatch(host="node_gpu", task="run tests", background=True)
 
         assert result.host == "node_gpu"
         assert result.status == "running"
-        assert result.model == "claude-sonnet-4-6"
+        assert result.model == "sonnet"
         # Check YAML record was written
         records = list(dispatch_dir.glob("dispatch-*.yaml"))
         assert len(records) == 1
@@ -156,13 +156,11 @@ class TestDispatch:
             patch("hydra_dispatch.FLEET", fleet),
             patch("hydra_dispatch.DISPATCH_DIR", dispatch_dir),
             patch("subprocess.Popen") as mock_popen,
-            patch("hydra_dispatch.swarm"),
+            patch("hydra_dispatch.swarm") as mock_swarm,
         ):
             mock_popen.return_value = MagicMock(pid=12345)
             result = dispatch(host="node_gpu", task="security audit of codebase")
-        # model_router returns full IDs (4.7 family). Security audit is a
-        # moderate-complexity task → sonnet tier per current routing rules.
-        assert result.model == "claude-sonnet-4-6"
+        assert result.model == "opus"
 
 
 class TestListDispatches:

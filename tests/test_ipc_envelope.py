@@ -1,14 +1,15 @@
 """Tests for IPC envelope serialization and validation."""
 
-import sys
+import json
 import time
-from pathlib import Path
 
 import pytest
+import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from ipc.envelope import MESSAGE_TYPES, Envelope, _uuid7
+from ipc.envelope import Envelope, _uuid7, MESSAGE_TYPES
 
 
 class TestUUID7:
@@ -20,7 +21,6 @@ class TestUUID7:
     def test_time_ordered(self):
         """UUIDs generated across different milliseconds are ordered."""
         import time
-
         ids = []
         for _ in range(5):
             ids.append(_uuid7())
@@ -87,7 +87,9 @@ class TestEnvelope:
         assert env.is_expired() is True
 
     def test_not_expired(self):
-        env = Envelope(sender="a", recipient="b", message_type="direct", ttl=300)
+        env = Envelope(
+            sender="a", recipient="b", message_type="direct", ttl=300
+        )
         assert env.is_expired() is False
 
     def test_zero_ttl_never_expires(self):

@@ -11,9 +11,9 @@ import json
 import logging
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from util import now_iso as _now_iso
 
@@ -104,7 +104,7 @@ class AgentDB:
         project: str = "",
         model: str = "",
         session_id: str = "",
-        capabilities: dict | None = None,
+        capabilities: Optional[dict] = None,
     ) -> None:
         """Insert or update an agent record.
 
@@ -202,7 +202,9 @@ class AgentDB:
         agents = []
         for row in rows:
             agent_dict = dict(row)
-            agent_dict["capabilities"] = json.loads(agent_dict.get("capabilities", "{}"))
+            agent_dict["capabilities"] = json.loads(
+                agent_dict.get("capabilities", "{}")
+            )
             agents.append(agent_dict)
         return agents
 
@@ -211,7 +213,7 @@ class AgentDB:
         task_id: str,
         hostname: str,
         action: str,
-        details: dict | None = None,
+        details: Optional[dict] = None,
     ) -> None:
         """Record a task action in history.
 
@@ -318,7 +320,8 @@ class AgentDB:
 
         return {
             "total_agents": len(agents),
-            "active_agents": state_counts.get("working", 0) + state_counts.get("blocked", 0),
+            "active_agents": state_counts.get("working", 0)
+            + state_counts.get("blocked", 0),
             "idle_agents": state_counts.get("idle", 0),
             "total_tasks": total,
             "completed_tasks": completed,
@@ -386,7 +389,7 @@ class AgentDB:
         # Calculate cutoff date
         from datetime import timedelta
 
-        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         cursor.execute("DELETE FROM task_history WHERE timestamp < ?", (cutoff,))
         deleted = cursor.rowcount

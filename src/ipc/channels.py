@@ -130,7 +130,9 @@ def consume(
     group = f"cg:{channel}"
 
     # Read pending first, then new
-    entries = transport.stream_read_group(stream_key, group, agent_id, count=count, pending=True)
+    entries = transport.stream_read_group(
+        stream_key, group, agent_id, count=count, pending=True
+    )
     remaining = count - len(entries)
     if remaining > 0:
         new = transport.stream_read_group(
@@ -175,13 +177,11 @@ def list_channels() -> list[dict]:
     for name in sorted(names):
         sub_count = r.scard(f"{_K_CHANNEL_SUBS}{name}")
         stream_len = transport.stream_len(f"{_K_CHANNEL}{name}")
-        channels.append(
-            {
-                "name": name,
-                "subscribers": sub_count,
-                "messages": stream_len,
-            }
-        )
+        channels.append({
+            "name": name,
+            "subscribers": sub_count,
+            "messages": stream_len,
+        })
     return channels
 
 

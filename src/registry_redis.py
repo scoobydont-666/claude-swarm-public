@@ -48,7 +48,9 @@ class AgentInfo:
         return f"{self.hostname}-{self.pid}"
 
 
-def register(model: str = "", project: str = "", session_context: str = "") -> AgentInfo:
+def register(
+    model: str = "", project: str = "", session_context: str = ""
+) -> AgentInfo:
     """Register this agent in Redis."""
     host = hostname()
     pid = os.getpid()
@@ -96,7 +98,8 @@ def update_agent(agent: AgentInfo, **kwargs) -> None:
     r = _rc.get_client()
     key = f"agent:{agent.hostname}:{agent.pid}"
     update = {
-        k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in kwargs.items()
+        k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
+        for k, v in kwargs.items()
     }
     if update:
         r.hset(key, mapping=update)
@@ -161,7 +164,9 @@ def _detect_capabilities() -> dict[str, bool]:
     if os.path.exists("/usr/bin/nvidia-smi"):
         try:
             result = (
-                os.popen("nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null")
+                os.popen(
+                    "nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null"
+                )
                 .read()
                 .strip()
             )

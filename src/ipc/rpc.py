@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 
 from . import _lua_scripts, transport
-from .agent import _K_INBOX, get_current_agent_id
+from .agent import _K_INBOX, _K_INBOX_GROUP, get_current_agent_id
 from .envelope import Envelope
 
 # Defaults

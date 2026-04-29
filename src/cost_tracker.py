@@ -11,6 +11,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,6 @@ HYDRA_PULSE_BIN = "hydra-pulse"
 @dataclass
 class TaskCost:
     """Cost data for a single task."""
-
     task_id: str
     total_input_tokens: int = 0
     total_output_tokens: int = 0
@@ -37,7 +37,7 @@ class TaskCost:
     retrieved_at: float = 0.0
 
 
-def get_task_cost(task_id: str) -> TaskCost | None:
+def get_task_cost(task_id: str) -> Optional[TaskCost]:
     """Query Hydra Pulse for cost data associated with a SWARM_TASK_ID.
 
     Tries the CLI first, falls back to direct SQLite query.
@@ -46,9 +46,7 @@ def get_task_cost(task_id: str) -> TaskCost | None:
     try:
         result = subprocess.run(
             [HYDRA_PULSE_BIN, "task-costs", "--task-id", task_id, "--json"],
-            capture_output=True,
-            text=True,
-            timeout=5,
+            capture_output=True, text=True, timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
             data = json.loads(result.stdout)
@@ -68,13 +66,11 @@ def get_task_cost(task_id: str) -> TaskCost | None:
     # Method 2: Direct SQLite query (fallback)
     try:
         import sqlite3
-
         for db_path in PULSE_DB_PATHS:
             if db_path.exists():
                 conn = sqlite3.connect(str(db_path))
                 try:
-                    row = conn.execute(
-                        """
+                    row = conn.execute("""
                         SELECT
                             COALESCE(SUM(input_tokens), 0),
                             COALESCE(SUM(output_tokens), 0),
@@ -84,9 +80,7 @@ def get_task_cost(task_id: str) -> TaskCost | None:
                             COALESCE(SUM(duration_seconds), 0.0)
                         FROM sessions
                         WHERE task_id = ?
-                    """,
-                        (task_id,),
-                    ).fetchone()
+                    """, (task_id,)).fetchone()
 
                     if row and row[0] > 0:
                         return TaskCost(
@@ -132,9 +126,7 @@ def get_daily_costs() -> dict:
     try:
         result = subprocess.run(
             [HYDRA_PULSE_BIN, "stats", "--json"],
-            capture_output=True,
-            text=True,
-            timeout=5,
+            capture_output=True, text=True, timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
             return json.loads(result.stdout)

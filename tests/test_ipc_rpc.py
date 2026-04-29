@@ -35,8 +35,8 @@ class TestRPC:
         """Test RPC by having a responder thread."""
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.direct import recv
         from ipc.rpc import request, respond
+        from ipc.direct import recv
 
         # Responder thread: reads from B's inbox, sends response
         def responder():
@@ -66,7 +66,7 @@ class TestRPC:
     def test_rpc_timeout(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.rpc import RPCTimeout, request
+        from ipc.rpc import request, RPCTimeout
 
         agent_mod._current_agent_id = id_a
         with pytest.raises(RPCTimeout):
@@ -75,8 +75,8 @@ class TestRPC:
     def test_rpc_error_response(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
+        from ipc.rpc import request, respond_error, RPCError
         from ipc.direct import recv
-        from ipc.rpc import RPCError, request, respond_error
 
         def responder():
             agent_mod._current_agent_id = id_b
@@ -112,7 +112,7 @@ class TestRPC:
     def test_metrics_tracked(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.rpc import RPCTimeout, request
+        from ipc.rpc import request, RPCTimeout
 
         agent_mod._current_agent_id = id_a
         try:

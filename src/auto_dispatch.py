@@ -30,8 +30,8 @@ try:
     from backend import lib as swarm
 except ImportError:
     import swarm_lib as swarm
-from hydra_dispatch import _find_best_host, dispatch
 from work_generator import WorkGenerator, infer_model
+from hydra_dispatch import dispatch, _find_best_host
 
 logger = logging.getLogger(__name__)
 
@@ -46,26 +46,6 @@ MODE_ALLOWED_MODELS = {
     "sonnet": {"haiku", "sonnet"},
     "full": {"haiku", "sonnet", "opus"},
 }
-
-
-def _tier_of(model: str) -> str:
-    """Map a model identifier (tier name or full ID) to its tier label.
-
-    Accepts both short tier names (haiku/sonnet/opus) emitted by the legacy
-    infer_model(), and full Anthropic model IDs (claude-haiku-4-5-20251001,
-    claude-sonnet-4-6, claude-opus-4-7) emitted by the model_router.
-    """
-    if not model:
-        return ""
-    low = model.lower()
-    if "haiku" in low:
-        return "haiku"
-    if "sonnet" in low:
-        return "sonnet"
-    if "opus" in low:
-        return "opus"
-    return low  # local models or unknown — return as-is
-
 
 # Dead-man switch: max seconds since last human session before pausing
 DEADMAN_THRESHOLD_SECONDS = 86400  # 24 hours
@@ -106,11 +86,8 @@ class AutoDispatcher:
     # -----------------------------------------------------------------------
 
     def is_model_allowed(self, model: str) -> bool:
-        """Check if a model is allowed under the current mode.
-
-        Accepts both tier names and full model IDs via _tier_of().
-        """
-        return _tier_of(model) in MODE_ALLOWED_MODELS.get(self.mode, set())
+        """Check if a model tier is allowed under the current mode."""
+        return model in MODE_ALLOWED_MODELS.get(self.mode, set())
 
     def set_mode(self, mode: str, config_path: Path) -> None:
         """Persist auto_dispatch.mode to swarm.yaml."""
@@ -190,7 +167,9 @@ class AutoDispatcher:
         """Record a dispatch failure for a host. Quarantine after threshold."""
         self._host_failures[host] = self._host_failures.get(host, 0) + 1
         if self._host_failures[host] >= QUARANTINE_FAILURE_THRESHOLD:
-            self._host_quarantine_until[host] = time.time() + QUARANTINE_DURATION_SECONDS
+            self._host_quarantine_until[host] = (
+                time.time() + QUARANTINE_DURATION_SECONDS
+            )
             logger.warning(
                 "Host %s quarantined for %ds after %d consecutive failures",
                 host,
@@ -276,7 +255,6 @@ class AutoDispatcher:
             return priority_map[s]
         # Try tier names
         from task_queue import PRIORITY_TIERS
-
         return PRIORITY_TIERS.get(s.lower(), 5)
 
     def _preempt_task(self, task_id: str, claimed_by: str) -> None:
@@ -438,7 +416,6 @@ class AutoDispatcher:
         task_text = task.get("title", "") + " " + task.get("description", "")
         try:
             from model_router import get_model_for_task
-
             return get_model_for_task(task_text)
         except ImportError:
             return infer_model(task_text)

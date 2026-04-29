@@ -15,13 +15,22 @@ class TestIsPathWithinBase:
         assert _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/task-123") is True
 
     def test_nested_task_id(self):
-        assert _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/host/task-123") is True
+        assert (
+            _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/host/task-123")
+            is True
+        )
 
     def test_traversal_attack(self):
-        assert _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/../../etc/passwd") is False
+        assert (
+            _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/../../etc/passwd")
+            is False
+        )
 
     def test_double_dot_in_middle(self):
-        assert _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/foo/../../../root") is False
+        assert (
+            _is_path_within_base("/tmp/worktrees", "/tmp/worktrees/foo/../../../root")
+            is False
+        )
 
     def test_base_itself(self):
         assert _is_path_within_base("/tmp/worktrees", "/tmp/worktrees") is True
@@ -31,7 +40,9 @@ class TestIsPathWithinBase:
 
     def test_partial_name_match(self):
         # "/tmp/worktrees-evil" should NOT match "/tmp/worktrees"
-        assert _is_path_within_base("/tmp/worktrees", "/tmp/worktrees-evil/task") is False
+        assert (
+            _is_path_within_base("/tmp/worktrees", "/tmp/worktrees-evil/task") is False
+        )
 
 
 class TestCreateWorktreeGuard:

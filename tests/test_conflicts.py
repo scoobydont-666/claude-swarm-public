@@ -3,7 +3,7 @@
 import json
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -93,7 +93,9 @@ class TestCheckProjectConflict:
         with patch("conflicts.list_agents", return_value=mock_agents):
             from conflicts import check_project_conflict
 
-            result = check_project_conflict("/opt/examforge", my_agent_id="node_primary-1001")
+            result = check_project_conflict(
+                "/opt/examforge", my_agent_id="node_primary-1001"
+            )
         assert result["conflict"] is False
         assert result["safe"] is True
 
@@ -131,7 +133,9 @@ class TestCheckFileConflict:
     def test_finds_overlapping_files(self):
         from conflicts import check_file_conflict
 
-        with patch("conflicts.get_changed_files", return_value={"shared.py", "other.py"}):
+        with patch(
+            "conflicts.get_changed_files", return_value={"shared.py", "other.py"}
+        ):
             result = check_file_conflict("/opt/a", {"shared.py", "mine.py"}, "/opt/b")
         assert result == ["shared.py"]
 
@@ -155,7 +159,7 @@ class TestGPUSlotManagement:
         assert data["slots"]["gpu-0"]["model"] == "llama3"
 
     def test_claim_slot_held_by_live_agent(self, tmp_gpu_slots):
-        from conflicts import _write_gpu_slots, claim_gpu_slot
+        from conflicts import claim_gpu_slot, _write_gpu_slots
 
         # Pre-claim slot
         _write_gpu_slots({"slots": {"gpu-0": {"agent_id": "test-1001"}}})
@@ -168,7 +172,7 @@ class TestGPUSlotManagement:
         assert result is False
 
     def test_claim_slot_held_by_dead_agent(self, tmp_gpu_slots):
-        from conflicts import _write_gpu_slots, claim_gpu_slot
+        from conflicts import claim_gpu_slot, _write_gpu_slots
 
         _write_gpu_slots({"slots": {"gpu-0": {"agent_id": "dead-9999"}}})
         with patch("registry.get_live_agents", return_value=[]):

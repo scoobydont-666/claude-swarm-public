@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 
@@ -341,7 +341,9 @@ def plan_execution(
     if not is_local and not interactive:
         reasons.append("straightforward task — one-shot dispatch is sufficient")
     if complexity in (TaskComplexity.COMPLEX, TaskComplexity.EXPLORATORY):
-        reasons.append(f"high complexity ({complexity.value}) warrants careful approach")
+        reasons.append(
+            f"high complexity ({complexity.value}) warrants careful approach"
+        )
 
     # Max turns: unlimited for interactive, scaled for dispatch
     # Trivial tasks get 3 turns, simple get 10, moderate 25, complex/exploratory unlimited
@@ -422,9 +424,8 @@ def _auto_requeue_task(dispatch_id: str, task_id: str = "") -> bool:
         True if successfully requeued, False otherwise.
     """
     import os
-    from pathlib import Path
-
     import yaml
+    from pathlib import Path
 
     # Try to extract task_id from dispatch plan if not provided
     if not task_id:
@@ -480,7 +481,7 @@ def _auto_requeue_task(dispatch_id: str, task_id: str = "") -> bool:
         return False
 
 
-def check_dispatch_status(dispatch_id: str) -> SessionResult | None:
+def check_dispatch_status(dispatch_id: str) -> Optional[SessionResult]:
     """Check status of a background dispatch.
 
     For background dispatches, reads PID file and checks if process is alive.
@@ -632,22 +633,22 @@ def execute_plan(plan: ExecutionPlan, background: bool = True) -> SessionResult:
         if plan.max_turns > 0:
             claude_args.extend(["--max-turns", str(plan.max_turns)])
 
-    # Build the claude command with a proper argv-quoted string.
-    # Fix 2026-04-22 (dogfood test): the prior version did `claude_args[:-1]`
-    # (dropping the last arg — which was the prompt for REMOTE_DISPATCH but
-    # was `--max-turns VALUE`'s VALUE for REMOTE_SESSION/COLLABORATIVE), then
-    # appended a heredoc-wrapped prompt AND re-appended `--max-turns` on the
-    # session paths. Result: two prompts + duplicate --max-turns + broken outer
-    # single-quotes from `'PROMPT_EOF'` inside `bash -c '...'`.
-    #
-    # Correct pattern: shlex.quote every argv element, join with spaces, emit
-    # a single well-formed shell command line. No heredoc, no re-append tricks.
-    import shlex as _shlex
-
-    claude_cmdline = " ".join(_shlex.quote(a) for a in claude_args)
-    parts.append(claude_cmdline)
+    # Build the claude command with proper argument list (no shell escaping needed)
+    # We pass the prompt via stdin to avoid shell quoting nightmares
+    parts.append(" ".join(claude_args[:-1]))  # Everything except the prompt
     setup_cmd = " && ".join(parts)
-    remote_script = setup_cmd
+
+    # Use a here-document to pass the prompt safely — no quoting issues
+    # The prompt goes via stdin using <<'PROMPT_EOF' (single-quoted delimiter = no expansion)
+    remote_script = f"""{setup_cmd} "$(cat <<'PROMPT_EOF'
+{plan.prompt}
+PROMPT_EOF
+)" """
+    if plan.max_turns > 0:
+        remote_script = f"""{setup_cmd} "$(cat <<'PROMPT_EOF'
+{plan.prompt}
+PROMPT_EOF
+)" --max-turns {plan.max_turns}"""
 
     ssh_cmd = [
         "ssh",
@@ -780,13 +781,13 @@ def get_dispatch_output(dispatch_id: str, tail_lines: int = 50) -> str:
         return f"Output file not found: {output_file}"
 
     try:
-        with open(output_file) as f:
+        with open(output_file, "r") as f:
             if tail_lines > 0:
                 lines = f.readlines()
                 return "".join(lines[-tail_lines:])
             else:
                 return f.read()
-    except OSError as exc:
+    except (OSError, IOError) as exc:
         return f"Error reading output: {exc}"
 
 

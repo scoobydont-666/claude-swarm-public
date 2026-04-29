@@ -5,19 +5,21 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from config_loader import (
     _resolve_env_vars,
     _walk_resolve,
+    load_config,
+    get_config,
+    get_nodes,
+    get_node_config,
+    get_fleet,
     get_auto_dispatch_config,
     get_capability_routing,
-    get_fleet,
-    get_node_config,
-    get_nodes,
     get_swarm_root,
-    load_config,
 )
 
 
@@ -132,14 +134,10 @@ class TestCustomConfig:
     def test_env_override_path(self, tmp_path):
         """SWARM_CONFIG env var overrides default paths."""
         config_file = tmp_path / "custom.yaml"
-        config_file.write_text(
-            yaml.dump(
-                {
-                    "nodes": {"TEST_HOST": {"ip": "10.0.0.1", "capabilities": ["cpu"]}},
-                    "auto_dispatch": {"mode": "off"},
-                }
-            )
-        )
+        config_file.write_text(yaml.dump({
+            "nodes": {"TEST_HOST": {"ip": "10.0.0.1", "capabilities": ["cpu"]}},
+            "auto_dispatch": {"mode": "off"},
+        }))
 
         with patch.dict(os.environ, {"SWARM_CONFIG": str(config_file)}):
             config = load_config(force_reload=True)
@@ -151,18 +149,12 @@ class TestCustomConfig:
     def test_env_vars_in_config(self, tmp_path):
         """Environment variables in config values are resolved."""
         config_file = tmp_path / "env_test.yaml"
-        config_file.write_text(
-            yaml.dump(
-                {
-                    "database_url": "${DB_URL:-postgresql://127.0.0.1/swarm}",
-                    "nodes": {"HOST": {"ip": "${HOST_IP:-192.168.1.1}"}},
-                }
-            )
-        )
+        config_file.write_text(yaml.dump({
+            "database_url": "${DB_URL:-postgresql://127.0.0.1/swarm}",
+            "nodes": {"HOST": {"ip": "${HOST_IP:-192.168.1.1}"}},
+        }))
 
-        with patch.dict(
-            os.environ, {"SWARM_CONFIG": str(config_file), "DB_URL": "postgresql://prod/swarm"}
-        ):
+        with patch.dict(os.environ, {"SWARM_CONFIG": str(config_file), "DB_URL": "postgresql://prod/swarm"}):
             config = load_config(force_reload=True)
             assert config["database_url"] == "postgresql://prod/swarm"
             assert config["nodes"]["HOST"]["ip"] == "192.168.1.1"  # default

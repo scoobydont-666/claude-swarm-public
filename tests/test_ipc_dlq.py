@@ -1,6 +1,7 @@
 """Tests for IPC dead-letter queue."""
 
 import sys
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -16,7 +17,6 @@ def fake_redis():
     fake = fakeredis.FakeRedis(server=server, decode_responses=True)
     with patch("ipc.transport.get_client", return_value=fake):
         import ipc.agent as agent_mod
-
         agent_mod._current_agent_id = None
         agent_mod._heartbeat_thread = None
         yield fake
@@ -25,18 +25,16 @@ def fake_redis():
 class TestDLQ:
     def test_list_empty_dlq(self, fake_redis):
         from ipc.dlq import list_dlq
-
         assert list_dlq() == []
 
     def test_dlq_depth(self, fake_redis):
         from ipc.dlq import dlq_depth
-
         assert dlq_depth() == 0
 
     def test_send_to_missing_agent_populates_dlq(self, fake_redis):
         from ipc.agent import register
         from ipc.direct import send
-        from ipc.dlq import dlq_depth, list_dlq
+        from ipc.dlq import list_dlq, dlq_depth
 
         register(hostname="host", pid=1, auto_heartbeat=False)
         send("nobody:0:0000", "test message")
@@ -48,13 +46,13 @@ class TestDLQ:
         assert entries[0]["envelope"].payload == {"text": "test message"}
 
     def test_requeue_from_dlq(self, fake_redis):
-        import ipc.agent as agent_mod
         from ipc.agent import register
-        from ipc.direct import recv, send
+        from ipc.direct import send, recv
         from ipc.dlq import list_dlq, requeue
+        import ipc.agent as agent_mod
 
         # Agent A sends to nonexistent B
-        register(hostname="a", pid=1, auto_heartbeat=False)
+        id_a = register(hostname="a", pid=1, auto_heartbeat=False)
         send("nobody:0:0000", "test")
 
         # Now register the real target
@@ -73,7 +71,7 @@ class TestDLQ:
         assert msgs[0].payload == {"text": "test"}
 
     def test_purge_old_entries(self, fake_redis):
-        from ipc.dlq import dlq_depth, purge
+        from ipc.dlq import purge, dlq_depth
         from ipc.envelope import Envelope
 
         # Add an entry with old stream ID

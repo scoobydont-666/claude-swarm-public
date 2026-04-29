@@ -34,22 +34,22 @@ def _use_redis() -> bool:
 
 if _use_redis():
     try:
+        import swarm_redis as lib
+        import registry_redis as registry
         import events_redis as events
         import gpu_slots_redis as gpu_slots
-        import registry_redis as registry
-        import swarm_redis as lib
     except ImportError:
+        from src import swarm_redis as lib
+        from src import registry_redis as registry
         from src import events_redis as events
         from src import gpu_slots_redis as gpu_slots
-        from src import registry_redis as registry
-        from src import swarm_redis as lib
     BACKEND = "redis"
 else:
     try:
+        import swarm_lib as lib
+        import registry
         import events
         import gpu_slots
-        import registry
-        import swarm_lib as lib
     except ImportError:
         pass
     BACKEND = "nfs"

@@ -57,7 +57,9 @@ class TestAlertRulesYAML:
         for group in data["groups"]:
             for rule in group["rules"]:
                 for field in required_fields:
-                    assert field in rule, f"Rule missing {field}: {rule.get('alert', 'unknown')}"
+                    assert field in rule, (
+                        f"Rule missing {field}: {rule.get('alert', 'unknown')}"
+                    )
 
     def test_alert_node_offline_rule(self):
         """Test SwarmNodeOffline alert rule."""
@@ -110,6 +112,23 @@ class TestAlertRulesYAML:
         assert "swarm_last_heartbeat_age_seconds" in rule["expr"]
         assert rule["labels"]["severity"] == "critical"
 
+    def test_alert_gpu_slots_full_rule(self):
+        """Test SwarmGPUSlotsFull alert rule."""
+        alerts_path = Path("/opt/claude-swarm/deploy/swarm-alerts.yml")
+        with open(alerts_path) as f:
+            data = yaml.safe_load(f)
+
+        alerts = []
+        for group in data["groups"]:
+            for rule in group["rules"]:
+                if rule.get("alert") == "SwarmGPUSlotsFull":
+                    alerts.append(rule)
+
+        assert len(alerts) == 1
+        rule = alerts[0]
+        assert "swarm_gpu_slots_used" in rule["expr"]
+        assert rule["labels"]["severity"] == "info"
+
     def test_alert_dispatch_cost_rule(self):
         """Test SwarmHighDispatchCost alert rule."""
         alerts_path = Path("/opt/claude-swarm/deploy/swarm-alerts.yml")
@@ -153,8 +172,12 @@ class TestAlertRulesYAML:
         for group in data["groups"]:
             for rule in group["rules"]:
                 annotations = rule.get("annotations", {})
-                assert "summary" in annotations, f"Missing summary for {rule.get('alert')}"
-                assert "description" in annotations, f"Missing description for {rule.get('alert')}"
+                assert "summary" in annotations, (
+                    f"Missing summary for {rule.get('alert')}"
+                )
+                assert "description" in annotations, (
+                    f"Missing description for {rule.get('alert')}"
+                )
 
     def test_alert_rules_for_durations(self):
         """Test that rules specify 'for' duration."""

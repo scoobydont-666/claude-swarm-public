@@ -68,7 +68,9 @@ def stream_ack(key: str, group: str, *message_ids: str) -> int:
     return r.xack(key, group, *message_ids)
 
 
-def stream_pending(key: str, group: str, count: int = 100, min_idle_ms: int = 0) -> list[dict]:
+def stream_pending(
+    key: str, group: str, count: int = 100, min_idle_ms: int = 0
+) -> list[dict]:
     """XPENDING detail: messages that haven't been acked.
 
     Returns list of dicts with: message_id, consumer, idle_ms, delivery_count.
@@ -83,14 +85,12 @@ def stream_pending(key: str, group: str, count: int = 100, min_idle_ms: int = 0)
         idle = entry.get("time_since_delivered", 0)
         if min_idle_ms and idle < min_idle_ms:
             continue
-        results.append(
-            {
-                "message_id": entry.get("message_id", ""),
-                "consumer": entry.get("consumer", ""),
-                "idle_ms": idle,
-                "delivery_count": entry.get("times_delivered", 0),
-            }
-        )
+        results.append({
+            "message_id": entry.get("message_id", ""),
+            "consumer": entry.get("consumer", ""),
+            "idle_ms": idle,
+            "delivery_count": entry.get("times_delivered", 0),
+        })
     return results
 
 

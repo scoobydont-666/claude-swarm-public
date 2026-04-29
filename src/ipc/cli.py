@@ -7,6 +7,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
@@ -17,29 +18,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from ipc import (
     Envelope,
+    broadcast as ipc_broadcast,
     channels,
     cleanup_stale,
+    deregister as ipc_deregister,
     dlq,
     get_current_agent_id,
     inbox_depth,
     list_agents,
     metrics,
-    rpc,
-)
-from ipc import (
-    broadcast as ipc_broadcast,
-)
-from ipc import (
-    deregister as ipc_deregister,
-)
-from ipc import (
     recv as ipc_recv,
-)
-from ipc import (
     register as ipc_register,
-)
-from ipc import (
+    rpc,
     send as ipc_send,
+    update_status,
 )
 
 app = typer.Typer(help="hydra-ipc — agent-to-agent communication")
@@ -95,7 +87,7 @@ def deregister() -> None:
 
 @app.command()
 def status(
-    project: str | None = typer.Option(None, help="Filter by project"),
+    project: Optional[str] = typer.Option(None, help="Filter by project"),
 ) -> None:
     """Show all online IPC agents."""
     cleanup_stale()
@@ -127,7 +119,9 @@ def status(
         except (ValueError, TypeError):
             hb_str = "?"
 
-        status_style = {"online": "green", "busy": "yellow", "away": "dim"}.get(st, "white")
+        status_style = {"online": "green", "busy": "yellow", "away": "dim"}.get(
+            st, "white"
+        )
         table.add_row(
             aid,
             f"[{status_style}]{st}[/]",
@@ -204,7 +198,7 @@ def recv(
 @app.command()
 def broadcast(
     message: str = typer.Argument(help="Message to broadcast"),
-    project: str | None = typer.Option(None, help="Limit to project"),
+    project: Optional[str] = typer.Option(None, help="Limit to project"),
 ) -> None:
     """Broadcast a message to all agents."""
     _auto_register()
@@ -257,7 +251,7 @@ def ping(
     for i in range(count):
         try:
             start = time.time()
-            rpc.request(agent_id, "ping", {"seq": i}, timeout=5)
+            resp = rpc.request(agent_id, "ping", {"seq": i}, timeout=5)
             elapsed = (time.time() - start) * 1000
             latencies.append(elapsed)
             console.print(f"  pong from {agent_id}: seq={i} time={elapsed:.1f}ms")
@@ -284,7 +278,7 @@ def ping(
 @app.command()
 def watch(
     inbox: bool = typer.Option(True, help="Watch own inbox"),
-    channel: str | None = typer.Option(None, help="Watch a channel instead"),
+    channel: Optional[str] = typer.Option(None, help="Watch a channel instead"),
 ) -> None:
     """Live tail of messages. Ctrl+C to stop."""
     _auto_register()
@@ -301,7 +295,8 @@ def watch(
                 age = _relative_time(msg.timestamp)
                 source = channel or "inbox"
                 console.print(
-                    f"[{source}] [bold cyan]{msg.sender}[/] ({age}) [dim]{msg.message_type}[/]"
+                    f"[{source}] [bold cyan]{msg.sender}[/] ({age}) "
+                    f"[dim]{msg.message_type}[/]"
                 )
                 if isinstance(msg.payload, dict) and "text" in msg.payload:
                     console.print(f"  {msg.payload['text']}")
@@ -425,7 +420,7 @@ def dlq_list(limit: int = typer.Option(50, help="Max entries")) -> None:
 @dlq_app.command("requeue")
 def dlq_requeue(
     message_id: str = typer.Argument(help="Stream ID to requeue"),
-    to: str | None = typer.Option(None, help="Override recipient"),
+    to: Optional[str] = typer.Option(None, help="Override recipient"),
 ) -> None:
     """Requeue a dead-lettered message."""
     ok = dlq.requeue(message_id, new_recipient=to)

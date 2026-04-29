@@ -3,6 +3,7 @@
 import sys
 from pathlib import Path
 
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from pipeline import PipelineContext
 
@@ -15,7 +16,9 @@ class TestPromptRendering:
 
     def test_input_field_access(self):
         ctx = PipelineContext({"cert": "FAR", "count": "10", "domain": "Revenue"})
-        result = ctx.render_prompt("Cert={input.cert} Count={input.count} Domain={input.domain}")
+        result = ctx.render_prompt(
+            "Cert={input.cert} Count={input.count} Domain={input.domain}"
+        )
         assert result == "Cert=FAR Count=10 Domain=Revenue"
 
     def test_missing_input_field_placeholder(self):

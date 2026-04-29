@@ -1,21 +1,14 @@
 """Tests for IPC bridge module."""
 
-from unittest.mock import patch
-
+import pytest
+from unittest.mock import patch, MagicMock
 from src.ipc_bridge import (
-    DISPATCH_EVENTS,
-    GPU_EVENTS,
-    INFRA_EVENTS,
-    ROUTING_EVENTS,
-    TASK_EVENTS,
-    emit_dispatch_started,
-    emit_gpu_allocated,
-    emit_node_health,
-    emit_routing_decision,
-    emit_task_completed,
-    emit_task_created,
-    is_available,
-    publish,
+    is_available, publish, consume,
+    emit_task_created, emit_task_completed, emit_task_failed,
+    emit_gpu_allocated, emit_gpu_released,
+    emit_dispatch_started, emit_dispatch_completed,
+    emit_node_health, emit_routing_decision,
+    TASK_EVENTS, GPU_EVENTS, DISPATCH_EVENTS, INFRA_EVENTS, ROUTING_EVENTS,
 )
 
 

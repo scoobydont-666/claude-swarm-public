@@ -17,18 +17,16 @@ Data model:
 """
 
 import json
+import os
 import time
 
 import redis
 
-from config_validation import RedisConfig
-
-# Load and validate Redis config at module import time
-_redis_config = RedisConfig.from_env()
-REDIS_HOST = _redis_config.host
-REDIS_PORT = _redis_config.port
-REDIS_PASSWORD = _redis_config.password
-REDIS_DB = _redis_config.db
+# Default connection config — override via environment
+REDIS_HOST = os.environ.get("SWARM_REDIS_HOST", "<orchestration-node-ip>")
+REDIS_PORT = int(os.environ.get("SWARM_REDIS_PORT", "6379"))
+REDIS_PASSWORD = os.environ.get("SWARM_REDIS_PASSWORD", "")
+REDIS_DB = int(os.environ.get("SWARM_REDIS_DB", "0"))
 
 # TTLs
 AGENT_TTL = 300  # 5 minutes — heartbeat refreshes
@@ -303,7 +301,8 @@ def update_status(host: str, status: dict) -> bool:
     r.hset(
         key,
         mapping={
-            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in status.items()
+            k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
+            for k, v in status.items()
         },
     )
     r.expire(key, STATUS_TTL)

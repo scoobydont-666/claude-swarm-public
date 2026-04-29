@@ -1,13 +1,23 @@
 """Tests for priority tier system — NAI Swarm backport."""
 
+import os
 import sys
+import time
 from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from task_queue import (
     Task,
     TaskQueue,
     _normalize_priority,
+    PRIORITY_TIERS,
+    PRIORITY_MAP,
+    PREEMPT_SOURCE_MAX,
+    PREEMPT_TARGET_MIN,
+    PREEMPT_GAP,
 )
 
 

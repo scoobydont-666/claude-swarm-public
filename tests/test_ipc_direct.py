@@ -22,11 +22,15 @@ def ipc_pair():
         # Register agent A
         agent_mod._current_agent_id = None
         agent_mod._heartbeat_thread = None
-        id_a = agent_mod.register(hostname="host", pid=1, project="/opt/test", auto_heartbeat=False)
+        id_a = agent_mod.register(
+            hostname="host", pid=1, project="/opt/test", auto_heartbeat=False
+        )
 
         # Register agent B
         agent_mod._current_agent_id = None
-        id_b = agent_mod.register(hostname="host", pid=2, project="/opt/test", auto_heartbeat=False)
+        id_b = agent_mod.register(
+            hostname="host", pid=2, project="/opt/test", auto_heartbeat=False
+        )
 
         yield fake, id_a, id_b
 
@@ -35,7 +39,7 @@ class TestDirectMessaging:
     def test_send_and_recv(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.direct import recv, send
+        from ipc.direct import send, recv
 
         # Send from A to B
         agent_mod._current_agent_id = id_a
@@ -66,7 +70,7 @@ class TestDirectMessaging:
     def test_string_payload_wrapped(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.direct import recv, send
+        from ipc.direct import send, recv
 
         agent_mod._current_agent_id = id_a
         send(id_b, "plain text message")
@@ -77,11 +81,10 @@ class TestDirectMessaging:
 
     def test_expired_messages_skipped(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
-        import time
-
         import ipc.agent as agent_mod
-        from ipc.direct import recv
+        from ipc.direct import send, recv
         from ipc.envelope import Envelope
+        import time
 
         # Manually add an expired message
         env = Envelope(
@@ -101,7 +104,7 @@ class TestDirectMessaging:
     def test_multiple_messages_ordered(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.direct import recv, send
+        from ipc.direct import send, recv
 
         agent_mod._current_agent_id = id_a
         for i in range(5):
@@ -116,7 +119,7 @@ class TestDirectMessaging:
     def test_inbox_depth(self, ipc_pair):
         fake, id_a, id_b = ipc_pair
         import ipc.agent as agent_mod
-        from ipc.direct import inbox_depth, send
+        from ipc.direct import send, inbox_depth
 
         agent_mod._current_agent_id = id_a
         for _ in range(3):

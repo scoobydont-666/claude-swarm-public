@@ -20,7 +20,7 @@ import json
 import logging
 import os
 import time
-from collections.abc import Callable
+from typing import Optional, Callable
 
 import redis
 
@@ -42,8 +42,8 @@ ROUTING_EVENTS = "routing-events"
 ALL_CHANNELS = [TASK_EVENTS, GPU_EVENTS, DISPATCH_EVENTS, INFRA_EVENTS, ROUTING_EVENTS]
 
 # Singleton client
-_client: redis.Redis | None = None
-_agent_id: str | None = None
+_client: Optional[redis.Redis] = None
+_agent_id: Optional[str] = None
 
 
 def get_client() -> redis.Redis:
@@ -76,14 +76,9 @@ def register(hostname: str = "") -> str:
     try:
         client = get_client()
         _agent_id = hostname or os.environ.get("HOSTNAME", "unknown")
-        client.hset(
-            f"hydra:ipc:agents:{_agent_id}",
-            mapping={
-                "role": "swarm",
-                "pid": str(os.getpid()),
-                "registered_at": str(time.time()),
-            },
-        )
+        client.hset(f"hydra:ipc:agents:{_agent_id}", mapping={
+            "role": "swarm", "pid": str(os.getpid()), "registered_at": str(time.time()),
+        })
         client.expire(f"hydra:ipc:agents:{_agent_id}", 3600)  # 1hr TTL
 
         # Ensure consumer groups exist for all channels
@@ -102,7 +97,7 @@ def register(hostname: str = "") -> str:
         return ""
 
 
-def publish(channel: str, event_type: str, data: dict, priority: int = 3) -> str | None:
+def publish(channel: str, event_type: str, data: dict, priority: int = 3) -> Optional[str]:
     """Publish an event to a Redis Stream.
 
     Wire-compatible with nai-ipc (Rust) envelope format.
@@ -110,15 +105,13 @@ def publish(channel: str, event_type: str, data: dict, priority: int = 3) -> str
     try:
         client = get_client()
         stream = f"hydra:ipc:{channel}"
-        envelope = json.dumps(
-            {
-                "type": event_type,
-                "data": data,
-                "sender": _agent_id or "unknown",
-                "ts": time.time(),
-                "priority": priority,
-            }
-        )
+        envelope = json.dumps({
+            "type": event_type,
+            "data": data,
+            "sender": _agent_id or "unknown",
+            "ts": time.time(),
+            "priority": priority,
+        })
         msg_id = client.xadd(stream, {"envelope": envelope}, maxlen=10000)
         logger.debug(f"IPC published: {channel}/{event_type} -> {msg_id}")
         return str(msg_id)
@@ -144,23 +137,19 @@ def consume(channel: str, count: int = 10, block_ms: int = 1000) -> list[dict]:
         except redis.ResponseError:
             pass
 
-        results = client.xreadgroup(
-            group, _agent_id or "worker", {stream: ">"}, count=count, block=block_ms
-        )
+        results = client.xreadgroup(group, _agent_id or "worker", {stream: ">"}, count=count, block=block_ms)
         events = []
         for _stream_name, messages in results:
             for msg_id, fields in messages:
                 try:
                     env = json.loads(fields.get("envelope", "{}"))
-                    events.append(
-                        {
-                            "id": msg_id,
-                            "type": env.get("type", ""),
-                            "data": env.get("data", {}),
-                            "sender": env.get("sender", ""),
-                            "timestamp": env.get("ts", 0),
-                        }
-                    )
+                    events.append({
+                        "id": msg_id,
+                        "type": env.get("type", ""),
+                        "data": env.get("data", {}),
+                        "sender": env.get("sender", ""),
+                        "timestamp": env.get("ts", 0),
+                    })
                     # ACK the message
                     client.xack(stream, group, msg_id)
                 except (json.JSONDecodeError, KeyError):
@@ -173,14 +162,9 @@ def consume(channel: str, count: int = 10, block_ms: int = 1000) -> list[dict]:
 
 # ── Convenience publishers ────────────────────────────────────────────────────
 
-
 def emit_task_created(task_id: str, title: str, priority: int = 3, **kwargs):
     """Emit a task.created event."""
-    publish(
-        TASK_EVENTS,
-        "task.created",
-        {"task_id": task_id, "title": title, "priority": priority, **kwargs},
-    )
+    publish(TASK_EVENTS, "task.created", {"task_id": task_id, "title": title, "priority": priority, **kwargs})
 
 
 def emit_task_claimed(task_id: str, claimed_by: str, **kwargs):
@@ -190,11 +174,7 @@ def emit_task_claimed(task_id: str, claimed_by: str, **kwargs):
 
 def emit_task_completed(task_id: str, result: str = "", cost_usd: float = 0.0, **kwargs):
     """Emit a task.completed event."""
-    publish(
-        TASK_EVENTS,
-        "task.completed",
-        {"task_id": task_id, "result": result, "cost_usd": cost_usd, **kwargs},
-    )
+    publish(TASK_EVENTS, "task.completed", {"task_id": task_id, "result": result, "cost_usd": cost_usd, **kwargs})
 
 
 def emit_task_failed(task_id: str, error: str = "", **kwargs):
@@ -204,17 +184,10 @@ def emit_task_failed(task_id: str, error: str = "", **kwargs):
 
 def emit_gpu_allocated(host: str, gpu_index: int, task_id: str, model: str = "", vram_mb: int = 0):
     """Emit a gpu.allocated event."""
-    publish(
-        GPU_EVENTS,
-        "gpu.allocated",
-        {
-            "host": host,
-            "gpu_index": gpu_index,
-            "task_id": task_id,
-            "model": model,
-            "vram_mb": vram_mb,
-        },
-    )
+    publish(GPU_EVENTS, "gpu.allocated", {
+        "host": host, "gpu_index": gpu_index, "task_id": task_id,
+        "model": model, "vram_mb": vram_mb,
+    })
 
 
 def emit_gpu_released(host: str, gpu_index: int, task_id: str = ""):
@@ -224,62 +197,33 @@ def emit_gpu_released(host: str, gpu_index: int, task_id: str = ""):
 
 def emit_dispatch_started(dispatch_id: str, host: str, model: str, task: str):
     """Emit a dispatch.started event."""
-    publish(
-        DISPATCH_EVENTS,
-        "dispatch.started",
-        {
-            "dispatch_id": dispatch_id,
-            "host": host,
-            "model": model,
-            "task": task[:200],
-        },
-    )
+    publish(DISPATCH_EVENTS, "dispatch.started", {
+        "dispatch_id": dispatch_id, "host": host, "model": model, "task": task[:200],
+    })
 
 
 def emit_dispatch_completed(dispatch_id: str, host: str, status: str, cost_usd: float = 0.0):
     """Emit a dispatch.completed event."""
-    publish(
-        DISPATCH_EVENTS,
-        "dispatch.completed",
-        {
-            "dispatch_id": dispatch_id,
-            "host": host,
-            "status": status,
-            "cost_usd": cost_usd,
-        },
-    )
+    publish(DISPATCH_EVENTS, "dispatch.completed", {
+        "dispatch_id": dispatch_id, "host": host, "status": status, "cost_usd": cost_usd,
+    })
 
 
 def emit_node_health(hostname: str, status: str, gpu_count: int = 0, details: dict = None):
     """Emit an infra.node_health event."""
-    publish(
-        INFRA_EVENTS,
-        "infra.node_health",
-        {
-            "hostname": hostname,
-            "status": status,
-            "gpu_count": gpu_count,
-            "details": details or {},
-        },
-    )
+    publish(INFRA_EVENTS, "infra.node_health", {
+        "hostname": hostname, "status": status, "gpu_count": gpu_count, "details": details or {},
+    })
 
 
 def emit_routing_decision(task_description: str, tier: str, model: str, rule: str):
     """Emit a routing.decision event."""
-    publish(
-        ROUTING_EVENTS,
-        "routing.decision",
-        {
-            "task": task_description[:200],
-            "tier": tier,
-            "model": model,
-            "rule": rule,
-        },
-    )
+    publish(ROUTING_EVENTS, "routing.decision", {
+        "task": task_description[:200], "tier": tier, "model": model, "rule": rule,
+    })
 
 
 # ── Event listener (for dashboard / reactive components) ──────────────────────
-
 
 def listen(channels: list[str], callback: Callable[[str, dict], None], block_ms: int = 2000):
     """Blocking event listener loop. Calls callback(channel, event) for each message.
@@ -298,32 +242,27 @@ def listen(channels: list[str], callback: Callable[[str, dict], None], block_ms:
 
 # ── KV-Cache / Warm Model Awareness ──────────────────────────────────────────
 
-
 def query_warm_models(host_ip: str, ollama_port: int = 11434, timeout: int = 3) -> list[dict]:
     """Query Ollama /api/ps on a host to discover warm (loaded) models.
 
     Returns list of {name, vram_mb, context_length} for loaded models.
     """
     import subprocess
-
     try:
         result = subprocess.run(
-            ["curl", "-sf", "--max-time", str(timeout), f"http://{host_ip}:{ollama_port}/api/ps"],
-            capture_output=True,
-            text=True,
-            timeout=timeout + 2,
+            ["curl", "-sf", "--max-time", str(timeout),
+             f"http://{host_ip}:{ollama_port}/api/ps"],
+            capture_output=True, text=True, timeout=timeout + 2,
         )
         if result.returncode == 0 and result.stdout:
             data = json.loads(result.stdout)
             models = []
             for m in data.get("models", []):
-                models.append(
-                    {
-                        "name": m.get("name", ""),
-                        "vram_mb": m.get("size_vram", 0) // (1024 * 1024),
-                        "context_length": m.get("context_length", 0),
-                    }
-                )
+                models.append({
+                    "name": m.get("name", ""),
+                    "vram_mb": m.get("size_vram", 0) // (1024 * 1024),
+                    "context_length": m.get("context_length", 0),
+                })
             return models
     except Exception:
         pass
@@ -354,21 +293,13 @@ def discover_fleet_warm_models(fleet_ips: dict[str, str] | None = None) -> dict[
             result[hostname] = models
             # Publish to IPC
             for m in models:
-                publish(
-                    GPU_EVENTS,
-                    "gpu.model_warm",
-                    {
-                        "host": hostname,
-                        "model": m["name"],
-                        "vram_mb": m["vram_mb"],
-                    },
-                )
+                publish(GPU_EVENTS, "gpu.model_warm", {
+                    "host": hostname, "model": m["name"], "vram_mb": m["vram_mb"],
+                })
     return result
 
 
-def find_host_with_warm_model(
-    model_name: str, fleet_ips: dict[str, str] | None = None
-) -> str | None:
+def find_host_with_warm_model(model_name: str, fleet_ips: dict[str, str] | None = None) -> str | None:
     """Find a fleet host that already has a specific model loaded in VRAM.
 
     Returns hostname if found, None otherwise. Useful for KV-cache-aware routing.
