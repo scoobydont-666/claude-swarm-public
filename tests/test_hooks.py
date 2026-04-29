@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import swarm_lib as lib
 
@@ -16,9 +15,7 @@ class TestSessionStartOutput:
     def test_status_registered_on_start(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active", session_id="test-123", model="opus")
@@ -30,9 +27,7 @@ class TestSessionStartOutput:
         """When other nodes exist, session start should report them."""
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
         ):
             # Write another node's status
             other_status = {
@@ -58,9 +53,7 @@ class TestHeartbeatStaleDetection:
     def test_fresh_node_not_stale(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active")
@@ -102,9 +95,7 @@ class TestTaskCheckCapabilities:
     def test_matching_capabilities(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active")
@@ -122,9 +113,7 @@ class TestTaskCheckCapabilities:
     def test_no_requirements_always_matches(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             lib.update_status(state="active")

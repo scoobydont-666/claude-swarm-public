@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from hydra_dispatch import DispatchSpec, DispatchResult, dispatch_from_spec
+from hydra_dispatch import DispatchResult, DispatchSpec, dispatch_from_spec
 
 
 class TestDispatchSpec:
@@ -69,7 +69,7 @@ class TestDispatchFromSpec:
             status="running",
         )
         spec = DispatchSpec(task="test", host="node_reserve2")
-        result = dispatch_from_spec(spec)
+        dispatch_from_spec(spec)
         mock_dispatch.assert_called_once()
         assert (
             mock_dispatch.call_args[1]["host"] == "node_reserve2"

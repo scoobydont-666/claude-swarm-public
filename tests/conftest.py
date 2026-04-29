@@ -1,5 +1,6 @@
 """Shared pytest fixtures for claude-swarm tests."""
 
+import os
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -7,7 +8,16 @@ from unittest.mock import patch
 import pytest
 import yaml
 
+# Mark test environment as dev so config_validation / celery_app don't
+# fail-closed on empty SWARM_REDIS_PASSWORD (fakeredis doesn't use auth).
+os.environ.setdefault("HYDRA_ENV", "dev")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+# Add conformance test harness to path
+conformance_dir = Path(__file__).resolve().parent / "conformance"
+if str(conformance_dir) not in sys.path:
+    sys.path.insert(0, str(conformance_dir))
 import swarm_lib as lib
 
 
@@ -93,9 +103,7 @@ def swarm_tmpdir(tmp_path):
 
     with (
         patch.object(lib, "_swarm_root", return_value=tmp_path),
-        patch.object(
-            lib, "_config_path", return_value=tmp_path / "config" / "swarm.yaml"
-        ),
+        patch.object(lib, "_config_path", return_value=tmp_path / "config" / "swarm.yaml"),
         patch.object(lib, "_hostname", return_value="testhost"),
     ):
         yield tmp_path

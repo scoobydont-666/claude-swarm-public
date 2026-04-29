@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 
@@ -217,7 +216,7 @@ class TestDiskUsageCheck:
 
 class TestNFSCheck:
     def test_drift_detected_when_mtime_differs(self, tmp_path):
-        monitor = _make_monitor()
+        _make_monitor()
 
         primary = tmp_path / "swarm"
         replica = tmp_path / "swarm-replica"
@@ -230,11 +229,11 @@ class TestNFSCheck:
         os.utime(replica, (time.time() - 300, time.time() - 300))
 
         with (
-            patch("health_monitor.Path") as mock_path_cls,
+            patch("health_monitor.Path"),
         ):
             # Let the check use real paths but point to tmp dirs
 
-            monitor2 = _make_monitor()
+            _make_monitor()
             # Direct test of the stat approach
             primary.stat()  # ensure accessible
 
@@ -245,7 +244,7 @@ class TestNFSCheck:
         assert drift > 120  # should be ~300s
 
     def test_no_drift_when_in_sync(self, tmp_path):
-        monitor = _make_monitor()
+        _make_monitor()
         primary = tmp_path / "swarm"
         replica = tmp_path / "swarm-replica"
         primary.mkdir()
@@ -329,12 +328,8 @@ class TestRunCheckDispatch:
     def test_dispatches_to_correct_check(self):
         monitor = _make_monitor()
 
-        with patch.object(
-            monitor, "_check_prometheus_query", return_value=[]
-        ) as mock_prom:
-            monitor._run_check(
-                {"name": "x", "check": "prometheus_query", "query": "up"}
-            )
+        with patch.object(monitor, "_check_prometheus_query", return_value=[]) as mock_prom:
+            monitor._run_check({"name": "x", "check": "prometheus_query", "query": "up"})
         mock_prom.assert_called_once()
 
         with patch.object(monitor, "_check_nfs_sync", return_value=[]) as mock_nfs:
@@ -365,9 +360,7 @@ class TestHandleTriggered:
         }
         item = {"host": "node_primary", "labels": {"job": "monerod"}, "value": 1.0}
 
-        with patch.object(
-            monitor.remediation, "execute", return_value=(True, "OK")
-        ) as mock_exec:
+        with patch.object(monitor.remediation, "execute", return_value=(True, "OK")) as mock_exec:
             with patch.object(monitor.event_log, "record") as mock_log:
                 monitor._handle_triggered(rule, item)
 
@@ -429,9 +422,7 @@ class TestHandleTriggered:
         item = {"host": "node_gpu"}
 
         with (
-            patch.object(
-                monitor.remediation, "execute", return_value=(False, "SSH unreachable")
-            ),
+            patch.object(monitor.remediation, "execute", return_value=(False, "SSH unreachable")),
             patch.object(
                 monitor.remediation, "send_alert_email", return_value=(True, "sent")
             ) as mock_email,
@@ -475,9 +466,7 @@ class TestParallelHealthChecks:
         n_rules = 4
 
         # Inject exactly n_rules fake rules
-        monitor.rules = [
-            {"name": f"slow_rule_{i}", "check": "disk_usage"} for i in range(n_rules)
-        ]
+        monitor.rules = [{"name": f"slow_rule_{i}", "check": "disk_usage"} for i in range(n_rules)]
 
         def slow_check(rule):
             time.sleep(sleep_per_rule)

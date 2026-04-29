@@ -1,6 +1,7 @@
 """Tests for agent database."""
 
 import sys
+from datetime import UTC
 from pathlib import Path
 from unittest.mock import patch
 
@@ -189,15 +190,15 @@ class TestDeleteAgent:
 
 class TestCleanupOldRecords:
     def test_cleanup_removes_old_records(self, tmp_db, tmp_path):
+        from datetime import datetime, timedelta
         from unittest.mock import patch
-        from datetime import datetime, timezone, timedelta
 
         # Create records
         tmp_db.upsert_agent("host1")
         tmp_db.record_task_action("task-001", "host1", "completed")
 
         # Mock datetime to simulate old record
-        old_time = datetime.now(timezone.utc) - timedelta(days=31)
+        old_time = datetime.now(UTC) - timedelta(days=31)
         with patch("agent_db.datetime") as mock_dt:
             mock_dt.now.return_value = old_time
             # This is a simplified test — in reality you'd need to manipulate DB directly

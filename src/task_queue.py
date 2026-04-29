@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 from uuid import uuid4
 
@@ -20,12 +20,12 @@ log = logging.getLogger(__name__)
 # Priority tiers: named tiers (0-5) inspired by NAI Swarm fair-share scheduling
 # Lower number = higher priority
 PRIORITY_TIERS = {
-    "production": 0,   # Tier 0: production inference / critical path
-    "cicd": 1,         # Tier 1: CI/CD pipelines
-    "lead": 2,         # Tier 2: team lead / high-priority manual
-    "standard": 3,     # Tier 3: standard work (default)
-    "batch": 4,        # Tier 4: batch jobs, background work
-    "sandbox": 5,      # Tier 5: dev/sandbox, lowest priority
+    "production": 0,  # Tier 0: production inference / critical path
+    "cicd": 1,  # Tier 1: CI/CD pipelines
+    "lead": 2,  # Tier 2: team lead / high-priority manual
+    "standard": 3,  # Tier 3: standard work (default)
+    "batch": 4,  # Tier 4: batch jobs, background work
+    "sandbox": 5,  # Tier 5: dev/sandbox, lowest priority
 }
 
 # Legacy priority mapping (backward compatible)
@@ -41,9 +41,9 @@ PRIORITY_MAP = {
 CLAIM_TTL_SECONDS = 600  # 10 minutes — requeue if uncompleted
 
 # Preemption: tasks with priority <= this can preempt tasks with priority >= PREEMPT_TARGET_MIN
-PREEMPT_SOURCE_MAX = 2   # P0-P2 can preempt
-PREEMPT_TARGET_MIN = 4   # P4-P5 can be preempted
-PREEMPT_GAP = 2          # Must be at least 2 tiers apart
+PREEMPT_SOURCE_MAX = 2  # P0-P2 can preempt
+PREEMPT_TARGET_MIN = 4  # P4-P5 can be preempted
+PREEMPT_GAP = 2  # Must be at least 2 tiers apart
 
 
 @dataclass
@@ -75,23 +75,49 @@ class Task:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Task":
+    def from_dict(cls, data: dict, *, strict: bool = False) -> "Task":
         """Reconstruct Task from dict (e.g., from YAML/Redis).
 
         Args:
             data: Dict with task fields. Handles string requires list.
+            strict: If True, raise ValueError on (a) non-dict input,
+                (b) missing required fields (id or title), (c) invalid
+                state. If False (default), silently default as before —
+                preserves backward-compat for legacy files that omit
+                optional fields.
 
         Returns:
             Task instance.
+
+        Raises:
+            ValueError: in strict mode on malformed input.
         """
+        # E3: strict-mode input validation. Non-dict => reject.
+        if not isinstance(data, dict):
+            msg = f"Task.from_dict expected dict, got {type(data).__name__}"
+            if strict:
+                raise ValueError(msg)
+
+        data = data if isinstance(data, dict) else {}
+
+        # E3 strict: required fields = id + title. In lax mode these get
+        # defaulted (uuid4 + empty string) for backward compat.
+        if strict:
+            if not data.get("id"):
+                raise ValueError("Task requires 'id' field (strict mode)")
+            if not data.get("title"):
+                raise ValueError("Task requires 'title' field (strict mode)")
+
+        # E3 strict: state must be in the known set.
+        _VALID_STATES = {"pending", "claimed", "running", "completed", "failed"}
+        state = data.get("state", "pending")
+        if strict and state not in _VALID_STATES:
+            raise ValueError(f"Task state '{state}' not in allowed set {sorted(_VALID_STATES)}")
+
         # Handle requires as string (from YAML/Redis)
         requires = data.get("requires", [])
         if isinstance(requires, str):
-            requires = (
-                [r.strip() for r in requires.split(",") if r.strip()]
-                if requires
-                else []
-            )
+            requires = [r.strip() for r in requires.split(",") if r.strip()] if requires else []
         return cls(
             id=data.get("id", str(uuid4())),
             title=data.get("title", ""),
@@ -99,7 +125,7 @@ class Task:
             project=data.get("project", ""),
             priority=_normalize_priority(data.get("priority", 3)),
             requires=requires,
-            state=data.get("state", "pending"),
+            state=state,
             created_by=data.get("created_by", ""),
             created_at=float(data.get("created_at", 0)),
             claimed_by=data.get("claimed_by", ""),
@@ -136,8 +162,13 @@ class TaskQueue:
     Backend priority: SQLite (if configured) → Redis → filesystem (NFS).
     """
 
-    def __init__(self, use_redis: bool = True, tasks_dir: str = "/opt/swarm/tasks",
-                 use_sqlite: bool = False, sqlite_path: str = "") -> None:
+    def __init__(
+        self,
+        use_redis: bool = True,
+        tasks_dir: str = "/opt/swarm/tasks",
+        use_sqlite: bool = False,
+        sqlite_path: str = "",
+    ) -> None:
         """Initialize TaskQueue with backend selection.
 
         Args:
@@ -255,7 +286,9 @@ class TaskQueue:
         return self._fs_claim(claimer)
 
     def claim_matching(
-        self, capabilities: dict[str, bool] | list[str], claimer: str,
+        self,
+        capabilities: dict[str, bool] | list[str],
+        claimer: str,
     ) -> Task | None:
         """Claim the highest-priority task matching the given capabilities.
 
@@ -419,7 +452,10 @@ class TaskQueue:
         claimed = self.list_claimed()
         preemptable = []
         for task in claimed:
-            if task.priority >= PREEMPT_TARGET_MIN and (task.priority - new_priority) >= PREEMPT_GAP:
+            if (
+                task.priority >= PREEMPT_TARGET_MIN
+                and (task.priority - new_priority) >= PREEMPT_GAP
+            ):
                 preemptable.append(task)
         return preemptable
 

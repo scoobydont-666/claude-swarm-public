@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
-from . import transport
+from . import dlq_persist, transport
 from .agent import _K_INBOX, _K_INBOX_GROUP, get_current_agent_id
 from .envelope import Envelope
 
@@ -13,6 +14,39 @@ _DLQ_MAXLEN = 5000
 
 # Messages pending longer than this get moved to DLQ
 _PENDING_TIMEOUT_MS = 60_000  # 60 seconds
+
+log = logging.getLogger(__name__)
+
+
+def _warn_if_no_persistence() -> None:
+    """REL-01: Warn loudly if Redis has no AOF or RDB persistence configured.
+
+    DLQ entries are stored in Redis streams. Without appendonly or save
+    configured, a Redis restart silently drops all DLQ entries — undeliverable
+    messages are permanently lost with no record for triage.
+
+    This is ops-side config; the app does not modify Redis config. The warning
+    is intentionally loud (WARNING level) so it surfaces in service logs on
+    every startup when persistence is off.
+    """
+    try:
+        r = transport.get_client()
+        appendonly = r.config_get("appendonly").get("appendonly", "no")
+        save = r.config_get("save").get("save", "")
+        if appendonly != "yes" and not save:
+            log.warning(
+                "REL-01: Redis has NO persistence (appendonly=no, save='')."
+                " DLQ entries in ipc:dlq will be LOST on Redis restart."
+                " To enable: CONFIG SET appendonly yes; CONFIG REWRITE"
+                " — see /opt/claude-swarm/docs/RUNBOOK.md#rel-01-dlq-persistence"
+            )
+    except Exception as exc:  # noqa: BLE001
+        # If we cannot reach Redis at all, transport will surface its own errors.
+        # Don't let a persistence check crash the DLQ module.
+        log.debug("REL-01 persistence check skipped: %s", exc)
+
+
+_warn_if_no_persistence()
 
 
 def list_dlq(limit: int = 50) -> list[dict]:
@@ -71,6 +105,11 @@ def requeue(message_id: str, new_recipient: str | None = None) -> bool:
     # Remove from DLQ
     r.xdel(_DLQ_KEY, message_id)
 
+    # Record the requeue in the persisted DLQ mirror so false-positive-rate
+    # calculations have signal. Best-effort; a failure here never blocks
+    # the Redis-side requeue.
+    dlq_persist.mark_resolved(message_id, dlq_persist.RESOLUTION_REQUEUED)
+
     return True
 
 
@@ -95,6 +134,7 @@ def purge(older_than_seconds: int = 3600) -> int:
 
     if to_delete:
         r.xdel(_DLQ_KEY, *to_delete)
+        dlq_persist.mark_resolved_bulk(to_delete, dlq_persist.RESOLUTION_PURGED)
 
     return len(to_delete)
 
@@ -102,6 +142,60 @@ def purge(older_than_seconds: int = 3600) -> int:
 def dlq_depth() -> int:
     """Get the number of entries in the DLQ."""
     return transport.stream_len(_DLQ_KEY)
+
+
+def prune_old_messages(hours: int = 72) -> int:
+    """E5: Remove DLQ entries older than `hours`. Returns count pruned.
+
+    XADD caps at _DLQ_MAXLEN=5000 entries, so capacity is already bounded;
+    this age-based prune is for dashboard cleanliness (old entries no longer
+    useful for triage). 72h default covers a Friday-to-Monday work cycle
+    plus the 48h D3-style staging observation windows with a buffer day —
+    Josh directive 2026-04-18 (work spans multiple days, don't lose
+    triage-able entries over a weekend). Increase freely if investigation
+    windows grow; decrease only if the DLQ table gets noisy.
+
+    Args:
+        hours: Messages with stream_id older than (now - hours) are removed.
+            Default 72h. Minimum sensible value is 48h for a multi-day
+            work cadence.
+
+    Returns:
+        Number of entries removed.
+    """
+    r = transport.get_client()
+    # Redis stream IDs are millis + sequence. Compute cutoff millis.
+    cutoff_ms = int((time.time() - hours * 3600) * 1000)
+    cutoff_id = f"{cutoff_ms}-0"
+
+    # Snapshot the IDs we're about to trim BEFORE the XTRIM so we can mirror
+    # the age-based expiration into the persisted store. XTRIM itself doesn't
+    # hand back the trimmed IDs.
+    expired_ids: list[str] = []
+    try:
+        expired_entries = r.xrange(_DLQ_KEY, "-", f"({cutoff_id}")
+        expired_ids = [stream_id for stream_id, _ in expired_entries]
+    except Exception:
+        expired_ids = []
+
+    # XTRIM with MINID: O(N) in removed entries, cheaper than range+delete.
+    # approximate=True lets Redis batch the trim for lower tail latency.
+    try:
+        removed = r.xtrim(_DLQ_KEY, minid=cutoff_id, approximate=True)
+        if expired_ids:
+            dlq_persist.mark_resolved_bulk(expired_ids, dlq_persist.RESOLUTION_EXPIRED)
+        return int(removed or 0)
+    except Exception:
+        # Best-effort: fall back to explicit XRANGE + XDEL if XTRIM minid
+        # isn't supported (very old Redis).
+        entries = r.xrange(_DLQ_KEY, "-", f"({cutoff_id}")
+        if not entries:
+            return 0
+        ids = [stream_id for stream_id, _ in entries]
+        for i in range(0, len(ids), 100):
+            r.xdel(_DLQ_KEY, *ids[i : i + 100])
+        dlq_persist.mark_resolved_bulk(ids, dlq_persist.RESOLUTION_EXPIRED)
+        return len(ids)
 
 
 def sweep_pending(agent_id: str | None = None) -> int:
@@ -132,8 +226,14 @@ def sweep_pending(agent_id: str | None = None) -> int:
         raw = r.xrange(inbox_key, mid, mid, count=1)
         if raw:
             _, fields = raw[0]
-            fields["reason"] = f"pending_timeout_{entry['idle_ms']}ms"
-            r.xadd(_DLQ_KEY, fields, maxlen=_DLQ_MAXLEN, approximate=True)
+            reason = f"pending_timeout_{entry['idle_ms']}ms"
+            fields["reason"] = reason
+            # Redis returns the new stream ID assigned by XADD; mirror that
+            # same ID into the persisted store so resolution updates line up.
+            new_stream_id = r.xadd(_DLQ_KEY, fields, maxlen=_DLQ_MAXLEN, approximate=True)
+            dlq_persist.persist_entry(
+                stream_id=str(new_stream_id), reason=reason, envelope_fields=fields
+            )
             # Ack to remove from pending
             transport.stream_ack(inbox_key, _K_INBOX_GROUP, mid)
             moved += 1

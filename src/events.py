@@ -13,7 +13,7 @@ import os
 import shutil
 import socket
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,7 @@ def _next_sequence() -> int:
 
 def _event_filename() -> str:
     """Generate unique event filename: timestamp-hostname-pid."""
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
     return f"{ts}-{socket.gethostname()}-{os.getpid()}.json"
 
 
@@ -51,7 +51,7 @@ def emit(
 ) -> Path:
     """Emit an event to the event bus.
 
-    Event types:
+    Event types (see events_schema.py for dataclass definitions):
       - session_start, session_end
       - task_claimed, task_completed, task_failed
       - commit (git commit + push)
@@ -60,7 +60,24 @@ def emit(
       - context_handoff
       - config_sync
       - rate_limit
+
+    B2: ``details`` is validated against the registered schema before write.
+    Unknown fields are dropped with a WARN; unregistered event_types pass
+    through with a WARN (lax mode). Strict mode is opt-in for callers that
+    want hard rejection of drift — set env SWARM_EVENT_SCHEMA_STRICT=1.
     """
+    # B2 schema validation — lax by default (drops unknown + logs WARN),
+    # strict opt-in via env. Preserves backward-compat for ad-hoc callers.
+    # Absolute import (not relative) because src/ is sometimes imported
+    # as a top-level package (tests use `from src.events import emit`).
+    try:
+        from src import events_schema  # package-style import
+    except ImportError:
+        import events_schema  # type: ignore[no-redef]  # fallback when src/ is on sys.path directly
+
+    strict = os.environ.get("SWARM_EVENT_SCHEMA_STRICT", "").lower() in ("1", "true", "yes")
+    validated_details = events_schema.validate(event_type, details, strict=strict)
+
     EVENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     aid = agent_id or f"{socket.gethostname()}-{os.getpid()}"
@@ -72,7 +89,8 @@ def emit(
         "agent_id": aid,
         "sequence": _next_sequence(),
         "project": project,
-        "details": details or {},
+        "schema_version": events_schema.EVENT_SCHEMA_VERSION,
+        "details": validated_details,
     }
 
     path = EVENTS_DIR / _event_filename()
@@ -148,9 +166,7 @@ def since_last_session(hostname: str | None = None) -> list[dict]:
     return query(since=last_end)
 
 
-def emit_commit(
-    project: str, commit_hash: str, message: str, files_changed: int = 0
-) -> Path:
+def emit_commit(project: str, commit_hash: str, message: str, files_changed: int = 0) -> Path:
     """Shorthand: emit a commit event."""
     return emit(
         "commit",
@@ -177,9 +193,7 @@ def emit_test_result(project: str, passed: int, failed: int, total: int) -> Path
     )
 
 
-def emit_task_complete(
-    task_id: str, project: str, result: dict[str, Any] | None = None
-) -> Path:
+def emit_task_complete(task_id: str, project: str, result: dict[str, Any] | None = None) -> Path:
     """Shorthand: emit a task completion event."""
     return emit(
         "task_completed",
@@ -273,7 +287,7 @@ def rotate(max_age_days: int = 7, max_files: int = 10000) -> int:
     if not EVENTS_DIR.exists():
         return 0
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+    cutoff = datetime.now(UTC) - timedelta(days=max_age_days)
     rotated = 0
     all_files = sorted(EVENTS_DIR.glob("*.json"))
 
@@ -284,9 +298,7 @@ def rotate(max_age_days: int = 7, max_files: int = 10000) -> int:
         # Filename format: YYYYMMDDTHHMMSSffffff-hostname-pid.json
         ts_part = stem.split("-")[0]
         try:
-            file_ts = datetime.strptime(ts_part[:15], "%Y%m%dT%H%M%S").replace(
-                tzinfo=timezone.utc
-            )
+            file_ts = datetime.strptime(ts_part[:15], "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
         except ValueError:
             continue  # Skip files with unrecognisable timestamp prefix
 
@@ -303,9 +315,7 @@ def rotate(max_age_days: int = 7, max_files: int = 10000) -> int:
         stem = f.name
         ts_part = stem.split("-")[0]
         try:
-            file_ts = datetime.strptime(ts_part[:15], "%Y%m%dT%H%M%S").replace(
-                tzinfo=timezone.utc
-            )
+            file_ts = datetime.strptime(ts_part[:15], "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
         except ValueError:
             continue
 
@@ -337,7 +347,7 @@ def prune_archive(max_age_days: int = 30) -> int:
     if not archive_root.exists():
         return 0
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+    cutoff = datetime.now(UTC) - timedelta(days=max_age_days)
     pruned = 0
 
     for month_dir in sorted(archive_root.iterdir()):
@@ -347,9 +357,7 @@ def prune_archive(max_age_days: int = 30) -> int:
             stem = f.name
             ts_part = stem.split("-")[0]
             try:
-                file_ts = datetime.strptime(ts_part[:15], "%Y%m%dT%H%M%S").replace(
-                    tzinfo=timezone.utc
-                )
+                file_ts = datetime.strptime(ts_part[:15], "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
             except ValueError:
                 continue
 
@@ -391,9 +399,7 @@ class EventWatcher:
         if self._thread and self._thread.is_alive():
             return
         self._stop_event.clear()
-        self._thread = threading.Thread(
-            target=self._loop, daemon=True, name="event-watcher"
-        )
+        self._thread = threading.Thread(target=self._loop, daemon=True, name="event-watcher")
         self._thread.start()
 
     def stop(self) -> None:

@@ -18,7 +18,6 @@ from pipeline import (
     list_pipeline_runs,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -72,9 +71,7 @@ def make_executor(outputs: dict[str, str]) -> PipelineExecutor:
 
     call_counter = {"n": 0}
 
-    def fake_dispatch(
-        host, task, model, project_dir=None, background=False, timeout_minutes=30
-    ):
+    def fake_dispatch(host, task, model, project_dir=None, background=False, timeout_minutes=30):
         call_counter["n"] += 1
         dispatch_id = f"dispatch-{call_counter['n']}"
         return FakeDispatchResult(
@@ -214,9 +211,7 @@ class TestContextPassing:
 
         assert result.status == "completed"
         # The implement prompt should contain architect's output
-        assert "architect output: use layered design" in captured_prompts.get(
-            "implement", ""
-        )
+        assert "architect output: use layered design" in captured_prompts.get("implement", "")
 
 
 # ---------------------------------------------------------------------------

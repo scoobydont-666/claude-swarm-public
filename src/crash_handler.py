@@ -17,10 +17,11 @@ import logging
 import os
 import signal
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
-from util import now_iso as _now_iso, atomic_write_yaml as _atomic_write_yaml
+from util import atomic_write_yaml as _atomic_write_yaml
+from util import now_iso as _now_iso
 
 logger = logging.getLogger("swarm.crash_handler")
 
@@ -46,7 +47,7 @@ def set_session_info(info: dict) -> None:
 def _mark_node_idle() -> None:
     """Mark this node's status as idle in the swarm."""
     try:
-        from swarm_lib import update_status, get_status
+        from swarm_lib import get_status, update_status
 
         current = get_status()
         if current:
@@ -69,8 +70,9 @@ def _release_claimed_tasks() -> list[str]:
     """
     requeued = []
     try:
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         claimed_dir = Path("/opt/swarm/tasks/claimed")
         if not claimed_dir.is_dir():
@@ -106,7 +108,7 @@ def _release_claimed_tasks() -> list[str]:
         return requeued
 
 
-def _write_session_summary(signal_num: Optional[int] = None) -> None:
+def _write_session_summary(signal_num: int | None = None) -> None:
     """Write a session summary to disk when exiting.
 
     Location: /opt/claude-swarm/data/crash-summaries/<timestamp>-<pid>.yaml
@@ -138,7 +140,7 @@ def _write_session_summary(signal_num: Optional[int] = None) -> None:
         logger.error("Failed to write session summary: %s", exc)
 
 
-def _handle_crash(signum: int, frame: Optional[object]) -> None:
+def _handle_crash(signum: int, frame: object | None) -> None:
     """Signal handler for SIGTERM, SIGINT, SIGHUP.
 
     Gracefully shuts down: mark idle, release tasks, write summary.
@@ -194,6 +196,4 @@ def install_crash_handlers() -> None:
 
     atexit.register(_handle_atexit)
 
-    logger.info(
-        "Crash handlers installed — SIGTERM/SIGINT/SIGHUP will trigger graceful shutdown"
-    )
+    logger.info("Crash handlers installed — SIGTERM/SIGINT/SIGHUP will trigger graceful shutdown")

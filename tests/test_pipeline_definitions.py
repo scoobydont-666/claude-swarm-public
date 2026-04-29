@@ -8,8 +8,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pipeline import Pipeline
-from pipelines.feature_build import FEATURE_BUILD
 from pipelines.bug_fix import BUG_FIX
+from pipelines.feature_build import FEATURE_BUILD
 from pipelines.question_generation import QUESTION_GEN
 from pipelines.security_audit import SECURITY_AUDIT
 
@@ -66,8 +66,7 @@ class TestStageStructure:
         """Every stage must use a known model."""
         for stage in pipeline.stages:
             assert stage.model in VALID_MODELS, (
-                f"Pipeline '{pipeline.name}', stage '{stage.name}': "
-                f"unknown model '{stage.model}'"
+                f"Pipeline '{pipeline.name}', stage '{stage.name}': unknown model '{stage.model}'"
             )
 
     @pytest.mark.parametrize("pipeline", ALL_PIPELINES, ids=PIPELINE_IDS)
@@ -87,8 +86,7 @@ class TestStageStructure:
             assert hasattr(stage, "timeout_minutes")
             assert isinstance(stage.timeout_minutes, int)
             assert stage.timeout_minutes > 0, (
-                f"Pipeline '{pipeline.name}', stage '{stage.name}': "
-                f"timeout_minutes must be > 0"
+                f"Pipeline '{pipeline.name}', stage '{stage.name}': timeout_minutes must be > 0"
             )
 
     @pytest.mark.parametrize("pipeline", ALL_PIPELINES, ids=PIPELINE_IDS)
@@ -130,11 +128,7 @@ class TestSpecificPipelines:
 
     def test_security_audit_analyze_depends_on_scans(self):
         """security-audit analyze stage must depend on all scan stages."""
-        scan_names = {
-            s.name for s in SECURITY_AUDIT.stages if s.name.startswith("scan_")
-        }
+        scan_names = {s.name for s in SECURITY_AUDIT.stages if s.name.startswith("scan_")}
         analyze = next(s for s in SECURITY_AUDIT.stages if s.name == "analyze")
         for scan_name in scan_names:
-            assert scan_name in analyze.depends_on, (
-                f"analyze stage must depend on {scan_name}"
-            )
+            assert scan_name in analyze.depends_on, f"analyze stage must depend on {scan_name}"

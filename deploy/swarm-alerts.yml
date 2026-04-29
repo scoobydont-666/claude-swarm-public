@@ -10,6 +10,7 @@ groups:
         annotations:
           summary: "{{ $value }} swarm node(s) offline"
           description: "Swarm has {{ $value }} offline nodes. Check connectivity."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-node-offline"
 
       - alert: SwarmTaskQueueBacklog
         expr: swarm_tasks_total{state="pending"} > 5
@@ -19,6 +20,7 @@ groups:
         annotations:
           summary: "Task queue backlog: {{ $value }} pending tasks"
           description: "{{ $value }} tasks are pending and waiting to be claimed."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-task-queue-backlog"
 
       - alert: SwarmHeartbeatStale
         expr: swarm_last_heartbeat_age_seconds > 600
@@ -28,15 +30,12 @@ groups:
         annotations:
           summary: "{{ $labels.hostname }} heartbeat stale for {{ humanizeDuration $value }}"
           description: "{{ $labels.hostname }} has not sent a heartbeat in {{ humanizeDuration $value }}. Node may be hung or offline."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-heartbeat-stale"
 
-      - alert: SwarmGPUSlotsFull
-        expr: swarm_gpu_slots_used >= 2
-        for: 5m
-        labels:
-          severity: info
-        annotations:
-          summary: "All GPU slots claimed ({{ $value }}/2)"
-          description: "Both GPU slots are in use. Queue new GPU work or reduce active workloads."
+      # NOTE: nai-swarm ships a SwarmGPUSlotsFull >=2 rule — dropped here.
+      # Hydra fleet has heterogeneous GPU counts (node_gpu=1, node_reserve2=1, node_reserve1=2);
+      # a fixed threshold of 2 is NAI-lab specific. Re-add with per-host thresholds
+      # if needed.
 
       - alert: SwarmHighDispatchCost
         expr: rate(swarm_dispatch_cost_usd_total[1h]) > 5.0
@@ -46,6 +45,7 @@ groups:
         annotations:
           summary: "High dispatch cost rate: ${{ $value | humanize }}/hour"
           description: "Dispatch costs are running at ${{ $value | humanize }}/hour — review recent dispatches."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-high-dispatch-cost"
 
       - alert: SwarmDispatchCostByHost
         expr: rate(swarm_dispatch_cost_by_host_usd_total[1h]) > 2.0
@@ -55,3 +55,44 @@ groups:
         annotations:
           summary: "{{ $labels.hostname }} dispatch cost high: ${{ $value | humanize }}/hour"
           description: "{{ $labels.hostname }} is accruing dispatch costs at ${{ $value | humanize }}/hour."
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-dispatch-cost-by-host"
+
+      # S3-5 additions — OBS-01 fix applied: swarm_tasks_total is a Gauge, not a Counter.
+      # rate() on a Gauge is structurally broken. Use a Gauge ratio instead.
+      - alert: SwarmTaskErrorRateHigh
+        expr: >
+          swarm_tasks_total{state="error"}
+          / ignoring(state) group_left()
+          sum without(state)(swarm_tasks_total) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: claude-swarm
+        annotations:
+          summary: "Swarm task error ratio {{ $value | humanizePercentage }} (> 10%)"
+          description: |
+            More than 10% of swarm tasks are in error state (point-in-time Gauge ratio).
+            Check recent task logs for patterns:
+              swarm handoffs list --since 30m
+              sqlite3 /opt/swarm/state/swarm.db \
+                'SELECT host, error, COUNT(*) FROM tasks WHERE state="error" GROUP BY error ORDER BY 3 DESC LIMIT 10'
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-task-queue-backlog"
+
+      - alert: SwarmCoordinatorSilent
+        expr: sum(swarm_tasks_total) == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: claude-swarm
+          # Suppress during Josh's documented sleep window (00:00-06:00 UTC)
+          mute_time_interval: sleep_hours
+        annotations:
+          summary: "No swarm task records for 30 minutes"
+          description: |
+            The swarm coordinator has zero task records for 30 minutes. Either all sessions
+            are idle (expected overnight) or the coordinator is hung. During expected active
+            hours this warrants investigation:
+              swarm handoffs list --since 1h
+              journalctl -u swarm-health-monitor -n 50 --no-pager
+              curl -s http://127.0.0.1:8560/api/status
+          runbook: "/opt/claude-swarm/docs/RUNBOOK.md#swarm-heartbeat-stale"

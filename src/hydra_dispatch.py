@@ -19,9 +19,8 @@ import shlex
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -33,12 +32,53 @@ try:
     from backend import lib as swarm
 except ImportError:
     import swarm_lib as swarm
-from util import fleet_from_config
-
 import re
 
+from util import fleet_from_config
+
+# ── Worker Context Assembly (CB delta mode) ────────────────────────────────
+try:
+    from worker_context_assembly import build_worker_dispatch_prompt
+
+    WORKER_CONTEXT_ASSEMBLY_AVAILABLE = True
+except ImportError:
+    WORKER_CONTEXT_ASSEMBLY_AVAILABLE = False
+    logger.warning("worker_context_assembly not available; worker CB assembly disabled")
+
+# Try to import metrics
+try:
+    from prom_boilerplate import make_gauge
+
+    _prom_registry = None
+
+    def _get_metrics():
+        global _prom_registry
+        if _prom_registry is None:
+            from prom_boilerplate import make_registry
+
+            _prom_registry = make_registry()
+        return {
+            "worker_context_bytes": make_gauge(
+                "routing_worker_context_bytes",
+                "Worker dispatch assembled context size in bytes",
+                labelnames=["dispatch_id", "worker_tier"],
+                registry=_prom_registry,
+            ),
+            "worker_context_savings": make_gauge(
+                "routing_worker_context_savings_pct",
+                "Worker dispatch context size savings percentage",
+                labelnames=["dispatch_id", "worker_tier"],
+                registry=_prom_registry,
+            ),
+        }
+
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+    logger.debug("prom_boilerplate not available; metrics disabled")
 
 # ── Model-Size Routing ──────────────────────────────────────────────────────
+
 
 def _load_routing_config() -> dict:
     """Load config/routing.yaml for model-size-aware dispatch."""
@@ -200,13 +240,13 @@ class DispatchSpec:
     """
 
     task: str
-    host: Optional[str] = None
-    model: Optional[str] = None
-    project_dir: Optional[str] = None
+    host: str | None = None
+    model: str | None = None
+    project_dir: str | None = None
     timeout_minutes: int = 30
     background: bool = True
     requires: list[str] = field(default_factory=list)
-    task_id: Optional[str] = None
+    task_id: str | None = None
     track: bool = True
 
 
@@ -275,7 +315,74 @@ def _model_for_task(task_description: str) -> str:
     return "sonnet"
 
 
-def _find_best_host(requires: list[str], task_complexity: str = "") -> Optional[str]:
+def _assemble_worker_context(
+    task: str,
+    target_files: list[str] | None = None,
+    repo_name: str | None = None,
+    language: str = "python",
+    worker_tier: str | None = None,
+    context_mode: str = "delta",
+) -> tuple[str, dict]:
+    """Assemble worker dispatch prompt using CB context assembly.
+
+    Args:
+        task: Task description
+        target_files: Optional list of file paths to include
+        repo_name: Repository name for CB scoping
+        language: Programming language
+        worker_tier: Worker tier (auto-selects if None)
+        context_mode: "delta" (CB-assembled, default) or "full" (legacy, opt-out)
+
+    Returns:
+        Tuple of (assembled_prompt, metadata_dict) for metrics emission.
+        Falls back to original task on any error.
+    """
+    if not WORKER_CONTEXT_ASSEMBLY_AVAILABLE:
+        return task, {}
+
+    try:
+        # Auto-select worker tier based on task complexity
+        if worker_tier is None:
+            if "small" in task.lower() or "quick" in task.lower():
+                worker_tier = "worker-sm"
+            elif "large" in task.lower() or "complex" in task.lower():
+                worker_tier = "worker-lg"
+            else:
+                worker_tier = "worker-md"  # default
+
+        result = build_worker_dispatch_prompt(
+            task_description=task,
+            target_files=target_files,
+            repo_name=repo_name,
+            language=language,
+            worker_tier=worker_tier,
+            context_mode=context_mode,
+        )
+
+        # Emit metrics if available
+        if METRICS_AVAILABLE and "dispatch_id" in globals():
+            try:
+                metrics = _get_metrics()
+                meta = result.get("metadata", {})
+                dispatch_id = globals().get("current_dispatch_id", "unknown")
+                metrics["worker_context_bytes"].labels(
+                    dispatch_id=dispatch_id, worker_tier=worker_tier
+                ).set(meta.get("assembled_context_bytes", 0))
+                metrics["worker_context_savings"].labels(
+                    dispatch_id=dispatch_id, worker_tier=worker_tier
+                ).set(meta.get("context_savings_pct", 0))
+            except Exception as e:
+                logger.debug("Failed to emit worker context metrics: %s", e)
+
+        # Return assembled system+user prompt
+        assembled_task = result.get("system", "") + "\n\n---\n\n" + result.get("user", "")
+        return assembled_task, result.get("metadata", {})
+    except Exception as e:
+        logger.warning("Worker context assembly failed (falling back to original task): %s", e)
+        return task, {}
+
+
+def _find_best_host(requires: list[str], task_complexity: str = "") -> str | None:
     """Find the best host for a task using scored performance-based routing.
 
     Uses model-size routing (if task involves GPU inference) + performance ratings
@@ -313,8 +420,8 @@ def _find_best_host(requires: list[str], task_complexity: str = "") -> Optional[
 def dispatch(
     host: str,
     task: str,
-    model: Optional[str] = None,
-    project_dir: Optional[str] = None,
+    model: str | None = None,
+    project_dir: str | None = None,
     timeout_minutes: int = 30,
     background: bool = True,
 ) -> DispatchResult:
@@ -331,23 +438,50 @@ def dispatch(
     Returns:
         DispatchResult with dispatch_id and status
     """
-    if host not in FLEET:
+    # CS2 fix: case-insensitive hostname resolution
+    from util import resolve_host_key
+
+    canonical = resolve_host_key(host, FLEET)
+    if canonical is None:
         raise ValueError(f"Unknown host: {host}. Available: {list(FLEET.keys())}")
+    host = canonical
 
     config = FLEET[host]
     dispatch_id = f"dispatch-{int(time.time())}-{host}"
     output_file = str(DISPATCH_DIR / f"{dispatch_id}.output")
 
+    # ── Worker Context Assembly (routing-protocol-v1 §5) ──────────────────
+    # Assemble CB-augmented context for worker dispatch (delta mode by default)
+    # Pass context_mode="full" to opt-out and use legacy full-file dispatch
+    worker_context_mode = os.environ.get("SWARM_WORKER_CONTEXT_MODE", "delta")
+    if worker_context_mode != "disabled":
+        task, wca_metadata = _assemble_worker_context(
+            task=task,
+            target_files=None,  # workers get inline context, not file references
+            repo_name=project_dir.split("/")[-1] if project_dir else "unknown",
+            language="python",  # default; could be inferred from task
+            context_mode=worker_context_mode,
+        )
+        if wca_metadata:
+            logger.info(
+                "Worker context assembled: %d bytes, %d%% savings, tier=%s",
+                wca_metadata.get("assembled_context_bytes", 0),
+                wca_metadata.get("context_savings_pct", 0),
+                wca_metadata.get("worker_tier", "unknown"),
+            )
+
     # Auto-select model using unified model router (v3)
     if model is None:
         try:
             from model_router import get_model_for_task, route_task
+
             decision = route_task(task)
             model = decision.model
             logger.info(f"Model router: {decision.tier} → {model} (rule: {decision.rule_name})")
             # Emit routing decision via IPC
             try:
                 from ipc_bridge import emit_routing_decision
+
                 emit_routing_decision(task[:200], decision.tier, model, decision.rule_name)
             except Exception:
                 pass
@@ -360,14 +494,18 @@ def dispatch(
     gpu_allocation = None
     try:
         from gpu_scheduler_v2 import GpuScheduler
+
         scheduler = GpuScheduler(exclude_hosts=os.environ.get("SWARM_EXCLUDE_HOSTS", "").split(","))
         # Check if model needs GPU
-        model_needs_gpu = any(kw in model.lower() for kw in ["qwen", "devstral", "deepseek", "llama", "project-a"])
+        model_needs_gpu = any(
+            kw in model.lower() for kw in ["qwen", "devstral", "deepseek", "llama", "project-a"]
+        )
         if model_needs_gpu or "gpu" in task.lower() or "inference" in task.lower():
             # KV-cache-aware routing: prefer host with model already warm
             prefer = host
             try:
                 from ipc_bridge import find_host_with_warm_model
+
                 warm_host = find_host_with_warm_model(model)
                 if warm_host:
                     logger.info(f"KV-cache hit: {model} warm on {warm_host}")
@@ -380,10 +518,14 @@ def dispatch(
                 prefer_host=prefer,
             )
             if gpu_allocation.success:
-                logger.info(f"GPU allocated: {gpu_allocation.host} GPU {gpu_allocation.gpu_indices} for {model}")
+                logger.info(
+                    f"GPU allocated: {gpu_allocation.host} GPU {gpu_allocation.gpu_indices} for {model}"
+                )
                 # Route to the host with the allocated GPU
                 if gpu_allocation.host != host and gpu_allocation.host in FLEET:
-                    logger.info(f"Re-routing dispatch from {host} to {gpu_allocation.host} (GPU available)")
+                    logger.info(
+                        f"Re-routing dispatch from {host} to {gpu_allocation.host} (GPU available)"
+                    )
                     host = gpu_allocation.host
                     config = FLEET[host]
             else:
@@ -394,18 +536,49 @@ def dispatch(
         logger.warning(f"GPU scheduler error (continuing without): {e}")
 
     # ── Worktree isolation (v3) ──────────────────────────────────────────
+    # plan-approved: claude-swarm-scripts
     worktree_info = None
+    _original_project_dir = project_dir
     if project_dir:
         try:
             from worktree_dispatch import create_worktree
+
             worktree_info = create_worktree(
                 repo_path=project_dir,
                 dispatch_id=dispatch_id,
                 host=host,
             )
             if worktree_info:
-                logger.info(f"Worktree created: {worktree_info.path} (branch {worktree_info.branch})")
-                project_dir = worktree_info.path  # redirect dispatch to worktree
+                logger.info(
+                    f"Worktree created: {worktree_info.path} (branch {worktree_info.branch})"
+                )
+                # The worktree exists on whichever host create_worktree ran on:
+                # localhost (subprocess) or remote (SSH).  For localhost dispatches
+                # we can verify with os.path.isdir; if missing the subsequent cd
+                # in the dispatch command will fail with "No such file" (root
+                # cause of the fleet-capability-index preflight failure observed
+                # 2026-04-23 where the coordinator stage had no project_dir set
+                # but ran as localhost).  For REMOTE dispatches we trust the
+                # non-None return from create_worktree: it just ran the
+                # `git worktree add` over SSH and parsed returncode==0, so the
+                # path exists on the remote host even though coordinator cannot
+                # stat it locally.  A local isdir check would false-negative on
+                # every remote worktree and silently regress isolation + merge
+                # handling for all remote code-gen tasks.
+                import os as _os
+
+                from worktree_dispatch import _is_localhost
+
+                if _is_localhost(host) and not _os.path.isdir(worktree_info.path):
+                    logger.warning(
+                        f"Worktree path does not exist on localhost after creation: "
+                        f"{worktree_info.path} — falling back to original "
+                        f"project_dir {_original_project_dir}"
+                    )
+                    worktree_info = None  # don't attempt merge on completion
+                    project_dir = _original_project_dir
+                else:
+                    project_dir = worktree_info.path  # redirect dispatch to worktree
         except ImportError:
             pass
         except Exception as e:
@@ -490,6 +663,7 @@ def dispatch(
         # v3: Emit IPC event (primary coordination layer)
         try:
             from ipc_bridge import emit_dispatch_started
+
             emit_dispatch_started(dispatch_id, host, model, task)
         except Exception:
             pass  # IPC is best-effort; NFS is the fallback
@@ -528,9 +702,7 @@ def dispatch(
                 task_id=dispatch_id,
                 hostname=host,
                 success=(result.status == "completed"),
-                error_type="timeout"
-                if "Timeout" in result.error
-                else result.error[:100],
+                error_type="timeout" if "Timeout" in result.error else result.error[:100],
             )
         except ImportError:
             pass
@@ -541,6 +713,7 @@ def dispatch(
             scheduler.release(gpu_allocation.host, gpu_allocation.gpu_indices)
             logger.info(f"GPU released: {gpu_allocation.host} GPU {gpu_allocation.gpu_indices}")
             from ipc_bridge import emit_gpu_released
+
             for idx in gpu_allocation.gpu_indices:
                 emit_gpu_released(gpu_allocation.host, idx, dispatch_id)
         except Exception as e:
@@ -550,28 +723,35 @@ def dispatch(
     if worktree_info:
         try:
             from worktree_dispatch import merge_worktree
+
             merged = merge_worktree(worktree_info, host=host)
             if merged:
                 logger.info(f"Worktree merged: {worktree_info.branch} → main")
             else:
-                logger.warning(f"Worktree merge failed — branch {worktree_info.branch} preserved for manual review")
+                logger.warning(
+                    f"Worktree merge failed — branch {worktree_info.branch} preserved for manual review"
+                )
         except Exception as e:
             logger.warning(f"Worktree merge error: {e}")
 
     # ── Query cost on completion (v3) ─────────────────────────────────────
     try:
         from cost_tracker import get_task_cost
+
         cost = get_task_cost(dispatch_id)
         if cost and cost.total_cost_usd > 0:
             result.actual_cost_usd = cost.total_cost_usd
-            logger.info(f"Dispatch cost: ${cost.total_cost_usd:.4f} ({cost.total_input_tokens}+{cost.total_output_tokens} tokens)")
+            logger.info(
+                f"Dispatch cost: ${cost.total_cost_usd:.4f} ({cost.total_input_tokens}+{cost.total_output_tokens} tokens)"
+            )
     except Exception:
         pass
 
     # ── Emit dispatch completion IPC event ─────────────────────────────────
     try:
         from ipc_bridge import emit_dispatch_completed
-        cost_usd = getattr(result, 'actual_cost_usd', 0.0)
+
+        cost_usd = getattr(result, "actual_cost_usd", 0.0)
         emit_dispatch_completed(dispatch_id, host, result.status, cost_usd=cost_usd)
     except Exception:
         pass
@@ -630,7 +810,7 @@ def dispatch_from_spec(spec: DispatchSpec) -> DispatchResult:
     return result
 
 
-def dispatch_swarm_task(task_id: str, model: Optional[str] = None) -> DispatchResult:
+def dispatch_swarm_task(task_id: str, model: str | None = None) -> DispatchResult:
     """Dispatch a swarm task to the best-matching host."""
     # Read the task
     pending_path = Path("/opt/swarm/tasks/pending") / f"{task_id}.yaml"
@@ -720,16 +900,10 @@ def main() -> None:
     dp.add_argument("--host", help="Target host (auto-selects if not specified)")
     dp.add_argument("--task", required=True, help="Task description / prompt")
     dp.add_argument("--task-id", help="Claim and dispatch a swarm task by ID")
-    dp.add_argument(
-        "--model", choices=["haiku", "sonnet", "opus"], help="Override model"
-    )
+    dp.add_argument("--model", choices=["haiku", "sonnet", "opus"], help="Override model")
     dp.add_argument("--project", help="Working directory on remote host")
-    dp.add_argument(
-        "--sync", action="store_true", help="Run synchronously (wait for result)"
-    )
-    dp.add_argument(
-        "--timeout", type=int, default=30, help="Timeout in minutes (sync only)"
-    )
+    dp.add_argument("--sync", action="store_true", help="Run synchronously (wait for result)")
+    dp.add_argument("--timeout", type=int, default=30, help="Timeout in minutes (sync only)")
 
     # status
     sub.add_parser("status", help="Show all dispatches")

@@ -3,6 +3,45 @@
 Multi-instance Claude Code coordination system — NFS-backed task board, messaging, artifact
 sharing, worktree management, GPU slot allocation, and auto-dispatch across the Hydra cluster.
 
+## Features
+
+### Coordination primitives
+- **NFS-backed task board** — atomic file ops (`pending/claimed/done`) with `fcntl.flock`
+  for race-free claims across nodes
+- **Event bus** — append-only JSONL event log with schema versioning and 30-day prune
+- **Messaging** — per-node inbox (`messages/<host>/`) with archive + search
+- **Artifacts** — shared file store with aliased retrieval across instances
+- **Status heartbeats** — per-node `status/<host>.json` with configurable stale thresholds
+
+### Orchestration
+- **Auto-dispatch** — claims unblocked tasks matching this node's capabilities
+- **Pipelines** — chained task graphs with dependency resolution + retry
+- **Worktrees** — parallel branch checkouts via `git worktree`
+- **GPU slot allocation** — reserve-and-release model for shared GPU nodes
+- **Credential broker** — scoped, short-lived secret lending between agents
+- **Conflict detection** — flags overlapping writes across active worktrees
+
+### Reliability & ops
+- **Circuit breaker on Prometheus** — 5-of-10 failure window opens breaker for 30s–5m
+  exponential cooldown so health_monitor doesn't hammer a down Prom instance
+- **TTL cache on hot paths** — 5s identical-query cache cuts PromQL outbound volume 10–50x
+- **DLQ prune** — 72h rolling window on failed-task DLQ (spans weekends)
+- **Event log prune** — 30-day retention, append-only, bounded size
+- **K3s probes** — split `/live` vs `/ready` semantics; ready gates on NFS + DB health
+- **API-key middleware** — `SWARM_API_KEY` header enforcement on dashboard endpoints
+- **SSRF guard** — prometheus_url validated against loopback/private-range allowlist
+- **Centralized `with_retry`** — shared decorator with jitter, max-retries, backoff
+- **Contract CI** — schema validation for CB + event-bus payloads wired into CI
+- **Idempotency-Key** — opt-in header support on mutating endpoints (nai-reserve)
+- **NFS drift detection** — primary-vs-replica mtime comparison, flags at 120s drift
+- **Task deadline enforcement** — tasks exceeding `claimed_at + 2×estimated` get re-queued
+
+### Observability
+- **Prometheus metrics** — task counts, dispatch latency, event-bus throughput, breaker state
+- **Structured logs** — JSONL to `/opt/swarm/artifacts/logs/` + stdout
+- **Dashboard** — `/live /ready /metrics /events /tasks /status` on port 9192
+- **Cost tracker** — API token usage per agent/task with budget alerts
+
 ## Architecture
 
 ```
@@ -142,6 +181,35 @@ Key settings:
 | `git.sync_on_task_complete` | `true` | Sync immediately on task done |
 | `heartbeat.interval_seconds` | `60` | Node heartbeat cadence |
 
+### Claude Backend (CLAUDE_BACKEND)
+
+The swarm can call Claude via multiple backends. Set `CLAUDE_BACKEND` to control which one:
+
+| Value | Behavior | Requirements |
+|-------|----------|--------------|
+| `cli` (forced) | Uses `claude` CLI (OAuth-authenticated, no API key) | Claude Code installed on PATH |
+| `sdk` (forced) | Uses Anthropic SDK | `ANTHROPIC_API_KEY` env var set |
+| `auto` (default) | Tries CLI first; falls back to SDK if CLI unavailable | Either Claude Code or API key |
+
+Example:
+```bash
+# Use CLI (Claude Code auth)
+export CLAUDE_BACKEND=cli
+python3 src/claude_backend.py
+
+# Use SDK (API key)
+export CLAUDE_BACKEND=sdk
+export ANTHROPIC_API_KEY=sk-ant-...
+python3 src/claude_backend.py
+
+# Auto-fallback (tries CLI, uses SDK as fallback)
+export CLAUDE_BACKEND=auto
+python3 src/claude_backend.py
+```
+
+Related environment variables:
+- `CLAUDE_CLI_TIMEOUT_SEC` — timeout for CLI calls (default: 180)
+
 ## CLI Commands
 
 ### Node Status
@@ -190,6 +258,16 @@ Key settings:
 | `swarm summaries` | Show session summaries from all nodes |
 | `swarm context` | Aggregate context for current task |
 
+### GPU Operations
+
+| Command | Description |
+|---------|-------------|
+| `swarm gpu status` | List all GPU nodes with live kubectl-backed metrics (VRAM, utilization, temp) |
+| `swarm gpu flip <host> <mode>` | Toggle a host between Ollama (default) and vLLM K3s pod mode; preflight checks node_gpu for active training |
+| `swarm gpu flip-all <mode>` | Batch flip all fleet hosts; respects per-host mode preferences |
+
+**New in this session (PR #17):** Live GPU status queries and inference-mode flipping with built-in preflight guards.
+
 ### Pipelines and Dispatch
 
 | Command | Description |
@@ -233,7 +311,7 @@ Key settings:
 
 ```bash
 cd /opt/claude-swarm
-pytest tests/ -v                 # 914 tests
+pytest tests/ -v                 # 1,270 tests (69% coverage, gate ≥65%)
 pytest tests/ -k "gpu"           # filter by keyword
 pytest tests/ --tb=short         # compact failure output
 ```
@@ -260,7 +338,6 @@ Test files mirror source modules (e.g., `test_gpu_slots.py` → `gpu_slots.py`).
 │   ├── rate_limiter.py       # Claude API rate-limit detection
 │   ├── pipeline.py           # pipeline execution engine
 │   ├── pipeline_registry.py  # pipeline YAML registry
-│   ├── orchestrator.py       # DEPRECATED — use work_generator + auto_dispatch
 │   ├── collaborative.py      # collaborative session primitives
 │   ├── conflicts.py          # conflict detection + resolution
 │   ├── sync_engine.py        # NFS↔git sync engine
@@ -278,10 +355,11 @@ Test files mirror source modules (e.g., `test_gpu_slots.py` → `gpu_slots.py`).
 │   └── pipelines/
 │       ├── bug_fix.py          # bug-fix pipeline definition
 │       ├── feature_build.py    # feature build pipeline
+│       ├── fleet_capability_index.py  # 7-stage fleet-wide LLM bakeoff (44 models × 12 classes)
 │       ├── question_generation.py  # ExamForge question gen pipeline
 │       └── security_audit.py   # security audit pipeline
 │
-├── tests/                    # 914 tests (42 test files)
+├── tests/                    # 1,270 tests (69% coverage, gate ≥65%) (42 test files)
 ├── hooks/                    # Claude Code hook scripts
 │   ├── swarm-session-start.sh
 │   ├── swarm-session-end.sh
@@ -327,6 +405,10 @@ Available units in `deploy/`:
 
 Prometheus alerts config: `deploy/swarm-alerts.yml`
 
+> **Deployment**: `swarm-alerts.yml` is deployed via the `swarm_alerts` Ansible role in
+> `<hydra-project-path>/ansible/roles/swarm_alerts/` (shipped in hydra-project PR #23,
+> 2026-04-20). Run the role against the monitoring host to push alert rules to Prometheus.
+
 Metrics exposed include: node online status, task queue depth, dispatch counts,
 GPU slot utilization, rate-limit events.
 
@@ -347,13 +429,20 @@ GPU slot utilization, rate-limit events.
 | v2 S6 | Parallel sync, priority queues, metrics | Complete |
 | v2 S7 | Redis backend, Celery integration | Complete |
 | v2 S8 | Performance rating, scored dispatch | Complete |
-| v2 S9 | Backend parity polish — 914 tests | Complete |
+| v2 S9 | Backend parity polish — 1,270 tests (69% coverage, gate ≥65%) | Complete |
+
+## Framework Sync
+
+**FRAMEWORK_SYNC.md** is the cherry-pick ledger for synchronizing improvements between `claude-swarm` (Hydra platform, open-source path) and `nai-swarm` (NAI production, Volcano/Kueue). See [FRAMEWORK_SYNC.md](FRAMEWORK_SYNC.md) for rationale, evaluation rubric, and sync history. Intentional duplication (not library merge) per Grill Decision 4.3.
+
+**Latest sync:** 2026-04-24 — batch evaluation of PR #14–#17 (fleet_capability_index, node_primary registration, worktree-dispatch, gpu_cli). Result: evaluate-and-skip; nai-swarm patterns diverge (Prism Central API, Volcano/Kueue).
 
 ## Related Projects
 
 | Project | Location | Relationship |
 |---------|----------|-------------|
 | Project Hydra | <hydra-project-path>/ | Umbrella — swarm coordinates all Hydra heads |
+| nai-swarm | /opt/nai-swarm/ (Nutanix private) | NAI production fork; cherry-pick ledger in FRAMEWORK_SYNC.md |
 | hydra-pulse | /opt/hydra-pulse/ | Consumes SWARM_TASK_ID for cost-per-task analytics |
 | claude-config | /opt/claude-configs/claude-config/ | Hook scripts + swarm config synced here |
 | ProjectA | <project-a-path>/ | Primary beneficiary of multi-agent dispatch |

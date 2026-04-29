@@ -14,9 +14,8 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 LOG = logging.getLogger(__name__)
 
@@ -26,9 +25,9 @@ except ImportError:
     from src import redis_client as _rc
 
 try:
-    from util import now_iso, hostname
+    from util import hostname, now_iso
 except ImportError:
-    from src.util import now_iso, hostname
+    from src.util import hostname, now_iso
 
 
 # -----------------------------------------------------------------------
@@ -72,7 +71,7 @@ def create_task(
     description: str = "",
     project: str = "",
     priority: str = "medium",
-    requires: Optional[list[str]] = None,
+    requires: list[str] | None = None,
     estimated_minutes: int = 0,
 ) -> dict:
     """Create a new pending task in Redis."""
@@ -165,7 +164,7 @@ def complete_task(task_id: str, result_artifact: str = "") -> dict:
     return task or {}
 
 
-def list_tasks(stage: Optional[str] = None) -> list[dict]:
+def list_tasks(stage: str | None = None) -> list[dict]:
     """List tasks, optionally filtered by stage."""
     stages = [stage] if stage else ["pending", "claimed", "completed"]
     results = []
@@ -217,10 +216,7 @@ def update_status(
     }
     if extra:
         status.update(
-            {
-                k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
-                for k, v in extra.items()
-            }
+            {k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) for k, v in extra.items()}
         )
     _rc.update_status(host, status)
     return status
@@ -252,12 +248,12 @@ def health_check() -> dict:
     Returns the same structure as swarm_lib.health_check() so the CLI
     display code works regardless of backend.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     status_list = get_all_status()
     stale_threshold = 300  # seconds
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     nodes: dict[str, dict] = {}
     stale_nodes: list[str] = []
 
@@ -374,9 +370,7 @@ def list_artifacts() -> list[dict]:
             "name": f.name,
             "path": str(f),
             "size": str(f.stat().st_size),
-            "modified": datetime.fromtimestamp(
-                f.stat().st_mtime, tz=timezone.utc
-            ).isoformat(),
+            "modified": datetime.fromtimestamp(f.stat().st_mtime, tz=UTC).isoformat(),
         }
         for f in artifacts_dir.iterdir()
         if f.is_file()
@@ -389,7 +383,7 @@ def share_session_summary(summary: dict) -> Path:
 
     summaries_dir = Path("/opt/swarm/artifacts/summaries")
     summaries_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(tz=timezone.utc).strftime("%Y%m%d-%H%M%S")
+    ts = datetime.now(tz=UTC).strftime("%Y%m%d-%H%M%S")
     host = hostname()
     filename = f"{host}-{ts}.yaml"
     path = summaries_dir / filename
@@ -417,9 +411,7 @@ def get_relevant_summaries(project: str = "", limit: int = 5) -> list[dict]:
     summaries_dir = Path("/opt/swarm/artifacts/summaries")
     if not summaries_dir.exists():
         return []
-    files = sorted(
-        summaries_dir.glob("*.yaml"), key=lambda f: f.stat().st_mtime, reverse=True
-    )
+    files = sorted(summaries_dir.glob("*.yaml"), key=lambda f: f.stat().st_mtime, reverse=True)
     results = []
     for f in files:
         if len(results) >= limit:
@@ -564,9 +556,9 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
     Mirrors swarm_lib.verify_stale_pids for backend parity.
     """
     import subprocess
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     local_host = hostname()
 
     for node in nodes:
@@ -597,14 +589,26 @@ def verify_stale_pids(nodes: list[dict]) -> list[dict]:
         else:
             ip = node.get("ip", "")
             target = ip or node_host
-            if not target or ("." not in target and target not in ("node_gpu", "node_reserve2", "node_primary", "node_miner", "mega")):
+            if not target or (
+                "." not in target and target not in ("node_gpu", "node_reserve2", "node_primary", "node_miner", "mega")
+            ):
                 continue
             try:
                 result = subprocess.run(
-                    ["ssh", "-o", "ConnectTimeout=2", "-o", "StrictHostKeyChecking=no",
-                     "-o", "BatchMode=yes", target,
-                     f"kill -0 {pid} 2>/dev/null && echo alive || echo dead"],
-                    capture_output=True, text=True, timeout=3,
+                    [
+                        "ssh",
+                        "-o",
+                        "ConnectTimeout=2",
+                        "-o",
+                        "StrictHostKeyChecking=no",
+                        "-o",
+                        "BatchMode=yes",
+                        target,
+                        f"kill -0 {pid} 2>/dev/null && echo alive || echo dead",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
                 )
                 if result.stdout.strip() == "dead":
                     node["state"] = "idle"

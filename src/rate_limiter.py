@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -60,12 +60,8 @@ class RateLimitEvent:
             "profile": self.profile,
             "limit_type": self.limit_type,
             "reset_hint": self.reset_hint,
-            "detected_at": datetime.fromtimestamp(
-                self.detected_at, tz=timezone.utc
-            ).isoformat(),
-            "cooldown_until": datetime.fromtimestamp(
-                self.cooldown_until, tz=timezone.utc
-            ).isoformat()
+            "detected_at": datetime.fromtimestamp(self.detected_at, tz=UTC).isoformat(),
+            "cooldown_until": datetime.fromtimestamp(self.cooldown_until, tz=UTC).isoformat()
             if self.cooldown_until
             else "",
         }
@@ -123,9 +119,7 @@ def _classify_limit(reset_hint: str) -> tuple[str, float]:
     return "session", 3600.0
 
 
-def detect_rate_limit(
-    output_line: str, profile: str = "default"
-) -> RateLimitEvent | None:
+def detect_rate_limit(output_line: str, profile: str = "default") -> RateLimitEvent | None:
     """Parse a line of Claude Code output for rate-limit signals.
 
     Args:

@@ -1,15 +1,17 @@
 """Tests for GPU discovery module."""
 
-import sqlite3
-import tempfile
-import time
 import pytest
-from unittest.mock import patch, MagicMock
+
 from src.gpu_discovery import (
-    GpuInfo, HostGpuInventory, probe_host, discover_fleet,
-    init_db, save_inventory, get_available_gpus,
-    allocate_gpu, release_gpu, find_best_gpu_for_model,
     MODEL_VRAM_REQUIREMENTS,
+    GpuInfo,
+    HostGpuInventory,
+    allocate_gpu,
+    find_best_gpu_for_model,
+    get_available_gpus,
+    init_db,
+    release_gpu,
+    save_inventory,
 )
 
 
@@ -24,24 +26,52 @@ def sample_inventory():
         HostGpuInventory(
             host="node_reserve1",
             gpus=[
-                GpuInfo(host="node_reserve1", gpu_index=0, gpu_model="RTX 5080",
-                        vram_total_mb=16303, vram_free_mb=12000, vram_used_mb=4303, utilization_pct=10),
-                GpuInfo(host="node_reserve1", gpu_index=1, gpu_model="RTX 5080",
-                        vram_total_mb=16303, vram_free_mb=14000, vram_used_mb=2303, utilization_pct=5),
+                GpuInfo(
+                    host="node_reserve1",
+                    gpu_index=0,
+                    gpu_model="RTX 5080",
+                    vram_total_mb=16303,
+                    vram_free_mb=12000,
+                    vram_used_mb=4303,
+                    utilization_pct=10,
+                ),
+                GpuInfo(
+                    host="node_reserve1",
+                    gpu_index=1,
+                    gpu_model="RTX 5080",
+                    vram_total_mb=16303,
+                    vram_free_mb=14000,
+                    vram_used_mb=2303,
+                    utilization_pct=5,
+                ),
             ],
         ),
         HostGpuInventory(
             host="node_reserve2",
             gpus=[
-                GpuInfo(host="node_reserve2", gpu_index=0, gpu_model="RTX 5060 Ti",
-                        vram_total_mb=16311, vram_free_mb=10000, vram_used_mb=6311, utilization_pct=25),
+                GpuInfo(
+                    host="node_reserve2",
+                    gpu_index=0,
+                    gpu_model="RTX 5060 Ti",
+                    vram_total_mb=16311,
+                    vram_free_mb=10000,
+                    vram_used_mb=6311,
+                    utilization_pct=25,
+                ),
             ],
         ),
         HostGpuInventory(
             host="node_mongo",
             gpus=[
-                GpuInfo(host="node_mongo", gpu_index=0, gpu_model="RTX 5080",
-                        vram_total_mb=16303, vram_free_mb=8000, vram_used_mb=8303, utilization_pct=50),
+                GpuInfo(
+                    host="node_mongo",
+                    gpu_index=0,
+                    gpu_model="RTX 5080",
+                    vram_total_mb=16303,
+                    vram_free_mb=8000,
+                    vram_used_mb=8303,
+                    utilization_pct=50,
+                ),
             ],
         ),
     ]
@@ -49,13 +79,27 @@ def sample_inventory():
 
 class TestGpuInfo:
     def test_vram_available(self):
-        gpu = GpuInfo(host="TEST", gpu_index=0, gpu_model="RTX 5080",
-                      vram_total_mb=16000, vram_free_mb=10000, vram_used_mb=6000, utilization_pct=0)
+        gpu = GpuInfo(
+            host="TEST",
+            gpu_index=0,
+            gpu_model="RTX 5080",
+            vram_total_mb=16000,
+            vram_free_mb=10000,
+            vram_used_mb=6000,
+            utilization_pct=0,
+        )
         assert gpu.vram_available_mb == 10000
 
     def test_can_fit_model(self):
-        gpu = GpuInfo(host="TEST", gpu_index=0, gpu_model="RTX 5080",
-                      vram_total_mb=16000, vram_free_mb=10000, vram_used_mb=6000, utilization_pct=0)
+        gpu = GpuInfo(
+            host="TEST",
+            gpu_index=0,
+            gpu_model="RTX 5080",
+            vram_total_mb=16000,
+            vram_free_mb=10000,
+            vram_used_mb=6000,
+            utilization_pct=0,
+        )
         assert gpu.can_fit_model(8000) is True
         assert gpu.can_fit_model(12000) is False
 
@@ -75,9 +119,7 @@ class TestHostGpuInventory:
 class TestDatabase:
     def test_init_db(self, db_path):
         conn = init_db(db_path)
-        tables = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()
+        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         table_names = {t[0] for t in tables}
         assert "gpu_inventory" in table_names
         assert "gpu_allocations" in table_names
@@ -126,5 +168,7 @@ class TestAllocation:
 
     def test_find_best_gpu_excludes_hosts(self, db_path, sample_inventory):
         save_inventory(sample_inventory, db_path)
-        gpu = find_best_gpu_for_model("qwen3:8b", exclude_hosts=["node_reserve1", "node_reserve2", "node_mongo"], db_path=db_path)
+        gpu = find_best_gpu_for_model(
+            "qwen3:8b", exclude_hosts=["node_reserve1", "node_reserve2", "node_mongo"], db_path=db_path
+        )
         assert gpu is None  # No GPUs available after excluding all hosts

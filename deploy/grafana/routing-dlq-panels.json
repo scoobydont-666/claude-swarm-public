@@ -1,0 +1,94 @@
+{
+  "_comment": "Routing Protocol v1 — DLQ observability panels. Import into an existing Grafana dashboard (Dashboards → Import → paste JSON). Source: /opt/claude-swarm/src/ipc/dlq_persist.py + /opt/claude-swarm/src/swarm_metrics.py. Prometheus job: swarm-metrics (port 9191).",
+  "_apiVersion": "grafana-dashboard-v1",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Routing DLQ — persisted depth",
+      "description": "Unresolved entries in the SQLite-mirrored DLQ. Non-zero but stable is normal when Redis is actively draining; growing linearly indicates a stuck dispatcher or an agent offline without a replacement.",
+      "targets": [
+        {
+          "expr": "routing_dlq_depth_total",
+          "legendFormat": "persisted",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Routing DLQ — false-positive rate (1h)",
+      "description": "requeued / (requeued + expired) over the last hour. High values indicate DLQ-er is too eager (agent returned and the message should have sat in the inbox). Low values indicate agents are actually gone. Excludes operator-initiated purges.",
+      "targets": [
+        {
+          "expr": "routing_dlq_false_positive_rate{window=\"1h\"}",
+          "legendFormat": "1h",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.25 },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Routing DLQ — FP rate 1h vs 24h",
+      "description": "1h series shows recent behavior; 24h smooths over burst patterns. Persistent divergence (1h high, 24h low) often means a single agent is flapping.",
+      "targets": [
+        {
+          "expr": "routing_dlq_false_positive_rate",
+          "legendFormat": "{{ window }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Routing DLQ — resolved entries per window",
+      "description": "Total entries that exited the DLQ in each rolling window. Low counts mean the FP rate is computed on thin data — treat the percent with skepticism.",
+      "targets": [
+        {
+          "expr": "routing_dlq_resolved_window_total",
+          "legendFormat": "{{ window }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    }
+  ],
+  "_installation": "Grafana import flow: Dashboards → Import → paste this file. Uncheck the `_comment`, `_apiVersion`, and `_installation` meta keys if your Grafana version rejects unknown top-level fields. Panel IDs will be auto-assigned.",
+  "_alertRules": "Suggested alerting (see deploy/swarm-alerts.yml for the live rule set): alert when routing_dlq_depth_total > 100 for 15m; or when routing_dlq_false_positive_rate{window=\"1h\"} > 0.5 AND routing_dlq_resolved_window_total{window=\"1h\"} > 5."
+}

@@ -17,7 +17,6 @@ Run:
 import logging
 import sqlite3
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +61,53 @@ log = logging.getLogger("swarm.dashboard")
 app = FastAPI(title="claude-swarm Dashboard")
 
 
+# ---------------------------------------------------------------------------
+# E4: Bearer-token auth middleware (opt-in)
+# ---------------------------------------------------------------------------
+# If SWARM_API_KEY is set in the environment, require callers to pass
+# X-Swarm-API-Key: <token> on every /api/* request. /health, /live,
+# /ready, /, and /metrics remain unauthenticated (k8s probes + dashboard HTML
+# + Prometheus scraping).
+#
+# When SWARM_API_KEY is unset, middleware is a no-op — preserves the current
+# loopback-only operational model (127.0.0.1:9192). Opt-in prevents lockout
+# during rollout; flip the env only after the token is distributed to
+# callers (monitoring scripts, reverse proxies).
+
+import hmac as _hmac
+import os as _os
+
+from fastapi import Request  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+
+_AUTH_EXEMPT_PATHS = {"/", "/health", "/live", "/ready", "/metrics"}
+
+
+@app.middleware("http")
+async def _require_api_key(request: Request, call_next):
+    """E4: enforce X-Swarm-API-Key on /api/* when SWARM_API_KEY is set."""
+    expected = _os.environ.get("SWARM_API_KEY")
+    if not expected:
+        # Opt-out: middleware no-op. Loopback operation preserved.
+        return await call_next(request)
+
+    path = request.url.path
+    if path in _AUTH_EXEMPT_PATHS or not path.startswith("/api/"):
+        return await call_next(request)
+
+    presented = request.headers.get("X-Swarm-API-Key", "")
+    # Timing-safe compare — prevents leaking key length via response timing
+    if not presented or not _hmac.compare_digest(presented, expected):
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "unauthorized",
+                "message": "Missing or invalid X-Swarm-API-Key header",
+            },
+        )
+    return await call_next(request)
+
+
 def _read_dispatch_yaml(path: Path) -> dict[str, Any]:
     """Read a dispatch YAML file safely."""
     try:
@@ -84,9 +130,162 @@ def get_dashboard_html() -> str:
     return DASHBOARD_HTML
 
 
+@app.get("/health")
+def get_liveness_health() -> dict[str, Any]:
+    """K8s-style liveness probe. degradation_reason pattern (P1 backport #4).
+
+    Returns HTTP 200 always; status field signals health. Kubernetes probes
+    and the Dockerfile healthcheck hit this endpoint.
+    """
+    import os
+
+    checks: dict[str, Any] = {}
+    degradation_reasons: list[str] = []
+
+    # NFS mount check (primary coordination surface)
+    swarm_nfs = os.path.ismount("/opt/swarm") or os.path.isdir("/opt/swarm/artifacts")
+    checks["nfs_swarm"] = swarm_nfs
+    if not swarm_nfs:
+        degradation_reasons.append("nfs /opt/swarm not mounted")
+
+    # Redis ping (Celery broker + IPC substrate)
+    try:
+        from redis_client import get_client
+
+        get_client().ping()
+        checks["redis"] = True
+    except Exception as e:
+        checks["redis"] = False
+        degradation_reasons.append(f"redis unreachable: {type(e).__name__}")
+
+    degraded = bool(degradation_reasons)
+    return {
+        "status": "degraded" if degraded else "ok",
+        "degradation_reason": "; ".join(degradation_reasons) if degraded else None,
+        "checks": checks,
+    }
+
+
+# ---------------------------------------------------------------------------
+# E6: K3s-style probes — /live and /ready
+# ---------------------------------------------------------------------------
+# /live: liveness = "process responds, restart if it doesn't".
+#        Lenient. Returns 200 unless the process is truly broken
+#        (Python exception bubbling up would naturally 500).
+#        Redis down does NOT fail liveness — swarm degrades to NFS
+#        fallback, which is still a functional state.
+# /ready: readiness = "can serve real traffic right now".
+#        Strict. Returns 503 if either Redis or NFS is unreachable —
+#        k8s stops routing work to this pod until both come back.
+# Rationale: split probe semantics prevent pod thrashing. With a single
+# /health endpoint, a flapping Redis would cause k8s to kill the pod
+# (liveness fail) even though restart doesn't fix the Redis outage.
+# With separate probes, k8s just stops routing traffic (readiness fail)
+# but leaves the pod running to pick up work when Redis recovers.
+
+
+@app.get("/live")
+def get_liveness() -> JSONResponse:
+    """K3s liveness probe — 'is the process alive?'
+
+    Always returns 200 when the ASGI app is responding. If the process is
+    truly wedged, FastAPI/uvicorn won't answer at all and k8s will mark
+    it failed via probe timeout.
+    """
+    return JSONResponse(
+        status_code=200,
+        content={"status": "alive", "probe": "liveness"},
+    )
+
+
+@app.get("/ready")
+def get_readiness() -> JSONResponse:
+    """K3s readiness probe — 'can this pod serve real traffic?'
+
+    Returns 200 only when BOTH Redis and the /opt/swarm NFS mount are
+    reachable. Returns 503 if either is degraded — k8s stops routing
+    work to this pod but does NOT restart it (liveness stays green).
+    """
+    import os as _inner_os
+
+    checks: dict[str, Any] = {}
+    not_ready_reasons: list[str] = []
+
+    # NFS mount (primary coordination surface)
+    swarm_nfs = _inner_os.path.ismount("/opt/swarm") or _inner_os.path.isdir("/opt/swarm/artifacts")
+    checks["nfs_swarm"] = swarm_nfs
+    if not swarm_nfs:
+        not_ready_reasons.append("nfs_swarm_mount_missing")
+
+    # Redis (IPC + state store)
+    try:
+        from redis_client import get_client
+
+        get_client().ping()
+        checks["redis"] = True
+    except Exception as exc:
+        checks["redis"] = False
+        not_ready_reasons.append(f"redis_unreachable:{type(exc).__name__}")
+
+    if not_ready_reasons:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "probe": "readiness",
+                "checks": checks,
+                "not_ready_reasons": not_ready_reasons,
+            },
+        )
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "ready",
+            "probe": "readiness",
+            "checks": checks,
+        },
+    )
+
+
+def _get_backend_degradation() -> dict[str, Any]:
+    """E5: report which state backend is active + whether swarm is running degraded.
+
+    Returns:
+        {"backend": "redis"|"nfs"|"unknown", "degraded": bool, "reason": str|None}
+
+    Degraded state means swarm is functional but running on the slower NFS
+    fallback instead of Redis. Operators should act on sustained degraded
+    state — see docs/RUNBOOK.md §Backend failure playbooks.
+    """
+    active = _os.environ.get("SWARM_BACKEND", "auto")
+    if active == "redis":
+        return {"backend": "redis", "degraded": False, "reason": None}
+    if active == "nfs":
+        return {"backend": "nfs", "degraded": True, "reason": "SWARM_BACKEND pinned to nfs"}
+
+    # auto: probe Redis health
+    try:
+        sys.path.insert(0, "/opt/claude-swarm/src")
+        import redis_client  # type: ignore[import-untyped]
+
+        if redis_client.health_check():
+            return {"backend": "redis", "degraded": False, "reason": None}
+        return {
+            "backend": "nfs",
+            "degraded": True,
+            "reason": "redis_health_check_failed — falling back to NFS",
+        }
+    except Exception as exc:
+        return {
+            "backend": "unknown",
+            "degraded": True,
+            "reason": f"backend_probe_error: {type(exc).__name__}: {exc}",
+        }
+
+
 @app.get("/api/status")
 def get_status_api() -> dict[str, Any]:
-    """Return all node statuses from status JSON files."""
+    """Return all node statuses from status JSON files + backend degradation flag."""
     nodes = lib.get_all_status()
 
     # Add color codes for UI
@@ -112,7 +311,16 @@ def get_status_api() -> dict[str, Any]:
         updated = node.get("updated_at", "")
         node["_heartbeat_age"] = _relative_time(updated)
 
-    return {"nodes": nodes}
+    # E5: backend degradation flag — operators see instantly whether swarm
+    # is on Redis (healthy) or NFS (degraded-but-functional).
+    backend_state = _get_backend_degradation()
+
+    return {
+        "nodes": nodes,
+        "backend": backend_state["backend"],
+        "degraded": backend_state["degraded"],
+        "degradation_reason": backend_state["reason"],
+    }
 
 
 @app.get("/api/tasks")
@@ -156,23 +364,27 @@ def get_dispatches_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from ipc_bridge import get_client, is_available
+
         if is_available():
             client = get_client()
             raw = client.xrevrange("hydra:ipc:dispatch-events", "+", "-", count=30)
             for msg_id, fields in raw:
                 try:
                     import json as _json
+
                     env = _json.loads(fields.get("envelope", "{}"))
                     data = env.get("data", {})
-                    dispatches.append({
-                        "dispatch_id": data.get("dispatch_id", msg_id),
-                        "host": data.get("host", ""),
-                        "model": data.get("model", ""),
-                        "status": data.get("status", env.get("type", "").split(".")[-1]),
-                        "task": data.get("task", ""),
-                        "_started_ago": _relative_time(env.get("ts", 0)),
-                        "_icon": "✓" if "completed" in env.get("type", "") else "▶",
-                    })
+                    dispatches.append(
+                        {
+                            "dispatch_id": data.get("dispatch_id", msg_id),
+                            "host": data.get("host", ""),
+                            "model": data.get("model", ""),
+                            "status": data.get("status", env.get("type", "").split(".")[-1]),
+                            "task": data.get("task", ""),
+                            "_started_ago": _relative_time(env.get("ts", 0)),
+                            "_icon": "✓" if "completed" in env.get("type", "") else "▶",
+                        }
+                    )
                 except Exception:
                     continue
             if dispatches:
@@ -201,12 +413,14 @@ def get_health_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from ipc_bridge import get_client, is_available
+
         if is_available():
             client = get_client()
             raw = client.xrevrange("hydra:ipc:infra-events", "+", "-", count=20)
             for msg_id, fields in raw:
                 try:
                     import json as _json
+
                     env = _json.loads(fields.get("envelope", "{}"))
                     data = env.get("data", {})
                     event = {
@@ -270,11 +484,27 @@ def get_metrics_api() -> dict[str, Any]:
         "completed": len(all_tasks["completed"]),
     }
 
-    # Calculate cache hit rate if available (mock for now)
-    # Get real cache hit rate from Context Bridge
+    # Real cache hit rate from Context Bridge /stats endpoint
+    # (falls through to 0.0 if CB unreachable — handled in the try block below).
     try:
+        import os as _os
         import subprocess as _sp
-        _cb = _sp.run(["curl", "-sf", "http://127.0.0.1:8520/stats"], capture_output=True, text=True, timeout=2)
+
+        _cb_token_path = _os.environ.get("CB_TOKEN_FILE", "/opt/ai-shared/secrets/cb-mcp-token")
+        try:
+            with open(_cb_token_path) as _tf:
+                _cb_token = _tf.read().strip()
+        except OSError:
+            _cb_token = ""
+        _cb_cmd = ["curl", "-sf", "http://127.0.0.1:8520/stats"]
+        if _cb_token:
+            _cb_cmd.extend(["-H", f"Authorization: Bearer {_cb_token}"])
+        _cb = _sp.run(
+            _cb_cmd,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
         if _cb.returncode == 0:
             _stats = __import__("json").loads(_cb.stdout)
             cache_hit_rate = float(_stats.get("utilization_pct", "0")) / 100.0
@@ -287,7 +517,9 @@ def get_metrics_api() -> dict[str, Any]:
     today_dispatches = 0
     try:
         sys.path.insert(0, str(Path(__file__).parent))
-        from ipc_bridge import get_client as _ipc_client, is_available as _ipc_avail
+        from ipc_bridge import get_client as _ipc_client
+        from ipc_bridge import is_available as _ipc_avail
+
         if _ipc_avail():
             today_dispatches = _ipc_client().xlen("hydra:ipc:dispatch-events") or 0
     except Exception:
@@ -351,6 +583,7 @@ def get_gpu_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from gpu_scheduler_v2 import GpuScheduler
+
         scheduler = GpuScheduler()
         return scheduler.get_status()
     except Exception as e:
@@ -363,6 +596,7 @@ def get_warm_models_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from ipc_bridge import discover_fleet_warm_models
+
         warm = discover_fleet_warm_models()
         return {"hosts": warm, "total_models": sum(len(v) for v in warm.values())}
     except Exception as e:
@@ -374,7 +608,8 @@ def get_ipc_events_api() -> dict[str, Any]:
     """Return recent IPC events from Redis Streams (read-only, no ACK)."""
     try:
         sys.path.insert(0, str(Path(__file__).parent))
-        from ipc_bridge import get_client, is_available, ALL_CHANNELS
+        from ipc_bridge import ALL_CHANNELS, get_client, is_available
+
         if not is_available():
             return {"available": False, "events": []}
 
@@ -388,15 +623,18 @@ def get_ipc_events_api() -> dict[str, Any]:
                 for msg_id, fields in raw:
                     try:
                         import json as _json
+
                         env = _json.loads(fields.get("envelope", "{}"))
-                        all_events.append({
-                            "id": msg_id,
-                            "channel": ch,
-                            "type": env.get("type", ""),
-                            "data": env.get("data", {}),
-                            "sender": env.get("sender", ""),
-                            "timestamp": env.get("ts", 0),
-                        })
+                        all_events.append(
+                            {
+                                "id": msg_id,
+                                "channel": ch,
+                                "type": env.get("type", ""),
+                                "data": env.get("data", {}),
+                                "sender": env.get("sender", ""),
+                                "timestamp": env.get("ts", 0),
+                            }
+                        )
                     except Exception:
                         continue
             except Exception:
@@ -414,6 +652,7 @@ def get_costs_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from cost_tracker import get_daily_costs
+
         return get_daily_costs() or {"note": "No cost data available"}
     except Exception as e:
         return {"error": str(e)}
@@ -425,9 +664,13 @@ def get_routing_api() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(Path(__file__).parent))
         from model_router import get_router
+
         router = get_router()
         return {
-            "rules": [{"name": r.name, "pattern": r.pattern, "tier": r.tier, "model": r.model} for r in router.rules],
+            "rules": [
+                {"name": r.name, "pattern": r.pattern, "tier": r.tier, "model": r.model}
+                for r in router.rules
+            ],
             "total_rules": len(router.rules),
         }
     except Exception as e:
@@ -1081,12 +1324,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="claude-swarm web dashboard")
-    parser.add_argument(
-        "--host", default=HOST, help="Host to bind to (default: 127.0.0.1)"
-    )
-    parser.add_argument(
-        "--port", type=int, default=PORT, help="Port to bind to (default: 9192)"
-    )
+    parser.add_argument("--host", default=HOST, help="Host to bind to (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=PORT, help="Port to bind to (default: 9192)")
 
     args = parser.parse_args()
     run_dashboard(host=args.host, port=args.port)

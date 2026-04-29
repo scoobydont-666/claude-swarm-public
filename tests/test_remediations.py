@@ -1,9 +1,9 @@
 """Tests for remediations.py — service restart (mocked SSH), sync, email, dispatch."""
 
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-import subprocess
 
 import pytest
 
@@ -118,9 +118,7 @@ class TestForceSyncReplica:
         assert "failed" in detail.lower()
 
     def test_sync_timeout(self, engine):
-        with patch(
-            "subprocess.run", side_effect=subprocess.TimeoutExpired("sync", 120)
-        ):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("sync", 120)):
             success, detail = engine.force_sync_replica()
 
         assert success is False
@@ -202,9 +200,7 @@ class TestSendSwarmMessage:
     def test_swarm_lib_import_failure_handled(self, engine):
         # swarm_lib is already imported at module load time in the test environment.
         # Test that send_swarm_message returns gracefully when swarm_lib.send_message raises.
-        with patch(
-            "swarm_lib.send_message", side_effect=RuntimeError("NFS unavailable")
-        ):
+        with patch("swarm_lib.send_message", side_effect=RuntimeError("NFS unavailable")):
             success, detail = engine.send_swarm_message("node_primary", "test message")
         assert success is False
         assert "send_message failed" in detail
@@ -242,17 +238,13 @@ class TestExecuteDispatcher:
         assert success is True
 
     def test_force_sync_dispatched(self, engine):
-        with patch.object(
-            engine, "force_sync_replica", return_value=(True, "synced")
-        ) as mock:
+        with patch.object(engine, "force_sync_replica", return_value=(True, "synced")) as mock:
             success, _ = engine.execute(action="force_sync_replica")
         mock.assert_called_once()
         assert success is True
 
     def test_alert_email_dispatched(self, engine):
-        with patch.object(
-            engine, "send_alert_email", return_value=(True, "sent")
-        ) as mock:
+        with patch.object(engine, "send_alert_email", return_value=(True, "sent")) as mock:
             success, _ = engine.execute(
                 action="alert_email",
                 subject="test subject",
@@ -307,9 +299,7 @@ class TestRequeueTaskAtomicWrite:
         claimed_dir, pending_dir, _ = self._setup_task(tmp_path, task_id)
 
         # requeue_task uses local `from pathlib import Path` so we patch pathlib.Path
-        with patch(
-            "pathlib.Path", side_effect=self._patch_paths(claimed_dir, pending_dir)
-        ):
+        with patch("pathlib.Path", side_effect=self._patch_paths(claimed_dir, pending_dir)):
             with patch("os.remove", side_effect=OSError("simulated disk error")):
                 success, detail = engine.requeue_task(task_id=task_id)
 
@@ -335,9 +325,7 @@ class TestRequeueTaskAtomicWrite:
             pending_existed_at_remove.append(pending_file.exists())
             original_remove(path)
 
-        with patch(
-            "pathlib.Path", side_effect=self._patch_paths(claimed_dir, pending_dir)
-        ):
+        with patch("pathlib.Path", side_effect=self._patch_paths(claimed_dir, pending_dir)):
             with patch("os.remove", side_effect=tracking_remove):
                 success, detail = engine.requeue_task(task_id=task_id)
 
@@ -354,9 +342,7 @@ class TestRequeueTaskAtomicWrite:
         task_id = "task-valid-yaml-001"
         claimed_dir, pending_dir, _ = self._setup_task(tmp_path, task_id)
 
-        with patch(
-            "pathlib.Path", side_effect=self._patch_paths(claimed_dir, pending_dir)
-        ):
+        with patch("pathlib.Path", side_effect=self._patch_paths(claimed_dir, pending_dir)):
             success, _ = engine.requeue_task(task_id=task_id)
 
         assert success is True

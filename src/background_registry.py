@@ -5,22 +5,30 @@ members via hydra_dispatch). Polls PID files to detect completion, updates
 dispatch records, and optionally transitions swarm tasks.
 
 Usage:
-    from background_registry import BackgroundRegistry
+    from background_registry import BackgroundRegistry, start_task
 
     registry = BackgroundRegistry()
+    # One-shot dispatch + track:
+    task = start_task(registry, host="node_gpu", task="Kin index <project-a-path>")
+    # Or register-after-dispatch:
     registry.register(dispatch_id, task_id="task-001", host="node_gpu")
     active = registry.active()
     completed = registry.poll()  # Check PIDs, return newly completed
+    registry.cancel(dispatch_id)  # SIGTERM + mark canceled
 """
 
 import logging
 import os
+import signal
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import yaml
+
+if TYPE_CHECKING:  # avoid runtime dep cycles
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +57,7 @@ class BackgroundTask:
     dispatch_id: str
     host: str
     description: str = ""
-    task_id: Optional[str] = None
+    task_id: str | None = None
     model: str = "sonnet"
     status: str = "running"
     pid: int = -1
@@ -96,7 +104,7 @@ class BackgroundRegistry:
         dispatch_id: str,
         host: str,
         description: str = "",
-        task_id: Optional[str] = None,
+        task_id: str | None = None,
         model: str = "sonnet",
         pid: int = -1,
         output_file: str = "",
@@ -137,9 +145,7 @@ class BackgroundRegistry:
         )
         self._tasks[dispatch_id] = task
         self._save()
-        logger.info(
-            "Registered background task: %s on %s (pid=%d)", dispatch_id, host, pid
-        )
+        logger.info("Registered background task: %s on %s (pid=%d)", dispatch_id, host, pid)
         return task
 
     def active(self) -> list[BackgroundTask]:
@@ -154,7 +160,7 @@ class BackgroundRegistry:
         """Return all tasks with status 'failed'."""
         return [t for t in self._tasks.values() if t.status == "failed"]
 
-    def get(self, dispatch_id: str) -> Optional[BackgroundTask]:
+    def get(self, dispatch_id: str) -> BackgroundTask | None:
         """Get a specific task by dispatch ID."""
         return self._tasks.get(dispatch_id)
 
@@ -229,9 +235,7 @@ class BackgroundRegistry:
                         # Now check if the newly-discovered PID is alive
                         if not self._check_pid(task.pid):
                             task.status = "completed"
-                            task.completed_at = time.strftime(
-                                "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
-                            )
+                            task.completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
                             newly_completed.append(task)
                     except ValueError:
                         task.status = "unknown"
@@ -265,6 +269,45 @@ class BackgroundRegistry:
             ],
         }
 
+    def cancel(self, dispatch_id: str, sig: int = signal.SIGTERM) -> bool:
+        """Cancel a running background task.
+
+        Sends a signal (default SIGTERM) to the task's PID and marks the
+        task as 'canceled' with a completion timestamp. Idempotent: if
+        the task is already completed/failed/canceled, returns False.
+
+        Args:
+            dispatch_id: The dispatch to cancel
+            sig: Signal to send (default SIGTERM; use SIGKILL for force)
+
+        Returns:
+            True if cancel succeeded (task was running + signal sent),
+            False if task not found or already in a terminal state.
+        """
+        task = self._tasks.get(dispatch_id)
+        if task is None:
+            logger.warning("cancel: unknown dispatch_id %s", dispatch_id)
+            return False
+        if task.status != "running":
+            logger.info("cancel: task %s already in status %s", dispatch_id, task.status)
+            return False
+
+        # Send signal if we have a PID; ignore ProcessLookupError (already dead)
+        if task.pid > 0:
+            try:
+                os.kill(task.pid, sig)
+            except ProcessLookupError:
+                logger.info("cancel: pid %d already gone for %s", task.pid, dispatch_id)
+            except PermissionError as exc:
+                logger.warning("cancel: permission denied to signal pid %d: %s", task.pid, exc)
+                return False
+
+        task.status = "canceled"
+        task.completed_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        self._save()
+        logger.info("Canceled background task %s on %s (pid=%d)", dispatch_id, task.host, task.pid)
+        return True
+
     def cleanup(self, max_age_hours: int = 72) -> int:
         """Remove completed/failed tasks older than max_age_hours.
 
@@ -273,7 +316,7 @@ class BackgroundRegistry:
         cutoff = time.time() - (max_age_hours * 3600)
         to_remove = []
         for did, task in self._tasks.items():
-            if task.status in ("completed", "failed") and task.completed_at:
+            if task.status in ("completed", "failed", "canceled") and task.completed_at:
                 try:
                     completed_ts = time.mktime(
                         time.strptime(task.completed_at, "%Y-%m-%dT%H:%M:%SZ")
@@ -290,3 +333,73 @@ class BackgroundRegistry:
             self._save()
 
         return len(to_remove)
+
+
+def start_task(
+    registry: BackgroundRegistry,
+    host: str,
+    task: str,
+    *,
+    description: str = "",
+    task_id: str | None = None,
+    model: str = "sonnet",
+    project_dir: str | None = None,
+    timeout_minutes: int = 30,
+) -> BackgroundTask:
+    """One-shot: dispatch a Claude Code session to a fleet member AND track it.
+
+    Wraps ``hydra_dispatch.dispatch(..., background=True)`` + ``registry.register()``.
+    Use this when you want a non-blocking dispatch whose completion you'll poll
+    for later via ``registry.poll()`` or ``registry.get(dispatch_id)``.
+
+    Args:
+        registry: Target registry (usually a shared BackgroundRegistry instance).
+        host: Fleet member hostname (e.g. "node_gpu"). See hydra_dispatch.FLEET.
+        task: Natural-language task description / prompt for Claude Code.
+        description: Human-readable short description (stored in registry).
+                     Falls back to ``task[:80]`` if empty.
+        task_id: Optional swarm task ID to auto-transition on completion.
+        model: Claude model (haiku / sonnet / opus); passed through to dispatch.
+        project_dir: Working directory on the remote host.
+        timeout_minutes: Hard kill after this many minutes.
+
+    Returns:
+        The registered BackgroundTask.
+
+    Raises:
+        ValueError: If ``host`` is unknown (propagated from hydra_dispatch).
+        RuntimeError: If dispatch fails to start.
+    """
+    # Local import to avoid circular deps at module-import time.
+    from hydra_dispatch import dispatch as _dispatch
+
+    result = _dispatch(
+        host=host,
+        task=task,
+        model=model,
+        project_dir=project_dir,
+        timeout_minutes=timeout_minutes,
+        background=True,
+    )
+
+    if result.status in ("failed", "pending") and result.error:
+        raise RuntimeError(f"start_task: dispatch failed: {result.error}")
+
+    # Extract PID from dispatch artifacts (hydra_dispatch writes <dispatch_id>.pid).
+    pid_path = DISPATCH_DIR / f"{result.dispatch_id}.pid"
+    pid = -1
+    if pid_path.exists():
+        try:
+            pid = int(pid_path.read_text().strip())
+        except ValueError:
+            pass
+
+    return registry.register(
+        dispatch_id=result.dispatch_id,
+        host=host,
+        description=description or task[:80],
+        task_id=task_id,
+        model=model,
+        pid=pid,
+        output_file=result.output_file or str(DISPATCH_DIR / f"{result.dispatch_id}.output"),
+    )

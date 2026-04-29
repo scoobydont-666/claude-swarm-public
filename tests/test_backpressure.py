@@ -234,8 +234,9 @@ class TestWorkGeneratorBackpressure:
 class TestBackpressureLogging:
     def test_backpressure_logged(self, swarm_tmpdir, caplog):
         """Test that backpressure condition is logged."""
-        from work_generator import WorkGenerator
         import logging
+
+        from work_generator import WorkGenerator
 
         logging.basicConfig(level=logging.DEBUG)
 
@@ -267,6 +268,6 @@ class TestBackpressureLogging:
             patch.object(gen, "scan_examforge_pipeline", return_value=[]),
             patch.object(gen, "scan_scheduled_maintenance", return_value=[]),
         ):
-            tasks = gen.generate_work()
+            gen.generate_work()
             # Should have logged the backpressure condition
             # (The actual logging would be in the generate_work method)

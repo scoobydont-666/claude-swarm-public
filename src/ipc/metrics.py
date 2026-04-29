@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from . import transport
-from .agent import _K_INDEX, _K_INBOX, list_agents
-from .channels import _K_CHANNELS_INDEX, _K_CHANNEL_SUBS, list_channels
+from .agent import _K_INBOX, list_agents
+from .channels import list_channels
 from .dlq import dlq_depth
 
 
@@ -61,7 +61,7 @@ def prometheus_text() -> str:
     lines = []
     for key, value in sorted(data.items()):
         # Extract base metric name for HELP/TYPE (strip labels)
-        base = key.split("{")[0]
+        key.split("{")[0]
         lines.append(f"{key} {value}")
     return "\n".join(lines) + "\n"
 

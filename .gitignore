@@ -24,6 +24,9 @@ Thumbs.db
 config/swarm.yaml
 data/health-events.db
 data/health-monitor.log
+data/dlq.db
+data/dlq.db-shm
+data/dlq.db-wal
 *.tmp
 *.lock
 
@@ -56,5 +59,4 @@ secrets/
 *_rsa
 *_ed25519
 *.gpg
-
-.coverage
+/.coverage

@@ -66,10 +66,7 @@ class TestShareSessionSummary:
             data = yaml.safe_load(open(path))
             assert data["hostname"] == "testhost"
             assert data["project"] == "/opt/test-project"
-            assert (
-                data["context_for_next"]
-                == "Module X refactored, needs integration test."
-            )
+            assert data["context_for_next"] == "Module X refactored, needs integration test."
 
     def test_share_multiple_summaries(self, swarm_tmpdir):
         with patch.object(lib, "_swarm_root", return_value=swarm_tmpdir):
@@ -194,9 +191,7 @@ class TestGenerateSessionSummary:
     def test_generate_basic_summary(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             summary = lib.generate_session_summary(
@@ -215,9 +210,7 @@ class TestGenerateSessionSummary:
     def test_max_decisions_respected(self, swarm_tmpdir):
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             many_decisions = [f"Decision {i}" for i in range(50)]
@@ -240,14 +233,10 @@ class TestGenerateSessionSummary:
             cwd=str(repo),
             capture_output=True,
         )
-        subprocess.run(
-            ["git", "config", "user.name", "T"], cwd=str(repo), capture_output=True
-        )
+        subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo), capture_output=True)
         (repo / "file1.py").write_text("pass")
         subprocess.run(["git", "add", "."], cwd=str(repo), capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "init"], cwd=str(repo), capture_output=True
-        )
+        subprocess.run(["git", "commit", "-m", "init"], cwd=str(repo), capture_output=True)
 
         # Make uncommitted changes
         (repo / "file2.py").write_text("new")
@@ -255,9 +244,7 @@ class TestGenerateSessionSummary:
 
         with (
             patch.object(lib, "_swarm_root", return_value=swarm_tmpdir),
-            patch.object(
-                lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"
-            ),
+            patch.object(lib, "_config_path", return_value=swarm_tmpdir / "config" / "swarm.yaml"),
             patch.object(lib, "_hostname", return_value="testhost"),
         ):
             summary = lib.generate_session_summary(project=str(repo))

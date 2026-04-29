@@ -20,7 +20,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -50,9 +50,7 @@ class TestGPUSlotStaleLockReclaim:
         import socket
 
         dead_pid = 999999  # extremely unlikely to exist
-        lock_file.write_text(
-            f"{socket.gethostname()}:{dead_pid}:2026-01-01T00:00:00Z\n"
-        )
+        lock_file.write_text(f"{socket.gethostname()}:{dead_pid}:2026-01-01T00:00:00Z\n")
 
         with patch("gpu_slots._gpu_dir", return_value=gpu_dir):
             # ProcessLookupError for the dead PID → slot should be reclaimable
@@ -102,16 +100,14 @@ class TestGPUSlotStaleLockReclaim:
         lock_file.write_text("data")  # non-empty = claimed
 
         with patch("gpu_slots._gpu_dir", return_value=gpu_dir):
-            with patch(
-                "pathlib.Path.read_text", side_effect=OSError("permission denied")
-            ):
+            with patch("pathlib.Path.read_text", side_effect=OSError("permission denied")):
                 # OSError → assume held → not available
                 result = is_slot_available(3)
                 assert result is False
 
     def test_get_slot_status_handles_unreadable_holder(self, tmp_path):
         """get_slot_status gracefully handles IOError when reading holder content."""
-        from gpu_slots import get_slot_status, claim_slot
+        from gpu_slots import claim_slot, get_slot_status
 
         gpu_dir = tmp_path / "gpu"
         gpu_dir.mkdir()
@@ -126,9 +122,7 @@ class TestGPUSlotStaleLockReclaim:
             original_open = open
 
             def selective_open(path, *a, **kw):
-                if "slot-0" in str(path) and "r" in (
-                    a[0] if a else kw.get("mode", "r")
-                ):
+                if "slot-0" in str(path) and "r" in (a[0] if a else kw.get("mode", "r")):
                     raise OSError("permission denied")
                 return original_open(path, *a, **kw)
 
@@ -327,9 +321,11 @@ class TestCrashHandlerRobustness:
         crash_handler does `from pathlib import Path` inside the function, so we
         patch pathlib.Path (the canonical import) rather than crash_handler.Path.
         """
-        import crash_handler
-        import yaml
         import pathlib
+
+        import yaml
+
+        import crash_handler
 
         claimed_dir = tmp_path / "claimed"
         claimed_dir.mkdir()
@@ -393,9 +389,7 @@ class TestRegistryRobustness:
             pid=9999,
             state="idle",
         )
-        (agents_dir / "test-host-9999.json").write_text(
-            json.dumps(valid_agent.to_dict(), indent=2)
-        )
+        (agents_dir / "test-host-9999.json").write_text(json.dumps(valid_agent.to_dict(), indent=2))
 
         with patch("registry.AGENTS_DIR", agents_dir):
             agents = registry.list_agents()
@@ -416,9 +410,7 @@ class TestRegistryRobustness:
             state="idle",
             last_heartbeat="not-a-timestamp",
         )
-        (agents_dir / "bad-hb-host-1111.json").write_text(
-            json.dumps(bad_agent.to_dict(), indent=2)
-        )
+        (agents_dir / "bad-hb-host-1111.json").write_text(json.dumps(bad_agent.to_dict(), indent=2))
 
         with patch("registry.AGENTS_DIR", agents_dir):
             stale = registry.get_stale_agents()
@@ -459,9 +451,7 @@ class TestRegistryRobustness:
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
 
-        old_ts = (datetime.now(timezone.utc) - timedelta(minutes=10)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        old_ts = (datetime.now(UTC) - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
         stale_agent = registry.AgentInfo(
             hostname="stale-host",
             pid=7777,
@@ -539,9 +529,7 @@ class TestEventLogConcurrency:
                 except Exception as exc:
                     errors.append(exc)
 
-            threads = [
-                threading.Thread(target=write_events, args=(i,)) for i in range(4)
-            ]
+            threads = [threading.Thread(target=write_events, args=(i,)) for i in range(4)]
             for t in threads:
                 t.start()
             for t in threads:
@@ -564,20 +552,14 @@ class TestEventLogConcurrency:
         db_path = tmp_path / "prune.db"
         lock_path = tmp_path / "prune.lock"
 
-        old_ts = (datetime.now(timezone.utc) - timedelta(days=60)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        fresh_ts = (datetime.now(timezone.utc) - timedelta(days=1)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        old_ts = (datetime.now(UTC) - timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        fresh_ts = (datetime.now(UTC) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         log = el.EventLog()
         log._LOCK_PATH = lock_path
         with patch.object(el, "DB_PATH", db_path):
             log.record(rule_name="old_rule", host="h", severity="low", timestamp=old_ts)
-            log.record(
-                rule_name="fresh_rule", host="h", severity="low", timestamp=fresh_ts
-            )
+            log.record(rule_name="fresh_rule", host="h", severity="low", timestamp=fresh_ts)
             assert log.count() == 2
             deleted = log.prune(days=30)
             assert deleted == 1
@@ -620,15 +602,14 @@ class TestSyncEngineEdgeCases:
     def test_pull_all_projects_uses_config(self, tmp_path):
         """pull_all_projects reads project list from swarm.yaml via projects_for_host."""
         import subprocess
+
         from sync_engine import pull_all_projects
 
         proj = tmp_path / "config-project"
         proj.mkdir()
         (proj / ".git").mkdir()
 
-        completed = subprocess.CompletedProcess(
-            [], 0, stdout="Already up to date.", stderr=""
-        )
+        completed = subprocess.CompletedProcess([], 0, stdout="Already up to date.", stderr="")
 
         with patch("sync_engine.projects_for_host", return_value=[str(proj)]):
             with patch("sync_engine._run", return_value=completed):
@@ -639,6 +620,7 @@ class TestSyncEngineEdgeCases:
     def test_git_push_emits_event_on_success(self, tmp_path):
         """git_push emits a commit event when push succeeds."""
         import subprocess
+
         from sync_engine import git_push
 
         (tmp_path / ".git").mkdir()
@@ -650,9 +632,7 @@ class TestSyncEngineEdgeCases:
             if "push" in cmd:
                 return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
             if "log" in cmd:
-                return subprocess.CompletedProcess(
-                    cmd, 0, stdout="abc123 test commit", stderr=""
-                )
+                return subprocess.CompletedProcess(cmd, 0, stdout="abc123 test commit", stderr="")
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
         with patch("sync_engine._run", side_effect=run_side_effect):
@@ -667,6 +647,7 @@ class TestSyncEngineEdgeCases:
     def test_get_dirty_repos_truncates_long_file_list(self, tmp_path):
         """get_dirty_repos limits change list to 5 entries per repo."""
         import subprocess
+
         from sync_engine import get_dirty_repos
 
         proj = tmp_path / "dirty"

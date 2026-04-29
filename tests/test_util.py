@@ -2,7 +2,7 @@
 
 import json
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,15 +11,15 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from util import (
-    now_iso,
-    now_ts,
-    hostname,
-    relative_time,
     atomic_write_json,
     atomic_write_yaml,
-    swarm_root,
-    load_swarm_config,
     fleet_from_config,
+    hostname,
+    load_swarm_config,
+    now_iso,
+    now_ts,
+    relative_time,
+    swarm_root,
 )
 
 
@@ -32,12 +32,10 @@ class TestNowIso:
         assert dt.year >= 2026
 
     def test_is_current_time(self):
-        before = datetime.now(timezone.utc).replace(microsecond=0)
+        before = datetime.now(UTC).replace(microsecond=0)
         result = now_iso()
-        after = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(seconds=1)
-        dt = datetime.strptime(result, "%Y-%m-%dT%H:%M:%SZ").replace(
-            tzinfo=timezone.utc
-        )
+        after = datetime.now(UTC).replace(microsecond=0) + timedelta(seconds=1)
+        dt = datetime.strptime(result, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
         assert before <= dt <= after
 
 
@@ -49,7 +47,7 @@ class TestNowTs:
 
     def test_is_recent(self):
         result = now_ts()
-        now = datetime.now(timezone.utc).timestamp()
+        now = datetime.now(UTC).timestamp()
         assert abs(result - now) < 2
 
 
@@ -62,30 +60,22 @@ class TestHostname:
 
 class TestRelativeTime:
     def test_seconds_ago(self):
-        ts = (datetime.now(timezone.utc) - timedelta(seconds=30)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        ts = (datetime.now(UTC) - timedelta(seconds=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
         result = relative_time(ts)
         assert result.endswith("s ago")
 
     def test_minutes_ago(self):
-        ts = (datetime.now(timezone.utc) - timedelta(minutes=5)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        ts = (datetime.now(UTC) - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
         result = relative_time(ts)
         assert result.endswith("m ago")
 
     def test_hours_ago(self):
-        ts = (datetime.now(timezone.utc) - timedelta(hours=3)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        ts = (datetime.now(UTC) - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%SZ")
         result = relative_time(ts)
         assert result.endswith("h ago")
 
     def test_days_ago(self):
-        ts = (datetime.now(timezone.utc) - timedelta(days=2)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        ts = (datetime.now(UTC) - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
         result = relative_time(ts)
         assert result.endswith("d ago")
 
@@ -147,7 +137,7 @@ class TestSwarmRoot:
         with patch("util.Path") as MockPath:
             nfs = tmp_path / "nfs_swarm"
             # Simulate /opt/swarm not existing
-            mock_nfs = type(nfs)
+            type(nfs)
             MockPath.side_effect = lambda x: Path(x)
             # Just verify the function doesn't crash
             result = swarm_root()

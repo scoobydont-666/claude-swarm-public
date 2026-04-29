@@ -8,7 +8,6 @@ import pytest
 
 from task_queue import Task, TaskQueue, _normalize_priority
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -36,9 +35,7 @@ def q(tasks_dir):
 
 class TestTask:
     def test_from_dict(self):
-        t = Task.from_dict(
-            {"id": "t1", "title": "Test", "priority": "high", "requires": ["gpu"]}
-        )
+        t = Task.from_dict({"id": "t1", "title": "Test", "priority": "high", "requires": ["gpu"]})
         assert t.id == "t1"
         assert t.priority == 1  # "high" maps to tier 1 (cicd)
         assert t.requires == ["gpu"]

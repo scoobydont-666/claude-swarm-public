@@ -7,15 +7,14 @@ Work generation is ALWAYS safe: it only creates task files, never modifies
 project state or triggers execution.
 """
 
+import json
 import re
 import subprocess
-from datetime import datetime, timezone
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 from urllib.error import URLError
 from urllib.request import urlopen
-import json
-import sys
 
 import yaml
 
@@ -25,7 +24,6 @@ try:
 except ImportError:
     pass
 from util import atomic_write_yaml as _atomic_write_yaml
-
 
 # ---------------------------------------------------------------------------
 # Model inference helpers
@@ -50,9 +48,7 @@ _SONNET_RE = re.compile(
 )
 
 # Capability keywords
-_GPU_RE = re.compile(
-    r"\b(gpu|cuda|tensor|train|comfyui|ollama|llm|embed)\b", re.IGNORECASE
-)
+_GPU_RE = re.compile(r"\b(gpu|cuda|tensor|train|comfyui|ollama|llm|embed)\b", re.IGNORECASE)
 _DOCKER_RE = re.compile(r"\b(docker|container|swarm|deploy|ansible)\b", re.IGNORECASE)
 
 
@@ -212,8 +208,7 @@ class WorkGenerator:
                     self._make_task(
                         title=f"[{project_name}] {text}",
                         description=(
-                            f"From project plan: {plan_file.name}, "
-                            f"phase {item.get('phase', '?')}"
+                            f"From project plan: {plan_file.name}, phase {item.get('phase', '?')}"
                         ),
                         project=str(project_path),
                         priority="medium",
@@ -223,7 +218,7 @@ class WorkGenerator:
                 )
         return tasks
 
-    def _first_actionable_item(self, plan_file: Path) -> Optional[dict]:
+    def _first_actionable_item(self, plan_file: Path) -> dict | None:
         """Parse a markdown plan file and return the first actionable incomplete item.
 
         Skips human tasks (Josh review, manual, physical) and continues to find
@@ -278,10 +273,7 @@ class WorkGenerator:
             tasks.append(
                 self._make_task(
                     title=f"Investigate alert: {alertname} on {instance}",
-                    description=(
-                        f"Prometheus alert firing — severity={severity}, "
-                        f"labels={labels}"
-                    ),
+                    description=(f"Prometheus alert firing — severity={severity}, labels={labels}"),
                     project="",
                     priority=priority,
                     requires=[],
@@ -362,7 +354,7 @@ class WorkGenerator:
         save_scan_state(self.swarm_root, updated_state)
         return tasks
 
-    def _get_head_commit(self, project_path: Path) -> Optional[str]:
+    def _get_head_commit(self, project_path: Path) -> str | None:
         try:
             result = subprocess.run(
                 ["git", "rev-parse", "HEAD"],
@@ -409,9 +401,7 @@ class WorkGenerator:
         for candidate in ["tests", "test"]:
             if (project_path / candidate).is_dir():
                 return True
-        return bool(
-            list(project_path.glob("test_*.py")) + list(project_path.glob("*_test.py"))
-        )
+        return bool(list(project_path.glob("test_*.py")) + list(project_path.glob("*_test.py")))
 
     # -----------------------------------------------------------------------
     # 4. ExamForge pipeline scanner
@@ -435,8 +425,7 @@ class WorkGenerator:
             for drafts_dir in seed_dir.glob("*-drafts"):
                 if drafts_dir.is_dir():
                     draft_count += len(
-                        list(drafts_dir.glob("*.json"))
-                        + list(drafts_dir.glob("*.yaml"))
+                        list(drafts_dir.glob("*.json")) + list(drafts_dir.glob("*.yaml"))
                     )
 
         if draft_count > 0:
@@ -454,9 +443,7 @@ class WorkGenerator:
         # Check for approved questions not yet imported to DB
         approved_dir = base / "seed" / "approved"
         if approved_dir.is_dir():
-            approved_files = list(approved_dir.glob("*.json")) + list(
-                approved_dir.glob("*.yaml")
-            )
+            approved_files = list(approved_dir.glob("*.json")) + list(approved_dir.glob("*.yaml"))
             if approved_files:
                 tasks.append(
                     self._make_task(
@@ -485,7 +472,7 @@ class WorkGenerator:
 
         return tasks
 
-    def _find_weakest_examforge_section(self, base: Path) -> Optional[str]:
+    def _find_weakest_examforge_section(self, base: Path) -> str | None:
         """Find the CPA section with the fewest approved questions."""
         sections = ["FAR", "AUD", "REG", "BAR"]
         approved_dir = base / "seed" / "approved"
@@ -512,7 +499,7 @@ class WorkGenerator:
         """Create periodic maintenance tasks based on schedule."""
         tasks: list[dict] = []
         scan_state = load_scan_state(self.swarm_root)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         today_str = now.strftime("%Y-%m-%d")
         this_week_str = f"{now.isocalendar().year}-W{now.isocalendar().week:02d}"
 

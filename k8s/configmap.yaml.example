@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: claude-swarm-config
+data:
+  # NFS mount configuration
+  NFS_SERVER: "giga.local"
+  NFS_PATH: "/opt/swarm"
+  NFS_MOUNT_POINT: "/opt/swarm"
+
+  # Git configuration
+  GIT_REPO_URL: "https://github.com/scoobydont-666/claude-config.git"
+  GIT_SYNC_INTERVAL_SECONDS: "60"
+
+  # Routing protocol
+  SWARM_ROUTING_ENABLED: "true"
+  SWARM_WORKER_CONTEXT_MODE: "delta"
+
+  # Health check
+  SWARM_HEALTH_CHECK_INTERVAL: "30"
+
+  # Redis (optional, for state cascade)
+  REDIS_HOST: "redis.default.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"

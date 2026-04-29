@@ -1,11 +1,14 @@
 """Tests for VRAM-aware GPU scheduler."""
 
 import pytest
+
 from src.gpu_discovery import (
-    GpuInfo, HostGpuInventory, save_inventory, init_db,
     MODEL_VRAM_REQUIREMENTS,
+    GpuInfo,
+    HostGpuInventory,
+    save_inventory,
 )
-from src.gpu_scheduler_v2 import GpuScheduler, ScheduleResult
+from src.gpu_scheduler_v2 import GpuScheduler
 
 
 @pytest.fixture
@@ -17,20 +20,57 @@ def db_path(tmp_path):
 def scheduler(db_path):
     # Pre-populate inventory
     inventories = [
-        HostGpuInventory(host="node_reserve1", gpus=[
-            GpuInfo(host="node_reserve1", gpu_index=0, gpu_model="RTX 5080",
-                    vram_total_mb=16303, vram_free_mb=14000, vram_used_mb=2303, utilization_pct=5),
-            GpuInfo(host="node_reserve1", gpu_index=1, gpu_model="RTX 5080",
-                    vram_total_mb=16303, vram_free_mb=14000, vram_used_mb=2303, utilization_pct=5),
-        ]),
-        HostGpuInventory(host="node_reserve2", gpus=[
-            GpuInfo(host="node_reserve2", gpu_index=0, gpu_model="RTX 5060 Ti",
-                    vram_total_mb=16311, vram_free_mb=10000, vram_used_mb=6311, utilization_pct=25),
-        ]),
-        HostGpuInventory(host="node_mongo", gpus=[
-            GpuInfo(host="node_mongo", gpu_index=0, gpu_model="RTX 5080",
-                    vram_total_mb=16303, vram_free_mb=12000, vram_used_mb=4303, utilization_pct=10),
-        ]),
+        HostGpuInventory(
+            host="node_reserve1",
+            gpus=[
+                GpuInfo(
+                    host="node_reserve1",
+                    gpu_index=0,
+                    gpu_model="RTX 5080",
+                    vram_total_mb=16303,
+                    vram_free_mb=14000,
+                    vram_used_mb=2303,
+                    utilization_pct=5,
+                ),
+                GpuInfo(
+                    host="node_reserve1",
+                    gpu_index=1,
+                    gpu_model="RTX 5080",
+                    vram_total_mb=16303,
+                    vram_free_mb=14000,
+                    vram_used_mb=2303,
+                    utilization_pct=5,
+                ),
+            ],
+        ),
+        HostGpuInventory(
+            host="node_reserve2",
+            gpus=[
+                GpuInfo(
+                    host="node_reserve2",
+                    gpu_index=0,
+                    gpu_model="RTX 5060 Ti",
+                    vram_total_mb=16311,
+                    vram_free_mb=10000,
+                    vram_used_mb=6311,
+                    utilization_pct=25,
+                ),
+            ],
+        ),
+        HostGpuInventory(
+            host="node_mongo",
+            gpus=[
+                GpuInfo(
+                    host="node_mongo",
+                    gpu_index=0,
+                    gpu_model="RTX 5080",
+                    vram_total_mb=16303,
+                    vram_free_mb=12000,
+                    vram_used_mb=4303,
+                    utilization_pct=10,
+                ),
+            ],
+        ),
     ]
     save_inventory(inventories, db_path)
 

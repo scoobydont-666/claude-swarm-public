@@ -48,10 +48,7 @@ class TestDashboardHTML:
     def test_dashboard_contains_dispatch_monitor(self, client):
         """Test HTML includes dispatch monitor."""
         response = client.get("/")
-        assert (
-            "Dispatch Monitor" in response.text
-            or "dispatches-container" in response.text
-        )
+        assert "Dispatch Monitor" in response.text or "dispatches-container" in response.text
 
     def test_dashboard_contains_health_alerts(self, client):
         """Test HTML includes health alerts section."""
@@ -61,9 +58,7 @@ class TestDashboardHTML:
     def test_dashboard_contains_metrics_summary(self, client):
         """Test HTML includes metrics summary."""
         response = client.get("/")
-        assert (
-            "Metrics Summary" in response.text or "metrics-container" in response.text
-        )
+        assert "Metrics Summary" in response.text or "metrics-container" in response.text
 
     def test_dashboard_contains_auto_refresh_meta(self, client):
         """Test HTML contains auto-refresh meta tag."""
@@ -160,9 +155,7 @@ class TestTasksAPI:
         data = response.json()
         total = data["total"]["count"]
         sum_stages = (
-            data["pending"]["count"]
-            + data["claimed"]["count"]
-            + data["completed"]["count"]
+            data["pending"]["count"] + data["claimed"]["count"] + data["completed"]["count"]
         )
         assert total == sum_stages
 

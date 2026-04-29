@@ -7,9 +7,8 @@ hydra_dispatch and passes context forward via NFS-shared state files.
 
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -26,7 +25,6 @@ def _pipelines_root() -> Path:
 
 
 from util import now_iso as _now_iso
-
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -52,16 +50,14 @@ class PipelineStage:
     role: str  # human-readable description of what this stage does
     model: str  # opus, sonnet, or haiku
     prompt_template: str  # Jinja2 template with {input}, {previous_output.*}
-    host: Optional[str] = None  # target host, or None for auto-select
+    host: str | None = None  # target host, or None for auto-select
     requires: list = field(default_factory=list)  # capabilities needed
-    depends_on: list = field(
-        default_factory=list
-    )  # stage names that must complete first
+    depends_on: list = field(default_factory=list)  # stage names that must complete first
     timeout_minutes: int = 30
     # v3: Generator-verifier loop support
-    loop_to: Optional[str] = None  # stage to loop back to on failure
+    loop_to: str | None = None  # stage to loop back to on failure
     max_iterations: int = 3  # max loop iterations before giving up
-    success_pattern: Optional[str] = None  # regex: if output matches, stage succeeded
+    success_pattern: str | None = None  # regex: if output matches, stage succeeded
 
 
 @dataclass
@@ -90,9 +86,7 @@ class Pipeline:
         for stage in self.stages:
             for dep in stage.depends_on:
                 if dep not in stage_names:
-                    errors.append(
-                        f"Stage '{stage.name}' depends on unknown stage '{dep}'"
-                    )
+                    errors.append(f"Stage '{stage.name}' depends on unknown stage '{dep}'")
 
         # Cycle detection via DFS
         def has_cycle(name: str, visiting: set, visited: set) -> bool:
@@ -113,9 +107,7 @@ class Pipeline:
         visited: set = set()
         for stage in self.stages:
             if has_cycle(stage.name, visiting, visited):
-                errors.append(
-                    f"Dependency cycle detected involving stage '{stage.name}'"
-                )
+                errors.append(f"Dependency cycle detected involving stage '{stage.name}'")
                 break
 
         # Validate model names
@@ -251,9 +243,7 @@ class PipelineContext:
 
         # {context} → all previous outputs concatenated
         if "{context}" in result:
-            ctx_text = "\n\n".join(
-                f"=== {name} ===\n{out}" for name, out in self.outputs.items()
-            )
+            ctx_text = "\n\n".join(f"=== {name} ===\n{out}" for name, out in self.outputs.items())
             result = result.replace("{context}", ctx_text)
 
         # {input.field} — specific field access
@@ -295,7 +285,7 @@ def _save_stage_result(pipeline_id: str, result: StageResult) -> None:
     tmp.rename(path)
 
 
-def _load_stage_result(pipeline_id: str, stage_name: str) -> Optional[StageResult]:
+def _load_stage_result(pipeline_id: str, stage_name: str) -> StageResult | None:
     path = _pipeline_dir(pipeline_id) / f"stage-{stage_name}.yaml"
     if not path.exists():
         return None
@@ -359,7 +349,7 @@ class PipelineExecutor:
         import sys
 
         sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from hydra_dispatch import dispatch, _find_best_host, recall
+        from hydra_dispatch import _find_best_host, dispatch, recall
 
         self._dispatch = dispatch
         self._find_best_host = _find_best_host
@@ -385,6 +375,7 @@ class PipelineExecutor:
         # v3: Create living spec in Context Bridge for cross-stage context
         try:
             from living_spec import create_spec
+
             spec_content = f"# Pipeline: {pipeline.name}\n\n## Goal\n{input_data.get('input', '')}\n\n## Stages\n"
             for s in pipeline.stages:
                 spec_content += f"- **{s.name}** ({s.model}): {s.role}\n"
@@ -421,23 +412,32 @@ class PipelineExecutor:
                             iteration = 1
                             while sr.status == "failed" and iteration < stage.max_iterations:
                                 import logging
+
                                 logging.getLogger(__name__).info(
                                     f"Loop iteration {iteration}/{stage.max_iterations}: "
                                     f"re-running '{loop_target.name}' after '{stage.name}' failed"
                                 )
                                 # Re-run the target stage with error context appended
-                                error_context = f"\n\nPrevious attempt failed:\n{sr.error or sr.output}"
+                                error_context = (
+                                    f"\n\nPrevious attempt failed:\n{sr.error or sr.output}"
+                                )
                                 augmented_input = dict(input_data)
                                 augmented_input["_loop_error"] = error_context
                                 augmented_input["_loop_iteration"] = iteration
 
                                 # Re-run generate stage
-                                gen_sr = self.execute_stage(loop_target, context, augmented_input, pipeline_id)
+                                gen_sr = self.execute_stage(
+                                    loop_target, context, augmented_input, pipeline_id
+                                )
                                 context.add_output(gen_sr.stage_name, gen_sr.output)
-                                pr.stage_results[f"{gen_sr.stage_name}_iter{iteration}"] = asdict(gen_sr)
+                                pr.stage_results[f"{gen_sr.stage_name}_iter{iteration}"] = asdict(
+                                    gen_sr
+                                )
 
                                 # Re-run verify stage
-                                sr = self.execute_stage(stage, context, augmented_input, pipeline_id)
+                                sr = self.execute_stage(
+                                    stage, context, augmented_input, pipeline_id
+                                )
                                 context.add_output(sr.stage_name, sr.output)
                                 pr.stage_results[f"{sr.stage_name}_iter{iteration}"] = asdict(sr)
                                 _save_pipeline_result(pipeline_id, pr)
@@ -451,9 +451,7 @@ class PipelineExecutor:
                         return pr
                 else:
                     # Parallel batch
-                    with concurrent.futures.ThreadPoolExecutor(
-                        max_workers=len(batch)
-                    ) as ex:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=len(batch)) as ex:
                         futures = {
                             ex.submit(
                                 self.execute_stage,
@@ -486,9 +484,10 @@ class PipelineExecutor:
 
             # v3: Update living spec with completion status
             try:
-                from living_spec import update_spec, read_spec
+                from living_spec import read_spec, update_spec
+
                 existing = read_spec(pipeline_id) or ""
-                completion = f"\n\n## Result: COMPLETED\n"
+                completion = "\n\n## Result: COMPLETED\n"
                 for name, sr_dict in pr.stage_results.items():
                     completion += f"- **{name}**: {sr_dict.get('status', 'unknown')}\n"
                 update_spec(pipeline_id, existing + completion)
@@ -497,13 +496,18 @@ class PipelineExecutor:
 
             # v3: Emit pipeline completion via IPC
             try:
-                from ipc_bridge import publish, TASK_EVENTS
-                publish(TASK_EVENTS, "pipeline.completed", {
-                    "pipeline_id": pipeline_id,
-                    "pipeline_name": pipeline.name,
-                    "stages_completed": len(pr.stage_results),
-                    "status": pr.status,
-                })
+                from ipc_bridge import TASK_EVENTS, publish
+
+                publish(
+                    TASK_EVENTS,
+                    "pipeline.completed",
+                    {
+                        "pipeline_id": pipeline_id,
+                        "pipeline_name": pipeline.name,
+                        "stages_completed": len(pr.stage_results),
+                        "status": pr.status,
+                    },
+                )
             except Exception:
                 pass
 
@@ -602,7 +606,7 @@ def list_pipeline_runs() -> list[dict]:
     return sorted(results, key=lambda x: x.get("started_at", ""), reverse=True)
 
 
-def get_pipeline_run(pipeline_id: str) -> Optional[dict]:
+def get_pipeline_run(pipeline_id: str) -> dict | None:
     """Return full pipeline result for a given pipeline_id."""
     # pipeline_id may be the full dir name or just the short ID
     root = _pipelines_root()
@@ -615,7 +619,7 @@ def get_pipeline_run(pipeline_id: str) -> Optional[dict]:
     return None
 
 
-def get_stage_output(pipeline_id: str, stage_name: str) -> Optional[str]:
+def get_stage_output(pipeline_id: str, stage_name: str) -> str | None:
     """Return the raw output string for a specific stage of a pipeline run."""
     sr = _load_stage_result(pipeline_id, stage_name)
     return sr.output if sr else None
