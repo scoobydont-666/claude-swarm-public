@@ -14,7 +14,9 @@ FLEET_CAPABILITY_INDEX = Pipeline(
         PipelineStage(
             name="preflight",
             role="Verify node_gpu no training, all 5 Ollama hosts up on :11434, GpuScheduler inventory fresh",
-            model="haiku", host="node_primary", requires=["coordinator"],
+            model="haiku",
+            host="node_primary",
+            requires=["coordinator"],
             depends_on=[],
             prompt_template="""Pre-flight checks:
 1. ssh giga 'pgrep -f "unsloth|train.py|finetune"' — abort if any hit
@@ -26,7 +28,9 @@ Report: OK / ABORT with reason.""",
         PipelineStage(
             name="spawn_tier1",
             role="Create swarm tasks for Tier 1 screening — 45 models × 3 fast tasks (classification, json_mode, code_gen)",
-            model="haiku", host="node_primary", requires=["coordinator"],
+            model="haiku",
+            host="node_primary",
+            requires=["coordinator"],
             depends_on=["preflight"],
             prompt_template="""For each model in /opt/ai-shared/ollama/manifests (45 unique), for each class in [classification, json_mode, code_gen]:
   swarm tasks create "bench-{{model_safe}}-{{class}}" \\
@@ -42,7 +46,9 @@ Expected: ~135 tasks queued.""",
         PipelineStage(
             name="execute_tier1",
             role="Workers claim Tier 1 cells and execute via bakeoff.py --cell",
-            model="sonnet", host="any", requires=["gpu"],
+            model="sonnet",
+            host="any",
+            requires=["gpu"],
             depends_on=["spawn_tier1"],
             prompt_template="""Per-cell worker logic:
 1. claim = swarm tasks claim --requires gpu
@@ -56,7 +62,9 @@ Expected: ~2h to drain Tier 1 queue.""",
         PipelineStage(
             name="tier1_gate",
             role="Screen Tier 1 results; select top-15 + pinned seeds for finals",
-            model="haiku", host="node_primary", requires=["coordinator"],
+            model="haiku",
+            host="node_primary",
+            requires=["coordinator"],
             depends_on=["execute_tier1"],
             prompt_template="""Read all /opt/swarm/artifacts/bakeoff-cells/tier1/*.json.
 Compute avg(pct) per model. Sort. Select top-15 + pinned seeds: project-a-14b-obbba, project-a-tax:v5, hydracoder:v5, hydracoder:32bv2, hermes3:8b, qwen3.6:35b-a3b, deepseek-r1:32b.
@@ -66,7 +74,9 @@ Write selection to /opt/swarm/artifacts/bakeoff-cells/tier1-selection.json.""",
         PipelineStage(
             name="spawn_tier2",
             role="Create swarm tasks for Tier 2 finals — top-15 × 10 task classes",
-            model="haiku", host="node_primary", requires=["coordinator"],
+            model="haiku",
+            host="node_primary",
+            requires=["coordinator"],
             depends_on=["tier1_gate"],
             prompt_template="""Read tier1-selection.json. For each model × all 10 classes including creative + tax_rag (tax_rag gated by model tag):
   swarm tasks create "bench-fin-{{model_safe}}-{{class}}" ...
@@ -76,7 +86,9 @@ Expected: ~150-180 tasks queued.""",
         PipelineStage(
             name="execute_tier2",
             role="Workers claim Tier 2 cells",
-            model="sonnet", host="any", requires=["gpu"],
+            model="sonnet",
+            host="any",
+            requires=["gpu"],
             depends_on=["spawn_tier2"],
             prompt_template="Same as execute_tier1 but output to tier2/. Expected: ~5h to drain.",
             timeout_minutes=360,
@@ -84,7 +96,9 @@ Expected: ~150-180 tasks queued.""",
         PipelineStage(
             name="aggregate",
             role="Build capability index JSON + MD from Tier 1 + Tier 2 cells",
-            model="haiku", host="node_primary", requires=["coordinator"],
+            model="haiku",
+            host="node_primary",
+            requires=["coordinator"],
             depends_on=["execute_tier2"],
             prompt_template="""Run: python3 <hydra-project-path>/scripts/bakeoff/build_capability_index.py \\
   --tier1 /opt/swarm/artifacts/bakeoff-cells/tier1/ \\

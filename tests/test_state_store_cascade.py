@@ -11,15 +11,11 @@ Coverage:
   - Ledger write/read/list round-trip (Redis path)
 """
 
-import json
 import os
 import sys
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
-import threading
-
-import pytest
+from unittest.mock import MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -28,10 +24,10 @@ os.environ.setdefault("SWARM_REDIS_SKIP_CHECK", "1")
 
 from state_store_cascade import StateStoreCascade, _SQLiteStore
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_cascade(tmp_path, redis_up=True, cb_up=True, redis_retry_window_s=0):
     """Build a StateStoreCascade with mocked Redis and CB."""
@@ -85,6 +81,7 @@ def _build_fake_redis_module():
 
     def _keys(pattern):
         import fnmatch
+
         return [k for k in store if fnmatch.fnmatch(k, pattern)]
 
     def _ttl(key):
@@ -110,12 +107,15 @@ def _build_fake_redis_module():
     class _FakePipeline:
         def __init__(self):
             self._cmds = []
+
         def hset(self, key, mapping=None, **kw):
             self._cmds.append(("hset", key, mapping or kw))
             return self
+
         def sadd(self, key, *members):
             self._cmds.append(("sadd", key, members))
             return self
+
         def execute(self):
             for cmd, *args in self._cmds:
                 if cmd == "hset":
@@ -147,6 +147,7 @@ def _build_fake_redis_module():
 # ---------------------------------------------------------------------------
 # Slot round-trip tests (Redis path)
 # ---------------------------------------------------------------------------
+
 
 class TestSlotRoundTrip:
     def test_claim_slot_redis(self, tmp_path):
@@ -187,6 +188,7 @@ class TestSlotRoundTrip:
 # Ledger round-trip tests (Redis path)
 # ---------------------------------------------------------------------------
 
+
 class TestLedgerRoundTrip:
     def test_write_and_read(self, tmp_path):
         c = _make_cascade(tmp_path, redis_up=True)
@@ -216,6 +218,7 @@ class TestLedgerRoundTrip:
 # Cascade: Redis fail → CB
 # ---------------------------------------------------------------------------
 
+
 class TestCascadeRedisToCB:
     def test_claim_slot_falls_to_cb(self, tmp_path):
         c = _make_cascade(tmp_path, redis_up=False, cb_up=True)
@@ -239,6 +242,7 @@ class TestCascadeRedisToCB:
 # ---------------------------------------------------------------------------
 # Cascade: Redis+CB fail → SQLite
 # ---------------------------------------------------------------------------
+
 
 class TestCascadeToSQLite:
     def test_claim_slot_falls_to_sqlite(self, tmp_path):
@@ -279,6 +283,7 @@ class TestCascadeToSQLite:
 # Cascade: all backends fail → degraded fail-closed
 # ---------------------------------------------------------------------------
 
+
 class TestDegradedFailClosed:
     def _make_all_dead(self, tmp_path):
         c = _make_cascade(tmp_path, redis_up=False, cb_up=False)
@@ -314,6 +319,7 @@ class TestDegradedFailClosed:
 # Write-behind: SQLite gets row even when Redis succeeds
 # ---------------------------------------------------------------------------
 
+
 class TestWriteBehind:
     def test_slot_claim_mirrors_to_sqlite(self, tmp_path):
         c = _make_cascade(tmp_path, redis_up=True)
@@ -343,6 +349,7 @@ class TestWriteBehind:
 # ---------------------------------------------------------------------------
 # Backend status reporting
 # ---------------------------------------------------------------------------
+
 
 class TestBackendStatus:
     def test_all_up_active_is_redis(self, tmp_path):
@@ -387,6 +394,7 @@ class TestBackendStatus:
 # SQLiteStore unit tests (isolated)
 # ---------------------------------------------------------------------------
 
+
 class TestSQLiteStore:
     def test_slot_claim_and_release(self, tmp_path):
         s = _SQLiteStore(str(tmp_path / "test.db"))
@@ -404,9 +412,12 @@ class TestSQLiteStore:
         s = _SQLiteStore(str(tmp_path / "test.db"))
         # Claim with already-expired TTL by inserting directly
         import sqlite3
+
         conn = sqlite3.connect(str(tmp_path / "test.db"))
-        conn.execute("INSERT OR REPLACE INTO slots (key, holder, ttl_expires) VALUES (?, ?, ?)",
-                     ("expired-k", "old-holder", int(time.time()) - 10))
+        conn.execute(
+            "INSERT OR REPLACE INTO slots (key, holder, ttl_expires) VALUES (?, ?, ?)",
+            ("expired-k", "old-holder", int(time.time()) - 10),
+        )
         conn.commit()
         conn.close()
         assert s.slot_holder("expired-k") is None

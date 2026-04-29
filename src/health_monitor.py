@@ -140,9 +140,9 @@ def _validate_prometheus_url(raw: str) -> str:
           be loopback (127.0.0.1 / ::1 / localhost) or RFC1918/link-local
         - user:pass@host form rejected (credentials in URLs are a smell)
     """
-    from urllib.parse import urlparse
     import ipaddress
     import os as _o
+    from urllib.parse import urlparse
 
     parsed = urlparse(raw)
     if parsed.scheme not in _ALLOWED_PROM_SCHEMES:

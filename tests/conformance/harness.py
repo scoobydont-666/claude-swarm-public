@@ -8,23 +8,18 @@ Provides:
 """
 
 import json
-import sys
 import tempfile
 import time
-from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
-
-import pytest
+from typing import Any
 
 
 class HookPayloadBuilder:
     """Builds pre-tool-use and stop-response payloads matching Claude Code schema."""
 
     @staticmethod
-    def pre_tool_use_write(file_path: str, tool_name: str = "write") -> Dict[str, Any]:
+    def pre_tool_use_write(file_path: str, tool_name: str = "write") -> dict[str, Any]:
         """Simulate a pre-tool-use hook invocation for Write tool."""
         return {
             "toolName": tool_name,
@@ -33,11 +28,13 @@ class HookPayloadBuilder:
                 "content": "dummy content",
             },
             "toolUseId": "write_test_001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     @staticmethod
-    def pre_tool_use_edit(file_path: str, old_string: str = "x", new_string: str = "y") -> Dict[str, Any]:
+    def pre_tool_use_edit(
+        file_path: str, old_string: str = "x", new_string: str = "y"
+    ) -> dict[str, Any]:
         """Simulate a pre-tool-use hook invocation for Edit tool."""
         return {
             "toolName": "Edit",
@@ -47,11 +44,11 @@ class HookPayloadBuilder:
                 "new_string": new_string,
             },
             "toolUseId": "edit_test_001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     @staticmethod
-    def pre_tool_use_bash(command: str, tool_name: str = "Bash") -> Dict[str, Any]:
+    def pre_tool_use_bash(command: str, tool_name: str = "Bash") -> dict[str, Any]:
         """Simulate a pre-tool-use hook invocation for Bash tool."""
         return {
             "toolName": tool_name,
@@ -59,11 +56,11 @@ class HookPayloadBuilder:
                 "command": command,
             },
             "toolUseId": "bash_test_001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     @staticmethod
-    def pre_tool_use_task(title: str, tool_name: str = "Skill") -> Dict[str, Any]:
+    def pre_tool_use_task(title: str, tool_name: str = "Skill") -> dict[str, Any]:
         """Simulate a pre-tool-use hook for delegated task (Agent/Skill dispatch)."""
         return {
             "toolName": tool_name,
@@ -72,16 +69,16 @@ class HookPayloadBuilder:
                 "title": title,
             },
             "toolUseId": "task_test_001",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
     @staticmethod
-    def stop_response_message(text: str) -> Dict[str, Any]:
+    def stop_response_message(text: str) -> dict[str, Any]:
         """Simulate a stop-hook message (no tool use, just text response)."""
         return {
             "type": "message",
             "content": text,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
 
@@ -90,48 +87,58 @@ class RoutingStateStub:
 
     def __init__(self, db_path: Path):
         self.db_path = db_path
-        self.dispatches: List[Dict[str, Any]] = []
-        self.state_writes: List[Dict[str, Any]] = []
-        self.hook_fires: List[Dict[str, Any]] = []
+        self.dispatches: list[dict[str, Any]] = []
+        self.state_writes: list[dict[str, Any]] = []
+        self.hook_fires: list[dict[str, Any]] = []
         self._write_persistent_state()
 
     def record_dispatch(self, task_id: str, tier: str, model: str) -> None:
         """Record a dispatch event."""
-        self.dispatches.append({
-            "task_id": task_id,
-            "tier": tier,
-            "model": model,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.dispatches.append(
+            {
+                "task_id": task_id,
+                "tier": tier,
+                "model": model,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
         self._write_persistent_state()
 
-    def record_hook_fire(self, hook: str, mode: str, action: str, pattern: Optional[str] = None) -> None:
+    def record_hook_fire(
+        self, hook: str, mode: str, action: str, pattern: str | None = None
+    ) -> None:
         """Record a hook execution."""
-        self.hook_fires.append({
-            "hook": hook,
-            "mode": mode,
-            "action": action,
-            "pattern": pattern,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.hook_fires.append(
+            {
+                "hook": hook,
+                "mode": mode,
+                "action": action,
+                "pattern": pattern,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
         self._write_persistent_state()
 
     def record_state_change(self, key: str, value: Any) -> None:
         """Record a state mutation."""
-        self.state_writes.append({
-            "key": key,
-            "value": value,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.state_writes.append(
+            {
+                "key": key,
+                "value": value,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
         self._write_persistent_state()
 
-    def get_dispatches(self, task_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_dispatches(self, task_id: str | None = None) -> list[dict[str, Any]]:
         """Retrieve dispatches, optionally filtered by task_id."""
         if task_id:
             return [d for d in self.dispatches if d["task_id"] == task_id]
         return self.dispatches
 
-    def get_hook_fires(self, hook: Optional[str] = None, action: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_hook_fires(
+        self, hook: str | None = None, action: str | None = None
+    ) -> list[dict[str, Any]]:
         """Retrieve hook fires, optionally filtered."""
         fires = self.hook_fires
         if hook:
@@ -143,11 +150,16 @@ class RoutingStateStub:
     def _write_persistent_state(self) -> None:
         """Persist state to tmpdir for e2e verification."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db_path.write_text(json.dumps({
-            "dispatches": self.dispatches,
-            "state_writes": self.state_writes,
-            "hook_fires": self.hook_fires,
-        }, indent=2))
+        self.db_path.write_text(
+            json.dumps(
+                {
+                    "dispatches": self.dispatches,
+                    "state_writes": self.state_writes,
+                    "hook_fires": self.hook_fires,
+                },
+                indent=2,
+            )
+        )
 
 
 class RoutingConformanceTest:
@@ -167,7 +179,7 @@ class RoutingConformanceTest:
         self.db_path = self.tmpdir_path / "routing.db"
         self.state = RoutingStateStub(self.db_path)
         self.payload_builder = HookPayloadBuilder()
-        self.edited_files: List[str] = []  # Track files for parallel detection
+        self.edited_files: list[str] = []  # Track files for parallel detection
 
     def teardown_method(self):
         """Clean up temp directory."""
@@ -190,12 +202,14 @@ class RoutingConformanceTest:
         fires = self.state.get_hook_fires(hook=hook, action="block")
         assert len(fires) == times, f"Expected {times} block fires for {hook}, got {len(fires)}"
 
-    def assert_dispatch_recorded(self, task_id: str, tier: Optional[str] = None) -> None:
+    def assert_dispatch_recorded(self, task_id: str, tier: str | None = None) -> None:
         """Assert that a dispatch was recorded."""
         dispatches = self.state.get_dispatches(task_id=task_id)
         assert len(dispatches) > 0, f"No dispatch recorded for task {task_id}"
         if tier:
-            assert dispatches[0]["tier"] == tier, f"Expected tier {tier}, got {dispatches[0]['tier']}"
+            assert dispatches[0]["tier"] == tier, (
+                f"Expected tier {tier}, got {dispatches[0]['tier']}"
+            )
 
     def assert_state_persisted(self, key: str, expected_value: Any = None) -> None:
         """Assert that state was written to disk."""
@@ -208,18 +222,24 @@ class RoutingConformanceTest:
 
     def assert_no_dispatches(self) -> None:
         """Assert that no dispatches were recorded."""
-        assert len(self.state.dispatches) == 0, f"Expected no dispatches, got {len(self.state.dispatches)}"
+        assert len(self.state.dispatches) == 0, (
+            f"Expected no dispatches, got {len(self.state.dispatches)}"
+        )
 
     def assert_dispatch_count(self, count: int) -> None:
         """Assert exact dispatch count."""
-        assert len(self.state.dispatches) == count, f"Expected {count} dispatches, got {len(self.state.dispatches)}"
+        assert len(self.state.dispatches) == count, (
+            f"Expected {count} dispatches, got {len(self.state.dispatches)}"
+        )
 
     # ── Agent stubs ────────────────────────────────────────────────────────────
 
-    def simulate_multi_file_edit_pattern(self, files: List[str]) -> None:
+    def simulate_multi_file_edit_pattern(self, files: list[str]) -> None:
         """Simulate editing multiple files in sequence (triggers parallel-detector)."""
         for i, fpath in enumerate(files):
-            payload = self.payload_builder.pre_tool_use_edit(fpath, old_string=f"v{i}", new_string=f"v{i+1}")
+            self.payload_builder.pre_tool_use_edit(
+                fpath, old_string=f"v{i}", new_string=f"v{i + 1}"
+            )
             self._track_file_edit(fpath)
             time.sleep(0.01)  # Ensure distinct timestamps
 
@@ -236,10 +256,13 @@ class RoutingConformanceTest:
             task_id = f"burst_task_{i:02d}"
             self.state.record_dispatch(task_id, "tier_1", "hydracoder:7b")
             time.sleep(step / 1000.0)  # Tiny sleep to avoid exact duplicates
-            self._invoke_hook("dispatch_rate_limit", {
-                "dispatch_count": i + 1,
-                "window_seconds": window_s,
-            })
+            self._invoke_hook(
+                "dispatch_rate_limit",
+                {
+                    "dispatch_count": i + 1,
+                    "window_seconds": window_s,
+                },
+            )
 
     def simulate_pause_ask_pattern(self, text: str) -> None:
         """Simulate pause-ask pattern (should block if plan active)."""
@@ -253,7 +276,7 @@ class RoutingConformanceTest:
         parallel-detector. This stub marks them specially so tests can verify
         the protocol behavior (same file = no warn).
         """
-        payload = self.payload_builder.pre_tool_use_edit(file_path)
+        self.payload_builder.pre_tool_use_edit(file_path)
         # Mark as same-file-OK so stub doesn't count it as a hook fire
         self._track_file_edit(file_path)
 
@@ -276,10 +299,10 @@ class RoutingConformanceTest:
                 "pre_tool_use_parallel_detector",
                 mode="unit-test",
                 action="warn",
-                pattern="independent_files"
+                pattern="independent_files",
             )
 
-    def _invoke_hook(self, hook_name: str, payload: Dict[str, Any]) -> None:
+    def _invoke_hook(self, hook_name: str, payload: dict[str, Any]) -> None:
         """Simulate invoking a hook and record the result."""
         # In real test, hook scripts would be invoked via subprocess + JSON stdin.
         # For unit tests, we directly call the lib functions.

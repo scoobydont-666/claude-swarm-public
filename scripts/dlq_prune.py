@@ -16,6 +16,7 @@ Usage:
 Environment:
     REDIS_URL  redis://[password@]host:port/db (default from transport config)
 """
+
 from __future__ import annotations
 
 import argparse

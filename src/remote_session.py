@@ -643,6 +643,7 @@ def execute_plan(plan: ExecutionPlan, background: bool = True) -> SessionResult:
     # Correct pattern: shlex.quote every argv element, join with spaces, emit
     # a single well-formed shell command line. No heredoc, no re-append tricks.
     import shlex as _shlex
+
     claude_cmdline = " ".join(_shlex.quote(a) for a in claude_args)
     parts.append(claude_cmdline)
     setup_cmd = " && ".join(parts)

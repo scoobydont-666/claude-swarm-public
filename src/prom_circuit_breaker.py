@@ -22,7 +22,8 @@ import logging
 import threading
 import time
 from collections import deque
-from typing import Callable, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +114,7 @@ class CircuitBreaker:
             self._window.append(True)
             if self._state == "HALF_OPEN":
                 # Probe failed — reopen with doubled cooldown (exponential backoff)
-                self._current_cooldown = min(
-                    self._current_cooldown * 2, self.max_cooldown
-                )
+                self._current_cooldown = min(self._current_cooldown * 2, self.max_cooldown)
                 self._state = "OPEN"
                 self._opened_at = time.monotonic()
                 self._window.clear()

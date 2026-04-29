@@ -9,9 +9,7 @@ Expected hooks:
   - pause_ask_scanner (block if plan active + pause pattern)
 """
 
-import pytest
-
-from harness import RoutingConformanceTest, HookPayloadBuilder
+from harness import RoutingConformanceTest
 
 
 class TestChristiMultiRepoEditing(RoutingConformanceTest):
@@ -22,29 +20,34 @@ class TestChristiMultiRepoEditing(RoutingConformanceTest):
         self._activate_plan("project-a-plan.md")
 
         # Simulate rapid cross-repo edits
-        self.simulate_multi_file_edit_pattern([
-            "<project-a-path>/src/advisor.py",
-            "/opt/taxprep-project/src/interview.py",
-            "<project-a-path>/src/rag.py",
-        ])
+        self.simulate_multi_file_edit_pattern(
+            [
+                "<project-a-path>/src/advisor.py",
+                "/opt/taxprep-project/src/interview.py",
+                "<project-a-path>/src/rag.py",
+            ]
+        )
 
         # Should warn about independent files but not block
         # Fires on transition to new file: fire on 2nd file, fire on 3rd file (2 total)
         fires = self.state.get_hook_fires(hook="pre_tool_use_parallel_detector")
         assert len(fires) >= 2, f"Expected ≥2 cross-repo edit warnings, got {len(fires)}"
-        assert all(f["action"] in ["warn"] for f in fires), \
+        assert all(f["action"] in ["warn"] for f in fires), (
             "All cross-repo fires should be warn-only"
+        )
 
     def test_christi_same_file_repeated_edit_no_warn(self):
         """Editing same file multiple times → no warn (serial-OK pattern)."""
         self._activate_plan("project-a-plan.md")
 
         # Same file, multiple edits
-        self.simulate_multi_file_edit_pattern([
-            "<project-a-path>/src/advisor.py",
-            "<project-a-path>/src/advisor.py",
-            "<project-a-path>/src/advisor.py",
-        ])
+        self.simulate_multi_file_edit_pattern(
+            [
+                "<project-a-path>/src/advisor.py",
+                "<project-a-path>/src/advisor.py",
+                "<project-a-path>/src/advisor.py",
+            ]
+        )
 
         # Same file is allowed; don't count as parallelizable
         # Real implementation filters same-file; this test documents the expectation
@@ -57,10 +60,12 @@ class TestChristiMultiRepoEditing(RoutingConformanceTest):
         # Parent and child dirs — language-naive detector sees different paths
         # but domain logic (same project) should suppress warn
         # For v1: we expect parallel-detector to fire (false positive tolerance).
-        self.simulate_multi_file_edit_pattern([
-            "<project-a-path>/src/advisor.py",
-            "<project-a-path>/src/rag.py",
-        ])
+        self.simulate_multi_file_edit_pattern(
+            [
+                "<project-a-path>/src/advisor.py",
+                "<project-a-path>/src/rag.py",
+            ]
+        )
 
         fires = self.state.get_hook_fires(hook="pre_tool_use_parallel_detector")
         # Same project; some implementations may suppress; v1 may warn.
@@ -140,7 +145,9 @@ class TestChristiPauseAsk(RoutingConformanceTest):
         """Text-only status update (not a pause-ask) → allowed."""
         self._activate_plan("project-a-plan.md")
 
-        self.simulate_pause_ask_pattern("Here's the current reconciliation status: all Q1 receipts validated.")
+        self.simulate_pause_ask_pattern(
+            "Here's the current reconciliation status: all Q1 receipts validated."
+        )
 
         # This is not a pause-ask pattern; it's a status update
         # Real detector uses regex patterns; should not match

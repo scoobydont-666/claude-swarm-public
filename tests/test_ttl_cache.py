@@ -201,4 +201,5 @@ def test_cache_stats_hit_rate():
 
 if __name__ == "__main__":
     import pytest
+
     sys.exit(pytest.main([__file__, "-v"]))

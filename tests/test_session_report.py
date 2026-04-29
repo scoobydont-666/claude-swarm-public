@@ -25,7 +25,6 @@ from session_report import (
     _tier_summary,
     _time_range,
     emit_on_session_end,
-    generate_report,
     index_to_cb,
 )
 
@@ -241,9 +240,7 @@ class TestAnalyzeDispatches:
         session_id, log_path, _ = sample_dispatch_log
         records = _load_dispatch_log(log_path)
 
-        total, accepted, escalated, avg_jumps, chain = _analyze_dispatches(
-            records
-        )
+        total, accepted, escalated, avg_jumps, chain = _analyze_dispatches(records)
 
         assert total == 3  # 3 dispatch records
         assert accepted == 2
@@ -443,6 +440,7 @@ class TestGenerateReport:
 
         # Patch swarm root
         with patch("session_report.Path") as mock_path:
+
             def side_effect(p):
                 if str(p) == "/opt/swarm":
                     return tmp_path
@@ -452,7 +450,7 @@ class TestGenerateReport:
             mock_path.__truediv__ = lambda self, other: tmp_path / str(other).lstrip("/")
 
             # Call with simpler approach
-            report_path = report_dir / f"{session_id}.md"
+            report_dir / f"{session_id}.md"
 
             # Manually generate using the functions
             dispatch_records = _load_dispatch_log(log_path)
@@ -464,7 +462,6 @@ class TestGenerateReport:
 
     def test_generate_with_missing_logs(self, tmp_path):
         """Generate report gracefully with missing log files."""
-        session_id = "sess-missing-001"
         report_dir = tmp_path / "artifacts" / "routing-reports"
         report_dir.mkdir(parents=True)
 
@@ -473,6 +470,7 @@ class TestGenerateReport:
         log_dir.mkdir(parents=True)
 
         with patch("session_report.Path") as mock_path:
+
             def side_effect(p):
                 if str(p) == "/opt/swarm":
                     return tmp_path

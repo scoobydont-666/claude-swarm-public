@@ -11,17 +11,12 @@ Supports three modes:
 import os
 import subprocess
 import sys
-from typing import Optional
 
 _BACKEND = os.getenv("CLAUDE_BACKEND", "auto").lower()
 
 
 def call_claude(
-    prompt: str,
-    model: str = "sonnet",
-    system: str = "",
-    max_tokens: int = 1024,
-    **kwargs
+    prompt: str, model: str = "sonnet", system: str = "", max_tokens: int = 1024, **kwargs
 ) -> str:
     """
     Dispatch a Claude API call via configured backend.

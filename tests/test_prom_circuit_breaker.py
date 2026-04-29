@@ -83,9 +83,7 @@ class TestOpeningTransition:
 
 class TestCooldownAndHalfOpen:
     def test_open_transitions_to_half_open_after_cooldown(self):
-        cb = CircuitBreaker(
-            failure_threshold=2, window_size=5, cooldown_seconds=0.05
-        )
+        cb = CircuitBreaker(failure_threshold=2, window_size=5, cooldown_seconds=0.05)
         for _ in range(2):
             with pytest.raises(RuntimeError):
                 cb.call(_fail)

@@ -104,9 +104,7 @@ class TestBackoffStrategies:
         _t.sleep = fake_sleep
         try:
 
-            @with_retry(
-                max_attempts=3, backoff="fixed", base_delay_seconds=1.0, jitter=False
-            )
+            @with_retry(max_attempts=3, backoff="fixed", base_delay_seconds=1.0, jitter=False)
             def f():
                 raise ConnectionError("x")
 
@@ -124,9 +122,7 @@ class TestBackoffStrategies:
         _t.sleep = lambda d: delays.append(d)
         try:
 
-            @with_retry(
-                max_attempts=4, backoff="exp", base_delay_seconds=1.0, jitter=False
-            )
+            @with_retry(max_attempts=4, backoff="exp", base_delay_seconds=1.0, jitter=False)
             def f():
                 raise ConnectionError("x")
 

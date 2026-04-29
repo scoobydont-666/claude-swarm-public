@@ -112,9 +112,7 @@ class Task:
         _VALID_STATES = {"pending", "claimed", "running", "completed", "failed"}
         state = data.get("state", "pending")
         if strict and state not in _VALID_STATES:
-            raise ValueError(
-                f"Task state '{state}' not in allowed set {sorted(_VALID_STATES)}"
-            )
+            raise ValueError(f"Task state '{state}' not in allowed set {sorted(_VALID_STATES)}")
 
         # Handle requires as string (from YAML/Redis)
         requires = data.get("requires", [])

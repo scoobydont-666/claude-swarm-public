@@ -87,7 +87,7 @@ class FleetGpuView:
         )
 
     @classmethod
-    def start(cls, client: redis.Redis | None = None) -> "FleetGpuView":
+    def start(cls, client: redis.Redis | None = None) -> FleetGpuView:
         """Create + start the background consumer. Returns the view."""
         v = cls(client=client)
         v._thread = threading.Thread(target=v._run, daemon=True, name="gpu-events-consumer")
@@ -103,7 +103,9 @@ class FleetGpuView:
         log.info("gpu-events consumer started, stream=%s", STREAM_KEY)
         while not self._stop.is_set():
             try:
-                streams = self.client.xread({STREAM_KEY: self._last_id}, count=100, block=READ_BLOCK_MS)
+                streams = self.client.xread(
+                    {STREAM_KEY: self._last_id}, count=100, block=READ_BLOCK_MS
+                )
             except redis.RedisError as e:
                 log.warning("xread failed: %s — retrying in 5s", e)
                 time.sleep(5)
@@ -156,15 +158,18 @@ class FleetGpuView:
 
     def snapshot(self) -> dict[str, HostState]:
         with self._lock:
-            return {k: HostState(
-                host=v.host,
-                ready_pods=set(v.ready_pods),
-                crashloop_pods=set(v.crashloop_pods),
-                vram_high_gpus=set(v.vram_high_gpus),
-                last_event_ts=v.last_event_ts,
-                last_heartbeat_ts=v.last_heartbeat_ts,
-                restart_counts=dict(v.restart_counts),
-            ) for k, v in self.state.items()}
+            return {
+                k: HostState(
+                    host=v.host,
+                    ready_pods=set(v.ready_pods),
+                    crashloop_pods=set(v.crashloop_pods),
+                    vram_high_gpus=set(v.vram_high_gpus),
+                    last_event_ts=v.last_event_ts,
+                    last_heartbeat_ts=v.last_heartbeat_ts,
+                    restart_counts=dict(v.restart_counts),
+                )
+                for k, v in self.state.items()
+            }
 
     def is_host_healthy(self, host: str) -> bool:
         """True if recent heartbeat + no crashlooping pods."""
@@ -183,7 +188,9 @@ class FleetGpuView:
                 return False
             return gpu_index in hs.vram_high_gpus
 
-    def can_schedule(self, host: str, vram_mib_required: int = 0, gpu_index: int | None = None) -> bool:
+    def can_schedule(
+        self, host: str, vram_mib_required: int = 0, gpu_index: int | None = None
+    ) -> bool:
         """Advisory scheduling check.
 
         Returns False if the host is unhealthy, any crashloop is pending,

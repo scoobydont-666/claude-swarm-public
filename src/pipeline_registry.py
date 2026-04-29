@@ -14,6 +14,7 @@ from pipelines.security_audit import SECURITY_AUDIT
 # Lazily import optional pipelines to avoid import errors during development
 try:
     from pipelines.fleet_capability_index import FLEET_CAPABILITY_INDEX
+
     _FLEET_CAPABILITY_INDEX_AVAILABLE = True
 except ImportError:
     _FLEET_CAPABILITY_INDEX_AVAILABLE = False

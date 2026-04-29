@@ -36,13 +36,13 @@ __all__ = [
 try:
     # Prefer canonical event_schema
     from event_schema import (
+        GpuOomEvent,
+        GpuRestartEvent,
+        GpuVramHwmEvent,
         TaskClaimedEvent,
         TaskCompletedEvent,
         TaskCreatedEvent,
         TaskFailedEvent,
-        GpuOomEvent,
-        GpuRestartEvent,
-        GpuVramHwmEvent,
     )
 except ImportError:
     # Fallback if event_schema not installed
@@ -94,6 +94,7 @@ except ImportError:
         pod_name: str = field(default="")
         namespace: str = field(default="")
         vram_needed_mib: int = field(default=0)
+
 
 # Local event definitions (not in event_schema yet)
 from .events_schema import (

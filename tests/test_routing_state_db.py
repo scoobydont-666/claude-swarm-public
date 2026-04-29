@@ -1,10 +1,8 @@
 """Tests for routing_state_db — SQLite persistence for routing protocol v1."""
+
 from __future__ import annotations
 
-import json
-import os
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -31,6 +29,7 @@ def db_path(tmp_path, monkeypatch):
 def db(db_path):
     """Initialized DB module with clean schema."""
     import routing_state_db as m
+
     m.init_db()
     return m
 
@@ -51,8 +50,9 @@ def test_record_fp_block_counts_window(db):
 def test_recent_fp_count_respects_window(db):
     # Insert an "old" timestamp directly.
     with db._get_conn() as conn:
-        conn.execute("INSERT INTO fp_blocks(ts, hook) VALUES (?, ?)",
-                     (time.time() - 7200, "ancient"))
+        conn.execute(
+            "INSERT INTO fp_blocks(ts, hook) VALUES (?, ?)", (time.time() - 7200, "ancient")
+        )
     # Add a fresh one
     db.record_fp_block("fresh")
     assert db.recent_fp_count(window_s=3600) == 1  # old one outside window
@@ -116,8 +116,9 @@ def test_last_phase_commit_duration_empty_db(db):
 def test_prune_expired(db):
     # Insert a mix of old and fresh
     with db._get_conn() as conn:
-        conn.execute("INSERT INTO fp_blocks(ts, hook) VALUES (?, ?)",
-                     (time.time() - 7200, "ancient"))
+        conn.execute(
+            "INSERT INTO fp_blocks(ts, hook) VALUES (?, ?)", (time.time() - 7200, "ancient")
+        )
     db.record_fp_block("fresh")
     db.prune_expired("fp_blocks", window_s=3600)
     # Fresh should survive; ancient should be gone.
@@ -151,6 +152,7 @@ def test_resilience_against_db_error(tmp_path, monkeypatch):
     if "routing_state_db" in sys.modules:
         del sys.modules["routing_state_db"]
     import routing_state_db as m
+
     # These should degrade gracefully.
     assert m.record_fp_block("hook-x") == 0
     assert m.recent_fp_count() == 0

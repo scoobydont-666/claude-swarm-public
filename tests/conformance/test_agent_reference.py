@@ -7,8 +7,6 @@ This validates that the protocol doesn't create false positives for
 well-behaved, simple agents.
 """
 
-import pytest
-
 from harness import RoutingConformanceTest
 
 
@@ -23,7 +21,9 @@ class TestReferenceMinimalBehavior(RoutingConformanceTest):
 
         # Should not trigger any hooks
         all_fires = self.state.get_hook_fires()
-        assert len(all_fires) == 0, f"Reference agent should not trigger hooks, got {len(all_fires)}"
+        assert len(all_fires) == 0, (
+            f"Reference agent should not trigger hooks, got {len(all_fires)}"
+        )
 
     def test_reference_multiple_single_file_edits_no_hooks(self):
         """Multiple edits to SAME file → no parallel-detector warnings."""
@@ -41,7 +41,7 @@ class TestReferenceMinimalBehavior(RoutingConformanceTest):
         self._deactivate_plan()
 
         # Text-only message (no plan = idle detector not engaged)
-        msg = self.payload_builder.stop_response_message("Here's the result: done.")
+        self.payload_builder.stop_response_message("Here's the result: done.")
 
         # Should not raise idle warning (plan not active)
         all_fires = self.state.get_hook_fires()
@@ -61,7 +61,7 @@ class TestReferenceMinimalBehavior(RoutingConformanceTest):
         """Informational status message → no false positives."""
         self._activate_plan("reference-plan.md")
 
-        msg = self.payload_builder.stop_response_message(
+        self.payload_builder.stop_response_message(
             "Task completed. Summary: 3 files updated, 0 errors."
         )
 
@@ -110,6 +110,7 @@ class TestReferenceCornerCases(RoutingConformanceTest):
         self._activate_plan("reference-plan.md")
 
         import time
+
         for i in range(5):
             self.simulate_single_file_edit_only("/opt/minimal-project/src/main.py")
             time.sleep(0.001)  # 1ms apart
@@ -184,7 +185,7 @@ class TestReferenceCleanShutdown(RoutingConformanceTest):
 
         # Verify plan_active is cleared
         state_writes = [s for s in self.state.state_writes if s.get("key") == "plan_active"]
-        assert any(s.get("value") == False for s in state_writes), "Plan should be marked inactive"
+        assert any(not s.get("value") for s in state_writes), "Plan should be marked inactive"
 
     def test_reference_no_orphaned_dispatch_records(self):
         """Reference agent leaves no orphaned dispatch records."""

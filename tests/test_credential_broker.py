@@ -5,7 +5,6 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -33,7 +32,10 @@ def broker_socket(tmp_path):
     }
 
     proc = subprocess.Popen(
-        [sys.executable, str(Path(__file__).resolve().parent.parent / "src" / "credential_broker.py")],
+        [
+            sys.executable,
+            str(Path(__file__).resolve().parent.parent / "src" / "credential_broker.py"),
+        ],
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -61,7 +63,9 @@ def _raw_call(sock_path: str, method: str, params: dict, timeout: int = 10) -> d
     import socket as _socket
 
     request_id = str(uuid.uuid4())
-    payload = (json.dumps({"method": method, "params": params, "request_id": request_id}) + "\n").encode()
+    payload = (
+        json.dumps({"method": method, "params": params, "request_id": request_id}) + "\n"
+    ).encode()
 
     sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
     sock.settimeout(timeout)
@@ -166,31 +170,43 @@ class TestGitPush:
         subprocess.run(["git", "init", str(worktree)], check=True, capture_output=True)
         subprocess.run(
             ["git", "remote", "add", "origin", str(remote)],
-            cwd=str(worktree), check=True, capture_output=True,
+            cwd=str(worktree),
+            check=True,
+            capture_output=True,
         )
         subprocess.run(
             ["git", "config", "user.email", "test@test.com"],
-            cwd=str(worktree), check=True, capture_output=True,
+            cwd=str(worktree),
+            check=True,
+            capture_output=True,
         )
         subprocess.run(
             ["git", "config", "user.name", "Test"],
-            cwd=str(worktree), check=True, capture_output=True,
+            cwd=str(worktree),
+            check=True,
+            capture_output=True,
         )
         (worktree / "README.md").write_text("init\n")
         subprocess.run(["git", "add", "-A"], cwd=str(worktree), check=True, capture_output=True)
         subprocess.run(
             ["git", "commit", "-m", "init"],
-            cwd=str(worktree), check=True, capture_output=True,
+            cwd=str(worktree),
+            check=True,
+            capture_output=True,
         )
         # Detect the actual default branch name (master vs main)
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=str(worktree), check=True, capture_output=True,
+            cwd=str(worktree),
+            check=True,
+            capture_output=True,
         )
         branch = result.stdout.decode().strip()
         subprocess.run(
             ["git", "push", "origin", f"HEAD:{branch}"],
-            cwd=str(worktree), check=True, capture_output=True,
+            cwd=str(worktree),
+            check=True,
+            capture_output=True,
         )
         return worktree, branch
 
@@ -238,7 +254,6 @@ class TestAnthropicProxy:
         """Without ANTHROPIC_API_KEY the broker should fail gracefully."""
         # The broker subprocess already has env from fixture; we can't easily
         # unset it post-hoc. We test the handler directly instead.
-        import importlib
         import unittest.mock as mock
 
         import credential_broker as cb
@@ -296,16 +311,20 @@ class TestBrokerClient:
 
         (wt / "f.txt").write_text("hello\n")
         subprocess.run(["git", "-C", str(wt), "add", "-A"], check=True, capture_output=True)
-        subprocess.run(["git", "-C", str(wt), "commit", "-m", "init"], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(wt), "commit", "-m", "init"], check=True, capture_output=True
+        )
 
         branch_result = subprocess.run(
             ["git", "-C", str(wt), "rev-parse", "--abbrev-ref", "HEAD"],
-            check=True, capture_output=True,
+            check=True,
+            capture_output=True,
         )
         branch = branch_result.stdout.decode().strip()
         subprocess.run(
             ["git", "-C", str(wt), "push", "origin", f"HEAD:{branch}"],
-            check=True, capture_output=True,
+            check=True,
+            capture_output=True,
         )
 
         (wt / "extra.txt").write_text("new\n")

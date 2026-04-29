@@ -39,6 +39,7 @@ from util import fleet_from_config
 # ── Worker Context Assembly (CB delta mode) ────────────────────────────────
 try:
     from worker_context_assembly import build_worker_dispatch_prompt
+
     WORKER_CONTEXT_ASSEMBLY_AVAILABLE = True
 except ImportError:
     WORKER_CONTEXT_ASSEMBLY_AVAILABLE = False
@@ -47,11 +48,14 @@ except ImportError:
 # Try to import metrics
 try:
     from prom_boilerplate import make_gauge
+
     _prom_registry = None
+
     def _get_metrics():
         global _prom_registry
         if _prom_registry is None:
             from prom_boilerplate import make_registry
+
             _prom_registry = make_registry()
         return {
             "worker_context_bytes": make_gauge(
@@ -67,6 +71,7 @@ try:
                 registry=_prom_registry,
             ),
         }
+
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
@@ -370,9 +375,7 @@ def _assemble_worker_context(
                 logger.debug("Failed to emit worker context metrics: %s", e)
 
         # Return assembled system+user prompt
-        assembled_task = (
-            result.get("system", "") + "\n\n---\n\n" + result.get("user", "")
-        )
+        assembled_task = result.get("system", "") + "\n\n---\n\n" + result.get("user", "")
         return assembled_task, result.get("metadata", {})
     except Exception as e:
         logger.warning("Worker context assembly failed (falling back to original task): %s", e)
@@ -437,6 +440,7 @@ def dispatch(
     """
     # CS2 fix: case-insensitive hostname resolution
     from util import resolve_host_key
+
     canonical = resolve_host_key(host, FLEET)
     if canonical is None:
         raise ValueError(f"Unknown host: {host}. Available: {list(FLEET.keys())}")
@@ -561,8 +565,10 @@ def dispatch(
                 # stat it locally.  A local isdir check would false-negative on
                 # every remote worktree and silently regress isolation + merge
                 # handling for all remote code-gen tasks.
-                from worktree_dispatch import _is_localhost
                 import os as _os
+
+                from worktree_dispatch import _is_localhost
+
                 if _is_localhost(host) and not _os.path.isdir(worktree_info.path):
                     logger.warning(
                         f"Worktree path does not exist on localhost after creation: "

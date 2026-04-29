@@ -1,14 +1,11 @@
 """Tests for worker heartbeat protocol (routing-protocol-v1 §7,§10)."""
 
 import os
-import tempfile
+import sys
 import time
 from pathlib import Path
-from unittest import mock
 
 import pytest
-
-import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

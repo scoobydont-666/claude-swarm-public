@@ -88,9 +88,9 @@ class TestParseCBSearchResponse:
         body["schema_version"] = "2.0.0"
         with caplog.at_level(logging.WARNING):
             parse_cb_search_response(body)
-        assert any(
-            "schema_version drift" in r.message for r in caplog.records
-        ), f"expected schema_version drift warning; got: {[r.message for r in caplog.records]}"
+        assert any("schema_version drift" in r.message for r in caplog.records), (
+            f"expected schema_version drift warning; got: {[r.message for r in caplog.records]}"
+        )
 
     def test_non_dict_body_logged_and_empty(self, caplog):
         with caplog.at_level(logging.WARNING):

@@ -207,7 +207,9 @@ def validate(
     # Simpler requirement check: any field whose default is MISSING is required
     from dataclasses import MISSING
 
-    required = {f.name for f in fields(cls) if f.default is MISSING and f.default_factory is MISSING}
+    required = {
+        f.name for f in fields(cls) if f.default is MISSING and f.default_factory is MISSING
+    }
     missing = required - set(details)
     if missing:
         msg = f"event '{event_type}' missing required fields: {sorted(missing)}"

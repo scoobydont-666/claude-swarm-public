@@ -7,11 +7,10 @@ repo-convention snippets, and target-file verbatim attachment.
 
 import json
 import logging
-import urllib.request
 import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +18,22 @@ logger = logging.getLogger(__name__)
 # Tier budgets (§5 of routing-protocol-v1.md)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TierBudget:
-    tier: str           # "1-3b", "1-7b", "2-14b", "3-32b", "4+"
-    ctx_window: int     # tokens
-    cb_exemplars: int   # tokens for CB retrieval
-    task_prompt: int    # tokens for the ask
-    repo_files: int     # tokens for repo-file context
+    tier: str  # "1-3b", "1-7b", "2-14b", "3-32b", "4+"
+    ctx_window: int  # tokens
+    cb_exemplars: int  # tokens for CB retrieval
+    task_prompt: int  # tokens for the ask
+    repo_files: int  # tokens for repo-file context
 
 
 TIER_BUDGETS: dict[str, TierBudget] = {
-    "1-3b":  TierBudget("1-3b",   8_000,   2_000,  1_000,  3_000),
-    "1-7b":  TierBudget("1-7b",  32_000,   8_000,  2_000, 16_000),
-    "2-14b": TierBudget("2-14b", 32_000,  16_000,  2_000, 32_000),
-    "3-32b": TierBudget("3-32b", 128_000, 32_000,  4_000, 64_000),
-    "4+":    TierBudget("4+",    200_000,       0,      0,      0),
+    "1-3b": TierBudget("1-3b", 8_000, 2_000, 1_000, 3_000),
+    "1-7b": TierBudget("1-7b", 32_000, 8_000, 2_000, 16_000),
+    "2-14b": TierBudget("2-14b", 32_000, 16_000, 2_000, 32_000),
+    "3-32b": TierBudget("3-32b", 128_000, 32_000, 4_000, 64_000),
+    "4+": TierBudget("4+", 200_000, 0, 0, 0),
 }
 
 # CB MCP endpoint (context-bridge port 8518 per port registry)
@@ -68,6 +68,7 @@ Target files (verbatim):
 # Token estimation
 # ---------------------------------------------------------------------------
 
+
 def estimate_tokens(text: str) -> int:
     """Rough 4 chars / token. Good enough for budgeting."""
     return max(1, len(text) // 4)
@@ -76,6 +77,7 @@ def estimate_tokens(text: str) -> int:
 # ---------------------------------------------------------------------------
 # CB exemplar retrieval
 # ---------------------------------------------------------------------------
+
 
 def retrieve_cb_exemplars(query: str, repo_name: str, budget_tokens: int) -> list[dict]:
     """Fetch exemplars from context-bridge, falling back to local cache.
@@ -96,12 +98,14 @@ def retrieve_cb_exemplars(query: str, repo_name: str, budget_tokens: int) -> lis
     return _truncate_to_budget(exemplars, budget_tokens)
 
 
-def _fetch_from_cb(query: str, repo_name: str) -> Optional[list[dict]]:
+def _fetch_from_cb(query: str, repo_name: str) -> list[dict] | None:
     """POST to context-bridge MCP endpoint. Returns raw exemplar list or None on failure."""
-    payload = json.dumps({
-        "method": "cb_search",
-        "params": {"query": query, "limit": 10, "ns": repo_name},
-    }).encode()
+    payload = json.dumps(
+        {
+            "method": "cb_search",
+            "params": {"query": query, "limit": 10, "ns": repo_name},
+        }
+    ).encode()
 
     req = urllib.request.Request(
         _CB_MCP_URL,
@@ -131,7 +135,7 @@ def _fetch_from_cb(query: str, repo_name: str) -> Optional[list[dict]]:
         return None
 
 
-def _load_from_cache(repo_name: str) -> Optional[list[dict]]:
+def _load_from_cache(repo_name: str) -> list[dict] | None:
     cache_file = _CB_CACHE_BASE / repo_name / "exemplars.json"
     if not cache_file.exists():
         return None
@@ -160,6 +164,7 @@ def _truncate_to_budget(exemplars: list[dict], budget_tokens: int) -> list[dict]
 # Cache write
 # ---------------------------------------------------------------------------
 
+
 def cache_exemplars(repo_name: str, exemplars: list[dict]) -> None:
     """Write top-50 exemplars to /opt/swarm/artifacts/cb-cache/<repo>/exemplars.json."""
     cache_dir = _CB_CACHE_BASE / repo_name
@@ -173,6 +178,7 @@ def cache_exemplars(repo_name: str, exemplars: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 # File loading helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_file_verbatim(path: str, token_budget: int) -> tuple[str, int]:
     """Read file content; truncate to token_budget. Returns (text, tokens_used)."""
@@ -193,13 +199,14 @@ def _load_file_verbatim(path: str, token_budget: int) -> tuple[str, int]:
 # Main assembly function
 # ---------------------------------------------------------------------------
 
+
 def build_dispatch_prompt(
     task_description: str,
     tier: str,
     language: str,
-    target_files: Optional[list[str]] = None,
-    repo_conventions: Optional[list[str]] = None,
-    repo_name: Optional[str] = None,
+    target_files: list[str] | None = None,
+    repo_conventions: list[str] | None = None,
+    repo_name: str | None = None,
 ) -> dict:
     """Build a coordinator dispatch prompt for a local LLM worker.
 
@@ -236,9 +243,7 @@ def build_dispatch_prompt(
 
     # --- Repo conventions ---
     conventions_block = (
-        "\n".join(f"- {c}" for c in repo_conventions)
-        if repo_conventions
-        else "(none)"
+        "\n".join(f"- {c}" for c in repo_conventions) if repo_conventions else "(none)"
     )
 
     # --- Target files ---
@@ -265,10 +270,7 @@ def build_dispatch_prompt(
     )
 
     # --- Estimate totals ---
-    total_tokens = (
-        estimate_tokens(system_prompt)
-        + estimate_tokens(task_description)
-    )
+    total_tokens = estimate_tokens(system_prompt) + estimate_tokens(task_description)
     budget_exceeded = total_tokens > budget.ctx_window
 
     return {

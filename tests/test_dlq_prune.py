@@ -27,10 +27,10 @@ class TestPruneOldMessages:
 
     def test_default_hours_is_72(self):
         """Josh directive 2026-04-18: 72h covers Fri→Mon + 48h D3 staging."""
-        from ipc import dlq
-
         # Read the default via inspect
         import inspect
+
+        from ipc import dlq
 
         sig = inspect.signature(dlq.prune_old_messages)
         assert sig.parameters["hours"].default == 72
@@ -110,6 +110,7 @@ class TestBackendDegradation:
         if "dashboard" in sys.modules:
             del sys.modules["dashboard"]
         import dashboard
+
         return dashboard
 
     def test_backend_pinned_to_redis_not_degraded(self, dashboard_app, monkeypatch):
@@ -135,9 +136,7 @@ class TestBackendDegradation:
         assert result["backend"] == "redis"
         assert result["degraded"] is False
 
-    def test_auto_with_redis_down_returns_nfs_degraded(
-        self, dashboard_app, monkeypatch
-    ):
+    def test_auto_with_redis_down_returns_nfs_degraded(self, dashboard_app, monkeypatch):
         monkeypatch.setenv("SWARM_BACKEND", "auto")
         mock_rc = MagicMock()
         mock_rc.health_check.return_value = False

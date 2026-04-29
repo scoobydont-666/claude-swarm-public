@@ -6,7 +6,7 @@ Maps the internal Task/TaskQueue to the TaskQueueBackend protocol from swarm_spe
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ class ClaudeSwarmTaskQueueAdapter:
 
     def dequeue(
         self, worker_id: str, capabilities: list[str], timeout_s: float = 30.0
-    ) -> Optional["TaskDescriptor"]:
+    ) -> TaskDescriptor | None:
         """Dequeue a task matching capabilities, respecting priority order.
 
         For testing, we ignore timeout_s (no actual blocking).
@@ -112,7 +112,7 @@ class ClaudeSwarmTaskQueueAdapter:
             self._dequeued.pop(task_id, None)
             log.debug("Nacked task %s with retry=False, discarded. Reason: %s", task_id, reason)
 
-    def peek(self, filter_capabilities: list[str] = [], limit: int = 10) -> list["TaskDescriptor"]:  # noqa: B006
+    def peek(self, filter_capabilities: list[str] = [], limit: int = 10) -> list[TaskDescriptor]:  # noqa: B006
         """Peek at pending tasks without dequeuing. Filter by capabilities if provided."""
         candidates = []
         for tid, (task, state) in self._tasks.items():

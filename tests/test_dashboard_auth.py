@@ -11,7 +11,6 @@ Semantics:
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -30,6 +29,7 @@ def dashboard_app(monkeypatch):
     if "dashboard" in sys.modules:
         del sys.modules["dashboard"]
     import dashboard  # noqa: F401
+
     return dashboard.app
 
 
@@ -45,9 +45,7 @@ class TestAuthDisabledByDefault:
         # /health may return 200 or 503 depending on backend; auth-agnostic
         assert resp.status_code in (200, 503)
 
-    def test_api_endpoint_unauthenticated_when_key_unset(
-        self, dashboard_app, monkeypatch
-    ):
+    def test_api_endpoint_unauthenticated_when_key_unset(self, dashboard_app, monkeypatch):
         """With SWARM_API_KEY unset, /api/* is reachable without a key
         (loopback-only operational model preserved)."""
         monkeypatch.delenv("SWARM_API_KEY", raising=False)
@@ -65,6 +63,7 @@ class TestAuthEnabledWithKey:
         if "dashboard" in sys.modules:
             del sys.modules["dashboard"]
         import dashboard  # noqa: F401
+
         return dashboard.app
 
     def test_missing_key_returns_401(self, authed_app):

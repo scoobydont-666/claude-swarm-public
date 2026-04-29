@@ -25,9 +25,7 @@ same safety gates.
 from __future__ import annotations
 
 import concurrent.futures
-import shlex
 import subprocess
-import sys
 
 import typer
 from rich.console import Console
@@ -66,8 +64,7 @@ _SCALE_UP_TIMEOUT = 180
 
 def _kubectl(args: list[str]) -> subprocess.CompletedProcess:
     """Run kubectl via SSH to the bastion host that holds KUBECONFIG."""
-    cmd = ["ssh", "-o", "ConnectTimeout=10", _KUBECTL_BASTION,
-           "kubectl", "-n", _NAMESPACE] + args
+    cmd = ["ssh", "-o", "ConnectTimeout=10", _KUBECTL_BASTION, "kubectl", "-n", _NAMESPACE] + args
     return subprocess.run(cmd, capture_output=True, text=True, timeout=300)
 
 
@@ -77,9 +74,10 @@ def _preflight_no_training() -> tuple[bool, str]:
     Per feedback_no_interrupt_training — never interrupt node_gpu during training.
     """
     result = subprocess.run(
-        ["ssh", "-o", "ConnectTimeout=5", "giga",
-         "pgrep", "-af", "unsloth|train\\.py|finetune"],
-        capture_output=True, text=True, timeout=15,
+        ["ssh", "-o", "ConnectTimeout=5", "giga", "pgrep", "-af", "unsloth|train\\.py|finetune"],
+        capture_output=True,
+        text=True,
+        timeout=15,
     )
     if result.returncode == 0 and result.stdout.strip():
         return False, f"node_gpu has active training process(es):\n{result.stdout}"
@@ -95,15 +93,27 @@ def _scale(deployment: str, replicas: int, wait_timeout: int) -> tuple[bool, str
     if replicas == 0:
         # Wait for pod deletion — tolerate timeout (pods may already be gone)
         _kubectl(
-            ["wait", "--for=delete", "pod", "-l", f"app={deployment.rsplit('-gpu', 1)[0]}",
-             f"--timeout={wait_timeout}s"],
+            [
+                "wait",
+                "--for=delete",
+                "pod",
+                "-l",
+                f"app={deployment.rsplit('-gpu', 1)[0]}",
+                f"--timeout={wait_timeout}s",
+            ],
         )
         return True, f"scaled down {deployment}"
 
     # replicas >= 1 — wait for ready
     r = _kubectl(
-        ["wait", "--for=condition=ready", "pod", "-l", f"app={deployment.rsplit('-gpu', 1)[0]}",
-         f"--timeout={wait_timeout}s"],
+        [
+            "wait",
+            "--for=condition=ready",
+            "pod",
+            "-l",
+            f"app={deployment.rsplit('-gpu', 1)[0]}",
+            f"--timeout={wait_timeout}s",
+        ],
     )
     if r.returncode != 0:
         return False, f"wait ready {deployment}: {r.stderr.strip()}"
@@ -112,13 +122,13 @@ def _scale(deployment: str, replicas: int, wait_timeout: int) -> tuple[bool, str
 
 def _verify_ollama(host: str) -> tuple[bool, int | None]:
     """Confirm Ollama /api/tags responds and count models."""
-    cmd = ["ssh", "-o", "ConnectTimeout=5", host,
-           "curl", "-sf", "http://127.0.0.1:11434/api/tags"]
+    cmd = ["ssh", "-o", "ConnectTimeout=5", host, "curl", "-sf", "http://127.0.0.1:11434/api/tags"]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
     if r.returncode != 0:
         return False, None
     try:
         import json as _json
+
         data = _json.loads(r.stdout)
         return True, len(data.get("models", []))
     except (ValueError, KeyError):
@@ -176,9 +186,7 @@ def _flip_one(host: str, mode: str) -> tuple[str, bool, list[str]]:
 
 def _eligible_hosts(fleet: dict) -> list[str]:
     """Fleet hosts that have any deployment (Ollama or vLLM) mapping."""
-    return [h for h in fleet
-            if h.lower() in _OLLAMA_DEPLOYMENTS
-            or h.lower() in _VLLM_DEPLOYMENTS]
+    return [h for h in fleet if h.lower() in _OLLAMA_DEPLOYMENTS or h.lower() in _VLLM_DEPLOYMENTS]
 
 
 @gpu_app.command("status")
@@ -228,8 +236,7 @@ def gpu_status() -> None:
 
 def _deployment_replicas(deployment: str) -> int:
     """Return current ready-replicas for a deployment (0 if not found/not ready)."""
-    r = _kubectl(["get", "deployment", deployment,
-                  "-o", "jsonpath={.status.readyReplicas}"])
+    r = _kubectl(["get", "deployment", deployment, "-o", "jsonpath={.status.readyReplicas}"])
     if r.returncode != 0:
         return 0
     try:
@@ -242,8 +249,9 @@ def _deployment_replicas(deployment: str) -> int:
 def gpu_flip(
     host: str = typer.Argument(..., help="Fleet host (case-insensitive)"),
     mode: str = typer.Argument(..., help="Target mode: ollama | vllm"),
-    skip_preflight: bool = typer.Option(False, "--skip-preflight",
-                                        help="Skip node_gpu training check (dangerous)"),
+    skip_preflight: bool = typer.Option(
+        False, "--skip-preflight", help="Skip node_gpu training check (dangerous)"
+    ),
 ) -> None:
     """Flip a single fleet host between Ollama and vLLM."""
     if mode not in ("ollama", "vllm"):
@@ -275,12 +283,13 @@ def gpu_flip(
 @gpu_app.command("flip-all")
 def gpu_flip_all(
     mode: str = typer.Argument(..., help="Target mode: ollama | vllm"),
-    skip_preflight: bool = typer.Option(False, "--skip-preflight",
-                                        help="Skip node_gpu training check (dangerous)"),
-    exclude: list[str] = typer.Option([], "--exclude", "-e",
-                                       help="Host(s) to exclude (repeatable)"),
-    max_parallel: int = typer.Option(5, "--max-parallel", "-p",
-                                     help="Max concurrent flips"),
+    skip_preflight: bool = typer.Option(
+        False, "--skip-preflight", help="Skip node_gpu training check (dangerous)"
+    ),
+    exclude: list[str] = typer.Option(
+        [], "--exclude", "-e", help="Host(s) to exclude (repeatable)"
+    ),
+    max_parallel: int = typer.Option(5, "--max-parallel", "-p", help="Max concurrent flips"),
 ) -> None:
     """Flip every eligible fleet host to the target mode in parallel."""
     if mode not in ("ollama", "vllm"):
@@ -296,8 +305,7 @@ def gpu_flip_all(
 
     fleet = fleet_from_config()
     excluded_lower = {e.lower() for e in exclude}
-    targets = [h for h in _eligible_hosts(fleet)
-               if h.lower() not in excluded_lower]
+    targets = [h for h in _eligible_hosts(fleet) if h.lower() not in excluded_lower]
 
     if not targets:
         console.print("[yellow]No eligible targets after exclusions[/yellow]")
@@ -307,8 +315,7 @@ def gpu_flip_all(
     if mode == "vllm":
         targets = [t for t in targets if _VLLM_DEPLOYMENTS.get(t.lower())]
 
-    console.print(f"[bold]Flipping {len(targets)} hosts → {mode}[/bold]: "
-                  f"{', '.join(targets)}")
+    console.print(f"[bold]Flipping {len(targets)} hosts → {mode}[/bold]: {', '.join(targets)}")
 
     results: dict[str, tuple[bool, list[str]]] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel) as ex:

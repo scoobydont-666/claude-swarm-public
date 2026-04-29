@@ -88,9 +88,7 @@ def _analyze_dispatches(
 
     total = len(dispatches)
     accepted_first = sum(1 for d in dispatches if d.get("status") == "accepted")
-    escalation_chain = [
-        d for d in dispatches if d.get("status") == "escalated"
-    ]
+    escalation_chain = [d for d in dispatches if d.get("status") == "escalated"]
     num_escalated = len(escalation_chain)
     avg_jumps = (
         sum(len(d.get("tier_chain", [])) for d in escalation_chain) / num_escalated
@@ -117,23 +115,34 @@ def _tier_summary(records: list[dict[str, Any]]) -> list[dict[str, str | int]]:
         count = len(tier_recs)
         pct = (count / total * 100) if total > 0 else 0.0
         avg_wall = sum(d.get("wall_ms", 0) for d in tier_recs) / count if count else 0
-        esc_rate = sum(1 for d in tier_recs if d.get("status") == "escalated") / count * 100 if count else 0.0
+        esc_rate = (
+            sum(1 for d in tier_recs if d.get("status") == "escalated") / count * 100
+            if count
+            else 0.0
+        )
 
-        summary.append({
-            "tier": tier,
-            "model": model,
-            "count": count,
-            "pct": f"{pct:.1f}%",
-            "avg_wall_ms": f"{int(avg_wall)}",
-            "escalation_rate": f"{esc_rate:.1f}%",
-        })
+        summary.append(
+            {
+                "tier": tier,
+                "model": model,
+                "count": count,
+                "pct": f"{pct:.1f}%",
+                "avg_wall_ms": f"{int(avg_wall)}",
+                "escalation_rate": f"{esc_rate:.1f}%",
+            }
+        )
     return summary
 
 
 def _analyze_slot_utilization(samples: list[dict[str, Any]]) -> dict[str, float | int]:
     """Analyze slot utilization from samples."""
     if not samples:
-        return {"gpu_utilization_pct": 0.0, "cpu_utilization_pct": 0.0, "cloud_peak_concurrency": 0, "sample_count": 0}
+        return {
+            "gpu_utilization_pct": 0.0,
+            "cpu_utilization_pct": 0.0,
+            "cloud_peak_concurrency": 0,
+            "sample_count": 0,
+        }
 
     total = len(samples)
     gpu_busy = sum(1 for s in samples if s.get("gpu_busy_count", 0) >= 2)
@@ -215,7 +224,9 @@ def _detect_serial_regressions(records: list[dict[str, Any]]) -> int:
 
 def _estimate_cost(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Estimate cost from Tier-4+ (Claude) dispatches."""
-    claude = [r for r in records if r.get("type") == "dispatch" and str(r.get("tier", "")).startswith("4")]
+    claude = [
+        r for r in records if r.get("type") == "dispatch" and str(r.get("tier", "")).startswith("4")
+    ]
     if not claude:
         return {"total_tokens": 0, "estimated_usd": 0.0, "breakdown": {}}
 
@@ -243,7 +254,9 @@ def _estimate_cost(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _next_recommendations(total: int, esc_rate: float, serials: int, dlq: int, blocks: int) -> list[str]:
+def _next_recommendations(
+    total: int, esc_rate: float, serials: int, dlq: int, blocks: int
+) -> list[str]:
     """Generate next-session recommendations."""
     recs = []
     if esc_rate > 30:
@@ -282,9 +295,7 @@ def generate_report(session_id: str) -> Path:
     dlq_items = _load_dlq_state(session_id)
 
     # Analyze
-    total, accepted, escalated, avg_jumps, esc_chain = _analyze_dispatches(
-        dispatch_records
-    )
+    total, accepted, escalated, avg_jumps, esc_chain = _analyze_dispatches(dispatch_records)
     tier_summary = _tier_summary(dispatch_records)
     slot_util = _analyze_slot_utilization(slot_samples)
     hooks = _analyze_hooks(dispatch_records)
@@ -314,14 +325,8 @@ def generate_report(session_id: str) -> Path:
         "",
         f"- **Total dispatches:** {total}",
         f"- **Accepted on first tier:** {accepted} ({accepted_pct:.1f}%)",
-        (
-            f"- **Escalated:** {escalated} ({escalated_pct:.1f}%"
-            f" — avg {avg_jumps:.1f} tier jumps)"
-        ),
-        (
-            f"- **DLQ:** {len(dlq_items)}"
-            f" ({'blocks plan completion' if dlq_items else 'none'})"
-        ),
+        (f"- **Escalated:** {escalated} ({escalated_pct:.1f}% — avg {avg_jumps:.1f} tier jumps)"),
+        (f"- **DLQ:** {len(dlq_items)} ({'blocks plan completion' if dlq_items else 'none'})"),
         f"- **Hook fires:** {hook_warns} warnings, {hook_blocks} blocks",
         "",
         "## Dispatches by Tier",
@@ -352,10 +357,7 @@ def generate_report(session_id: str) -> Path:
                 f"- **CPU slot utilization:** {slot_util['cpu_utilization_pct']:.1f}%"
                 f" of wall-clock with ≥2 workers"
             ),
-            (
-                f"- **Cloud-worker peak concurrency:** {slot_util['cloud_peak_concurrency']}/3"
-                f" (cap)"
-            ),
+            (f"- **Cloud-worker peak concurrency:** {slot_util['cloud_peak_concurrency']}/3 (cap)"),
             "",
             "## Hook Fires",
             "",
@@ -393,10 +395,7 @@ def generate_report(session_id: str) -> Path:
             "",
             "## Regressions",
             "",
-            (
-                f"- **Serial regressions detected:** {serials}"
-                f" (target: 0 in sessions ≥15min)"
-            ),
+            (f"- **Serial regressions detected:** {serials} (target: 0 in sessions ≥15min)"),
             "",
             "## Cost Estimate (tokens + dollars)",
             "",

@@ -28,6 +28,7 @@ def dashboard_app(monkeypatch):
     if "dashboard" in sys.modules:
         del sys.modules["dashboard"]
     import dashboard
+
     return dashboard.app
 
 
@@ -60,6 +61,7 @@ class TestLiveness:
         if "dashboard" in sys.modules:
             del sys.modules["dashboard"]
         import dashboard
+
         client = TestClient(dashboard.app)
         resp = client.get("/live")
         assert resp.status_code == 200
@@ -72,8 +74,9 @@ class TestReadiness:
         client = TestClient(dashboard_app)
         mock_client = MagicMock()
         mock_client.ping.return_value = True
-        with patch("redis_client.get_client", return_value=mock_client), patch(
-            "os.path.isdir", return_value=True
+        with (
+            patch("redis_client.get_client", return_value=mock_client),
+            patch("os.path.isdir", return_value=True),
         ):
             resp = client.get("/ready")
         assert resp.status_code == 200
@@ -95,9 +98,11 @@ class TestReadiness:
         client = TestClient(dashboard_app)
         mock_client = MagicMock()
         mock_client.ping.return_value = True
-        with patch("redis_client.get_client", return_value=mock_client), patch(
-            "os.path.ismount", return_value=False
-        ), patch("os.path.isdir", return_value=False):
+        with (
+            patch("redis_client.get_client", return_value=mock_client),
+            patch("os.path.ismount", return_value=False),
+            patch("os.path.isdir", return_value=False),
+        ):
             resp = client.get("/ready")
         assert resp.status_code == 503
         body = resp.json()
@@ -108,6 +113,7 @@ class TestReadiness:
         if "dashboard" in sys.modules:
             del sys.modules["dashboard"]
         import dashboard
+
         client = TestClient(dashboard.app)
         # Should not return 401 regardless of readiness state
         resp = client.get("/ready")
@@ -122,10 +128,12 @@ class TestExemptPathRegistration:
         if "dashboard" in sys.modules:
             del sys.modules["dashboard"]
         import dashboard
+
         assert "/live" in dashboard._AUTH_EXEMPT_PATHS
 
     def test_ready_in_auth_exempt_paths(self):
         if "dashboard" in sys.modules:
             del sys.modules["dashboard"]
         import dashboard
+
         assert "/ready" in dashboard._AUTH_EXEMPT_PATHS

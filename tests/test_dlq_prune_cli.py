@@ -4,11 +4,11 @@ Covers: (1) happy path — prune function called, JSON record emitted, exit 0.
         (2) dry-run — depth read, no prune.
         (3) transport error — stderr JSON, exit 1.
 """
+
 from __future__ import annotations
 
 import io
 import json
-import os
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path

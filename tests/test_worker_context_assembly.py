@@ -5,19 +5,19 @@ import json
 import sys
 import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 import urllib.error
+from pathlib import Path
+from unittest.mock import patch
 
 # Allow running from repo root or tests/ dir
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import worker_context_assembly as wca
 
-
 # ---------------------------------------------------------------------------
 # estimate_tokens (shared with coordinator)
 # ---------------------------------------------------------------------------
+
 
 class TestEstimateTokens(unittest.TestCase):
     def test_empty_string(self):
@@ -34,6 +34,7 @@ class TestEstimateTokens(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Worker Tier Budgets
 # ---------------------------------------------------------------------------
+
 
 class TestWorkerTierBudgets(unittest.TestCase):
     def test_all_tiers_present(self):
@@ -60,6 +61,7 @@ class TestWorkerTierBudgets(unittest.TestCase):
 # build_worker_dispatch_prompt — delta mode
 # ---------------------------------------------------------------------------
 
+
 class TestBuildWorkerDispatchPromptDelta(unittest.TestCase):
     def _no_cb(self, *args, **kwargs):
         """Stub: no CB exemplars."""
@@ -75,8 +77,7 @@ class TestBuildWorkerDispatchPromptDelta(unittest.TestCase):
             )
         meta = result["metadata"]
         self.assertFalse(
-            meta["budget_exceeded"],
-            f"worker-sm budget exceeded: {meta['estimated_tokens']} > 8000"
+            meta["budget_exceeded"], f"worker-sm budget exceeded: {meta['estimated_tokens']} > 8000"
         )
         self.assertEqual(meta["context_mode"], "delta")
         self.assertEqual(meta["worker_tier"], "worker-sm")
@@ -92,7 +93,7 @@ class TestBuildWorkerDispatchPromptDelta(unittest.TestCase):
         meta = result["metadata"]
         self.assertFalse(
             meta["budget_exceeded"],
-            f"worker-md budget exceeded: {meta['estimated_tokens']} > 16000"
+            f"worker-md budget exceeded: {meta['estimated_tokens']} > 16000",
         )
 
     def test_delta_mode_budget_lg(self):
@@ -106,7 +107,7 @@ class TestBuildWorkerDispatchPromptDelta(unittest.TestCase):
         meta = result["metadata"]
         self.assertFalse(
             meta["budget_exceeded"],
-            f"worker-lg budget exceeded: {meta['estimated_tokens']} > 32000"
+            f"worker-lg budget exceeded: {meta['estimated_tokens']} > 32000",
         )
 
     def test_delta_mode_target_files(self):
@@ -145,6 +146,7 @@ class TestBuildWorkerDispatchPromptDelta(unittest.TestCase):
 # build_worker_dispatch_prompt — full mode (opt-out)
 # ---------------------------------------------------------------------------
 
+
 class TestBuildWorkerDispatchPromptFull(unittest.TestCase):
     def test_full_mode_disables_cb(self):
         """context_mode=full should disable CB assembly."""
@@ -173,6 +175,7 @@ class TestBuildWorkerDispatchPromptFull(unittest.TestCase):
 # Invalid tier raises
 # ---------------------------------------------------------------------------
 
+
 class TestInvalidTier(unittest.TestCase):
     def test_invalid_tier_raises_value_error(self):
         """Unknown tier should raise ValueError."""
@@ -187,6 +190,7 @@ class TestInvalidTier(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Template rendering
 # ---------------------------------------------------------------------------
+
 
 class TestWorkerTemplateRendering(unittest.TestCase):
     def _no_cb(self, *args, **kwargs):
@@ -255,6 +259,7 @@ class TestWorkerTemplateRendering(unittest.TestCase):
 # CB fallback to cache
 # ---------------------------------------------------------------------------
 
+
 class TestCBFallback(unittest.TestCase):
     def test_fallback_to_cache_on_http_error(self):
         """When CB HTTP fails, should load from local cache."""
@@ -284,7 +289,9 @@ class TestCBFallback(unittest.TestCase):
             wca._CB_CACHE_BASE = Path(tmpdir)
             try:
                 with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
-                    result = wca.retrieve_worker_cb_exemplars("query", "nonexistent", budget_tokens=100)
+                    result = wca.retrieve_worker_cb_exemplars(
+                        "query", "nonexistent", budget_tokens=100
+                    )
                 self.assertEqual(result, [])
             finally:
                 wca._CB_CACHE_BASE = original_base
@@ -297,6 +304,7 @@ class TestCBFallback(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Cache write
 # ---------------------------------------------------------------------------
+
 
 class TestCacheWorkerExemplars(unittest.TestCase):
     def test_write_and_read_back(self):
@@ -330,6 +338,7 @@ class TestCacheWorkerExemplars(unittest.TestCase):
 # Context savings metrics
 # ---------------------------------------------------------------------------
 
+
 class TestContextSavingsMetrics(unittest.TestCase):
     def _no_cb(self, *args, **kwargs):
         return []
@@ -350,10 +359,7 @@ class TestContextSavingsMetrics(unittest.TestCase):
                 )
             meta = result["metadata"]
             # Both should be same size for single file, savings = 0
-            self.assertEqual(
-                meta["assembled_context_bytes"],
-                meta["estimated_full_context_bytes"]
-            )
+            self.assertEqual(meta["assembled_context_bytes"], meta["estimated_full_context_bytes"])
             self.assertEqual(meta["context_savings_pct"], 0)
         finally:
             Path(tmp_path).unlink()
@@ -372,6 +378,7 @@ class TestContextSavingsMetrics(unittest.TestCase):
 # Default tier selection
 # ---------------------------------------------------------------------------
 
+
 class TestDefaultTierSelection(unittest.TestCase):
     def test_none_tier_uses_default(self):
         """When worker_tier=None, should use DEFAULT_WORKER_TIER."""
@@ -379,10 +386,7 @@ class TestDefaultTierSelection(unittest.TestCase):
             task_description="task",
             worker_tier=None,  # explicitly None
         )
-        self.assertEqual(
-            result["metadata"]["worker_tier"],
-            wca.DEFAULT_WORKER_TIER
-        )
+        self.assertEqual(result["metadata"]["worker_tier"], wca.DEFAULT_WORKER_TIER)
 
 
 if __name__ == "__main__":

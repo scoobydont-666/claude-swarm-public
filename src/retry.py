@@ -25,7 +25,8 @@ import functools
 import logging
 import random
 import time
-from typing import Callable, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +121,7 @@ def with_retry(
                 try:
                     on_exhausted(last_exc, args, kwargs)
                 except Exception as hook_exc:  # noqa: BLE001
-                    logger.warning(
-                        "retry: on_exhausted hook raised (ignoring): %s", hook_exc
-                    )
+                    logger.warning("retry: on_exhausted hook raised (ignoring): %s", hook_exc)
             raise last_exc
 
         return wrapper

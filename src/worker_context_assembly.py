@@ -10,11 +10,10 @@ Tier budgets are smaller than coordinator tier_ladder.
 
 import json
 import logging
-import urllib.request
 import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -22,19 +21,20 @@ logger = logging.getLogger(__name__)
 # Worker Tier Budgets (smaller than coordinator tiers per routing-protocol-v1)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class WorkerTierBudget:
-    tier: str           # "worker-sm", "worker-md", "worker-lg"
-    ctx_window: int     # tokens available to worker
-    cb_exemplars: int   # tokens for CB delta retrieval
-    task_prompt: int    # tokens for the task
-    repo_files: int     # tokens for target files
+    tier: str  # "worker-sm", "worker-md", "worker-lg"
+    ctx_window: int  # tokens available to worker
+    cb_exemplars: int  # tokens for CB delta retrieval
+    task_prompt: int  # tokens for the task
+    repo_files: int  # tokens for target files
 
 
 WORKER_TIER_BUDGETS: dict[str, WorkerTierBudget] = {
-    "worker-sm":  WorkerTierBudget("worker-sm",   8_000,  1_000,    500,  2_000),
-    "worker-md":  WorkerTierBudget("worker-md",  16_000,  3_000,  1_000,  4_000),
-    "worker-lg":  WorkerTierBudget("worker-lg",  32_000,  8_000,  2_000,  8_000),
+    "worker-sm": WorkerTierBudget("worker-sm", 8_000, 1_000, 500, 2_000),
+    "worker-md": WorkerTierBudget("worker-md", 16_000, 3_000, 1_000, 4_000),
+    "worker-lg": WorkerTierBudget("worker-lg", 32_000, 8_000, 2_000, 8_000),
 }
 
 # Default worker tier if not specified
@@ -72,6 +72,7 @@ Relevant exemplars from this codebase (retrieved by CB):
 # Token estimation (shared with coordinator)
 # ---------------------------------------------------------------------------
 
+
 def estimate_tokens(text: str) -> int:
     """Rough 4 chars / token. Good enough for budgeting."""
     return max(1, len(text) // 4)
@@ -81,11 +82,12 @@ def estimate_tokens(text: str) -> int:
 # CB exemplar retrieval (delta mode)
 # ---------------------------------------------------------------------------
 
+
 def retrieve_worker_cb_exemplars(
     query: str,
     repo_name: str,
     budget_tokens: int,
-    target_files: Optional[list[str]] = None,
+    target_files: list[str] | None = None,
 ) -> list[dict]:
     """Fetch exemplars from context-bridge in delta mode (narrower scope).
 
@@ -112,12 +114,14 @@ def retrieve_worker_cb_exemplars(
     return _truncate_to_budget(exemplars, budget_tokens)
 
 
-def _fetch_from_cb_delta(query: str, repo_name: str) -> Optional[list[dict]]:
+def _fetch_from_cb_delta(query: str, repo_name: str) -> list[dict] | None:
     """POST to context-bridge MCP endpoint with delta scope. Returns raw exemplar list or None on failure."""
-    payload = json.dumps({
-        "method": "cb_search",
-        "params": {"query": query, "limit": 5, "ns": repo_name},  # Limit smaller for workers
-    }).encode()
+    payload = json.dumps(
+        {
+            "method": "cb_search",
+            "params": {"query": query, "limit": 5, "ns": repo_name},  # Limit smaller for workers
+        }
+    ).encode()
 
     req = urllib.request.Request(
         _CB_MCP_URL,
@@ -147,7 +151,7 @@ def _fetch_from_cb_delta(query: str, repo_name: str) -> Optional[list[dict]]:
         return None
 
 
-def _load_from_cache(repo_name: str) -> Optional[list[dict]]:
+def _load_from_cache(repo_name: str) -> list[dict] | None:
     cache_file = _CB_CACHE_BASE / repo_name / "exemplars.json"
     if not cache_file.exists():
         return None
@@ -176,6 +180,7 @@ def _truncate_to_budget(exemplars: list[dict], budget_tokens: int) -> list[dict]
 # Cache write
 # ---------------------------------------------------------------------------
 
+
 def cache_worker_exemplars(repo_name: str, exemplars: list[dict]) -> None:
     """Write top-30 exemplars to /opt/swarm/artifacts/cb-cache-worker/<repo>/exemplars.json."""
     cache_dir = _CB_CACHE_BASE / repo_name
@@ -189,6 +194,7 @@ def cache_worker_exemplars(repo_name: str, exemplars: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 # File loading helpers (delta: load only specified files)
 # ---------------------------------------------------------------------------
+
 
 def _load_file_verbatim(path: str, token_budget: int) -> tuple[str, int]:
     """Read file content; truncate to token_budget. Returns (text, tokens_used)."""
@@ -208,12 +214,13 @@ def _load_file_verbatim(path: str, token_budget: int) -> tuple[str, int]:
 # Main worker context assembly function
 # ---------------------------------------------------------------------------
 
+
 def build_worker_dispatch_prompt(
     task_description: str,
-    target_files: Optional[list[str]] = None,
-    repo_name: Optional[str] = None,
+    target_files: list[str] | None = None,
+    repo_name: str | None = None,
     language: str = "python",
-    worker_tier: Optional[str] = None,
+    worker_tier: str | None = None,
     context_mode: str = "delta",  # "delta" or "full" (opt-out)
 ) -> dict:
     """Build a worker dispatch prompt with CB context assembly.
@@ -246,9 +253,7 @@ def build_worker_dispatch_prompt(
 
     budget = WORKER_TIER_BUDGETS.get(worker_tier)
     if budget is None:
-        raise ValueError(
-            f"Unknown worker tier {worker_tier!r}. Valid: {list(WORKER_TIER_BUDGETS)}"
-        )
+        raise ValueError(f"Unknown worker tier {worker_tier!r}. Valid: {list(WORKER_TIER_BUDGETS)}")
 
     target_files = target_files or []
     repo_name = repo_name or "unknown"
@@ -314,18 +319,13 @@ def build_worker_dispatch_prompt(
     )
 
     # --- Estimate totals ---
-    total_tokens = (
-        estimate_tokens(system_prompt)
-        + estimate_tokens(task_description)
-    )
+    total_tokens = estimate_tokens(system_prompt) + estimate_tokens(task_description)
     budget_exceeded = total_tokens > budget.ctx_window
 
     # --- Metrics ---
     savings_pct = 0
     if estimated_full_context_bytes > 0:
-        savings_pct = int(
-            (1.0 - assembled_context_bytes / estimated_full_context_bytes) * 100
-        )
+        savings_pct = int((1.0 - assembled_context_bytes / estimated_full_context_bytes) * 100)
 
     return {
         "system": system_prompt,
@@ -378,10 +378,7 @@ def _build_legacy_worker_prompt(
         cb_exemplars_block="(legacy mode — CB disabled)",
     )
 
-    total_tokens = (
-        estimate_tokens(system_prompt)
-        + estimate_tokens(task_description)
-    )
+    total_tokens = estimate_tokens(system_prompt) + estimate_tokens(task_description)
     budget_exceeded = total_tokens > budget.ctx_window
 
     return {

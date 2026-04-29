@@ -43,6 +43,7 @@ _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cascade-wb")
 # Logging helpers
 # ---------------------------------------------------------------------------
 
+
 def _log_cascade(level: str, msg: str) -> None:
     """Append a line to the cascade log file AND Python logger."""
     ts = time.strftime("%Y-%m-%dT%H:%M:%S")
@@ -135,9 +136,7 @@ class _SQLiteStore:
     def slot_release(self, key: str, holder: str) -> bool:
         try:
             with self._conn() as conn:
-                row = conn.execute(
-                    "SELECT holder FROM slots WHERE key = ?", (key,)
-                ).fetchone()
+                row = conn.execute("SELECT holder FROM slots WHERE key = ?", (key,)).fetchone()
                 if row and row["holder"] == holder:
                     conn.execute("DELETE FROM slots WHERE key = ?", (key,))
                     return True
@@ -247,6 +246,7 @@ class _SQLiteStore:
 # Context Bridge primitives
 # ---------------------------------------------------------------------------
 
+
 class _CBStore:
     """Thin wrapper around CB fact-assert/fact-query MCP endpoints."""
 
@@ -320,6 +320,7 @@ class _CBStore:
 # StateStoreCascade
 # ---------------------------------------------------------------------------
 
+
 class StateStoreCascade:
     """Cascade-aware state store: Redis → CB → SQLite → degraded fail-closed.
 
@@ -346,9 +347,11 @@ class StateStoreCascade:
     def _get_redis(self):
         try:
             import redis_client as _rc
+
             return _rc
         except ImportError:
             from src import redis_client as _rc
+
             return _rc
 
     def _try_redis(self) -> Any | None:
@@ -372,11 +375,13 @@ class StateStoreCascade:
 
     def _mirror_to_sqlite_async(self, fn, *args, **kwargs) -> None:
         """Fire-and-forget SQLite write — never blocks hot path."""
+
         def _run():
             try:
                 fn(*args, **kwargs)
             except Exception as exc:
                 LOG.debug("Write-behind mirror failed: %s", exc)
+
         _executor.submit(_run)
 
     # ------------------------------------------------------------------
@@ -393,9 +398,7 @@ class StateStoreCascade:
                 ok = bool(rc.get_client().set(redis_key, holder, nx=True, ex=ttl_s))
                 if ok:
                     # Write-behind to SQLite
-                    self._mirror_to_sqlite_async(
-                        self._sqlite.slot_claim, slot_key, holder, ttl_s
-                    )
+                    self._mirror_to_sqlite_async(self._sqlite.slot_claim, slot_key, holder, ttl_s)
                 return ok
             except Exception as exc:
                 LOG.warning("Redis claim_slot error: %s", exc)
@@ -405,7 +408,10 @@ class StateStoreCascade:
         obj = {"holder": holder, "ttl_expires": int(time.time()) + ttl_s}
         existing = self._cb.query_fact(slot_key)
         if existing and isinstance(existing, dict):
-            if existing.get("ttl_expires", 0) > int(time.time()) and existing.get("holder") != holder:
+            if (
+                existing.get("ttl_expires", 0) > int(time.time())
+                and existing.get("holder") != holder
+            ):
                 return False
         if self._cb.assert_fact(slot_key, obj):
             return True
@@ -425,9 +431,7 @@ class StateStoreCascade:
                 if current == holder:
                     ok = bool(rc.get_client().delete(redis_key))
                     if ok:
-                        self._mirror_to_sqlite_async(
-                            self._sqlite.slot_release, slot_key, holder
-                        )
+                        self._mirror_to_sqlite_async(self._sqlite.slot_release, slot_key, holder)
                     return ok
                 return False
             except Exception as exc:
@@ -498,8 +502,10 @@ class StateStoreCascade:
             try:
                 r = rc.get_client()
                 pipe = r.pipeline()
-                flat = {k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
-                        for k, v in state.items()}
+                flat = {
+                    k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
+                    for k, v in state.items()
+                }
                 pipe.hset(redis_key, mapping=flat)
                 if state_name:
                     pipe.sadd(f"routing:tasks:by_state:{state_name}", task_id)
@@ -558,7 +564,9 @@ class StateStoreCascade:
             except Exception as exc:
                 LOG.warning("Redis ledger_list_by_state error: %s", exc)
 
-        _log_cascade("WARNING", f"Redis down — SQLite fallback for ledger_list_by_state({state_name})")
+        _log_cascade(
+            "WARNING", f"Redis down — SQLite fallback for ledger_list_by_state({state_name})"
+        )
         return self._sqlite.task_list_by_state(state_name)
 
     # ------------------------------------------------------------------

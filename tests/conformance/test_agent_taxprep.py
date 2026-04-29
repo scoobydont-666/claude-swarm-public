@@ -8,8 +8,6 @@ Expected hooks:
   - parallel_detector (warn on independent file edits during interview)
 """
 
-import pytest
-
 from harness import RoutingConformanceTest
 
 
@@ -81,11 +79,13 @@ class TestTaxPrepInterviewEdits(RoutingConformanceTest):
         """Editing multiple questionnaire files → warn (independent)."""
         self._activate_plan("taxprep-interview.md")
 
-        self.simulate_multi_file_edit_pattern([
-            "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
-            "/opt/taxprep-project/data/interview-2026-04-18-002.yaml",
-            "/opt/taxprep-project/data/interview-2026-04-18-003.yaml",
-        ])
+        self.simulate_multi_file_edit_pattern(
+            [
+                "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
+                "/opt/taxprep-project/data/interview-2026-04-18-002.yaml",
+                "/opt/taxprep-project/data/interview-2026-04-18-003.yaml",
+            ]
+        )
 
         fires = self.state.get_hook_fires(hook="pre_tool_use_parallel_detector")
         # Fires on transition to 2nd and 3rd file (2 total)
@@ -95,11 +95,13 @@ class TestTaxPrepInterviewEdits(RoutingConformanceTest):
         """Editing single interview file multiple times → no warn (serial-OK)."""
         self._activate_plan("taxprep-interview.md")
 
-        self.simulate_multi_file_edit_pattern([
-            "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
-            "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
-            "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
-        ])
+        self.simulate_multi_file_edit_pattern(
+            [
+                "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
+                "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
+                "/opt/taxprep-project/data/interview-2026-04-18-001.yaml",
+            ]
+        )
 
         # Same file; should not warn
         blocks = self.state.get_hook_fires(hook="pre_tool_use_parallel_detector", action="block")
@@ -109,11 +111,13 @@ class TestTaxPrepInterviewEdits(RoutingConformanceTest):
         """Writing interview results to different output files → warn (parallel candidate)."""
         self._activate_plan("taxprep-interview.md")
 
-        self.simulate_multi_file_edit_pattern([
-            "/opt/taxprep-project/output/q1-summary.md",
-            "/opt/taxprep-project/output/q2-summary.md",
-            "/opt/taxprep-project/output/q3-summary.md",
-        ])
+        self.simulate_multi_file_edit_pattern(
+            [
+                "/opt/taxprep-project/output/q1-summary.md",
+                "/opt/taxprep-project/output/q2-summary.md",
+                "/opt/taxprep-project/output/q3-summary.md",
+            ]
+        )
 
         fires = self.state.get_hook_fires(hook="pre_tool_use_parallel_detector")
         assert len(fires) >= 2, "Output file writes should be flagged as parallel candidates"
@@ -163,7 +167,7 @@ class TestTaxPrepStateRecovery(RoutingConformanceTest):
 
         for i in range(5):
             self.state.record_dispatch(f"interview_task_{i:02d}", "tier_1", "hydracoder:7b")
-            self.state.record_state_change(f"interview_phase", f"phase_{i}")
+            self.state.record_state_change("interview_phase", f"phase_{i}")
 
         # Verify state was persisted to disk
         self.assert_state_persisted("interview_phase")
@@ -177,7 +181,7 @@ class TestTaxPrepStateRecovery(RoutingConformanceTest):
             self.state.record_dispatch(f"task_{i}", "tier_1", "hydracoder:7b")
 
         # Simulate checkpoint write
-        checkpoint = {
+        {
             "dispatches": self.state.get_dispatches(),
             "last_phase": "interview_phase_2",
         }
@@ -225,7 +229,9 @@ class TestTaxPrepIntegration(RoutingConformanceTest):
 
         # Should record all 20 dispatch events
         dispatches = self.state.get_dispatches()
-        assert len(dispatches) == 20, f"Expected 20 dispatch records for runaway, got {len(dispatches)}"
+        assert len(dispatches) == 20, (
+            f"Expected 20 dispatch records for runaway, got {len(dispatches)}"
+        )
 
         # Runaway detection: >15 dispatches in 30s is suspicious
         assert len(dispatches) > 15, "Runaway burst should have recorded many dispatches"
@@ -241,6 +247,6 @@ class TestTaxPrepIntegration(RoutingConformanceTest):
 
         # After multiple bursts, mode may downgrade
         # Document: auto-downgrade is a graceful fallback
-        state_changes = [s for s in self.state.state_writes if "mode" in str(s)]
+        [s for s in self.state.state_writes if "mode" in str(s)]
         # Expect either enforcement or auto-downgrade trigger
         assert len(self.state.state_writes) > 0, "State should reflect enforcement attempts"

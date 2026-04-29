@@ -30,8 +30,9 @@ def test_apply_heartbeat_updates_last_heartbeat(view):
 
 
 def test_apply_pod_ready_adds_pod(view):
-    view._apply(_fields(host="giga", event="pod_ready", pod_name="vllm-giga-0",
-                        namespace="ai-cluster"))
+    view._apply(
+        _fields(host="giga", event="pod_ready", pod_name="vllm-giga-0", namespace="ai-cluster")
+    )
     assert "ai-cluster/vllm-giga-0" in view.state["giga"].ready_pods
 
 
@@ -54,8 +55,11 @@ def test_apply_vram_high_then_normal(view):
 
 
 def test_apply_pod_restart_tracks_count(view):
-    view._apply(_fields(host="giga", event="pod_restart", pod_name="p1",
-                        namespace="ai-cluster", restart_count=5))
+    view._apply(
+        _fields(
+            host="giga", event="pod_restart", pod_name="p1", namespace="ai-cluster", restart_count=5
+        )
+    )
     assert view.state["giga"].restart_counts["ai-cluster/p1"] == 5
 
 
@@ -71,8 +75,7 @@ def test_is_host_healthy_stale_heartbeat(view):
 
 def test_is_host_healthy_crashloop_blocks(view):
     view._apply(_fields(host="giga", event="heartbeat", ts=time.time()))
-    view._apply(_fields(host="giga", event="pod_crashloop", pod_name="p1",
-                        namespace="ai-cluster"))
+    view._apply(_fields(host="giga", event="pod_crashloop", pod_name="p1", namespace="ai-cluster"))
     assert view.is_host_healthy("giga") is False
 
 
@@ -82,8 +85,7 @@ def test_can_schedule_unknown_host_defers(view):
 
 def test_can_schedule_crashloop_returns_false(view):
     view._apply(_fields(host="giga", event="heartbeat", ts=time.time()))
-    view._apply(_fields(host="giga", event="pod_crashloop", pod_name="p1",
-                        namespace="ai-cluster"))
+    view._apply(_fields(host="giga", event="pod_crashloop", pod_name="p1", namespace="ai-cluster"))
     assert view.can_schedule("giga") is False
 
 
@@ -101,8 +103,7 @@ def test_can_schedule_vram_high_blocks_any_when_unspecified(view):
 
 
 def test_snapshot_returns_deep_copy(view):
-    view._apply(_fields(host="giga", event="pod_ready", pod_name="p1",
-                        namespace="ai-cluster"))
+    view._apply(_fields(host="giga", event="pod_ready", pod_name="p1", namespace="ai-cluster"))
     snap = view.snapshot()
     assert isinstance(snap["giga"], HostState)
     snap["giga"].ready_pods.add("ai-cluster/fake")

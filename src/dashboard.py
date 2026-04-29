@@ -74,8 +74,8 @@ app = FastAPI(title="claude-swarm Dashboard")
 # during rollout; flip the env only after the token is distributed to
 # callers (monitoring scripts, reverse proxies).
 
-import os as _os
 import hmac as _hmac
+import os as _os
 
 from fastapi import Request  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
@@ -212,9 +212,7 @@ def get_readiness() -> JSONResponse:
     not_ready_reasons: list[str] = []
 
     # NFS mount (primary coordination surface)
-    swarm_nfs = _inner_os.path.ismount("/opt/swarm") or _inner_os.path.isdir(
-        "/opt/swarm/artifacts"
-    )
+    swarm_nfs = _inner_os.path.ismount("/opt/swarm") or _inner_os.path.isdir("/opt/swarm/artifacts")
     checks["nfs_swarm"] = swarm_nfs
     if not swarm_nfs:
         not_ready_reasons.append("nfs_swarm_mount_missing")

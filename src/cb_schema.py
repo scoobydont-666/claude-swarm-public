@@ -118,8 +118,7 @@ def parse_cb_search_response(
             )
         except (KeyError, TypeError, ValueError) as exc:
             msg = (
-                f"CB result[{idx}] missing/invalid field: {exc}; "
-                f"keys present={sorted(item.keys())}"
+                f"CB result[{idx}] missing/invalid field: {exc}; keys present={sorted(item.keys())}"
             )
             if strict:
                 raise ValueError(msg) from exc

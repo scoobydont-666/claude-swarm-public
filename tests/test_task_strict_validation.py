@@ -80,9 +80,7 @@ class TestStrictMode:
 
     def test_all_valid_states_accepted(self):
         for state in ("pending", "claimed", "running", "completed", "failed"):
-            t = Task.from_dict(
-                {"id": "t1", "title": "x", "state": state}, strict=True
-            )
+            t = Task.from_dict({"id": "t1", "title": "x", "state": state}, strict=True)
             assert t.state == state
 
     def test_empty_id_counts_as_missing(self):

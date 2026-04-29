@@ -6,8 +6,6 @@ import json
 import logging
 import os
 import signal
-import subprocess
-import sys
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -74,9 +72,7 @@ async def _git_push(params: dict) -> dict:
     if rc != 0:
         raise RuntimeError(f"git add failed: {err.strip()}")
 
-    rc, _, err = await run(
-        "git", "commit", "-m", message, f"--author={author_str}"
-    )
+    rc, _, err = await run("git", "commit", "-m", message, f"--author={author_str}")
     if rc != 0:
         raise RuntimeError(f"git commit failed: {err.strip()}")
 
@@ -97,14 +93,19 @@ async def _ssh_exec(params: dict) -> dict:
     timeout_s = int(params.get("timeout_s", 30))
 
     proc = await asyncio.create_subprocess_exec(
-        "ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new",
-        host, cmd,
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        host,
+        cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     try:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         proc.kill()
         await proc.communicate()
         raise RuntimeError(f"ssh_exec timed out after {timeout_s}s")
@@ -143,7 +144,9 @@ async def _anthropic_proxy(params: dict) -> dict:
     try:
         import urllib.request as _req
 
-        payload = json.dumps({"model": model, "messages": messages, "max_tokens": max_tokens}).encode()
+        payload = json.dumps(
+            {"model": model, "messages": messages, "max_tokens": max_tokens}
+        ).encode()
         request = _req.Request(
             "https://api.anthropic.com/v1/messages",
             data=payload,

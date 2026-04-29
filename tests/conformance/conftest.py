@@ -46,6 +46,7 @@ def reset_routing_state(tmp_path):
     routing_tmp = Path("/tmp/claude-routing-state")
     if routing_tmp.exists():
         import shutil
+
         try:
             shutil.rmtree(routing_tmp)
         except Exception:
@@ -55,6 +56,7 @@ def reset_routing_state(tmp_path):
     # Cleanup after test
     try:
         import shutil
+
         shutil.rmtree(routing_tmp)
     except Exception:
         pass

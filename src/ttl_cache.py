@@ -26,8 +26,9 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -85,7 +86,9 @@ class _CacheStore:
             }
 
 
-def ttl_cache(ttl_seconds: float = 5.0, max_size: int = 256) -> Callable[[Callable[..., T]], Callable[..., T]]:
+def ttl_cache(
+    ttl_seconds: float = 5.0, max_size: int = 256
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator: cache a function's return for `ttl_seconds` keyed on args.
 
     - `self` is INCLUDED in the key for methods (one cache per instance-args tuple).

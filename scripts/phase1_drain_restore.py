@@ -36,9 +36,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import sys
 import time
-from pathlib import Path
 from typing import Any
 
 import redis
@@ -311,9 +309,7 @@ def restore() -> dict:
     global _CHECKPOINT
 
     if _CHECKPOINT is None:
-        raise RuntimeError(
-            "restore() called before drain() — no checkpoint to restore from."
-        )
+        raise RuntimeError("restore() called before drain() — no checkpoint to restore from.")
 
     r = _client(0)
     ts = time.time()

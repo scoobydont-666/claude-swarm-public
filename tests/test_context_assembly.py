@@ -5,19 +5,19 @@ import json
 import sys
 import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 import urllib.error
+from pathlib import Path
+from unittest.mock import patch
 
 # Allow running from repo root or tests/ dir
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import context_assembly as ca
 
-
 # ---------------------------------------------------------------------------
 # estimate_tokens
 # ---------------------------------------------------------------------------
+
 
 class TestEstimateTokens(unittest.TestCase):
     def test_empty_string(self):
@@ -42,6 +42,7 @@ class TestEstimateTokens(unittest.TestCase):
 # build_dispatch_prompt — budget compliance
 # ---------------------------------------------------------------------------
 
+
 class TestBuildDispatchPromptBudget(unittest.TestCase):
     """build_dispatch_prompt must not exceed ctx_window for any tier."""
 
@@ -57,8 +58,9 @@ class TestBuildDispatchPromptBudget(unittest.TestCase):
                 language="python",
             )
         meta = result["metadata"]
-        self.assertFalse(meta["budget_exceeded"],
-                         f"1-3b budget exceeded: {meta['estimated_tokens']} > 8000")
+        self.assertFalse(
+            meta["budget_exceeded"], f"1-3b budget exceeded: {meta['estimated_tokens']} > 8000"
+        )
 
     def test_budget_respected_2_14b(self):
         with patch.object(ca, "retrieve_cb_exemplars", self._no_cb):
@@ -69,8 +71,9 @@ class TestBuildDispatchPromptBudget(unittest.TestCase):
                 repo_name="claude-swarm",
             )
         meta = result["metadata"]
-        self.assertFalse(meta["budget_exceeded"],
-                         f"2-14b budget exceeded: {meta['estimated_tokens']} > 32000")
+        self.assertFalse(
+            meta["budget_exceeded"], f"2-14b budget exceeded: {meta['estimated_tokens']} > 32000"
+        )
 
     def test_budget_respected_3_32b(self):
         with patch.object(ca, "retrieve_cb_exemplars", self._no_cb):
@@ -80,8 +83,9 @@ class TestBuildDispatchPromptBudget(unittest.TestCase):
                 language="go",
             )
         meta = result["metadata"]
-        self.assertFalse(meta["budget_exceeded"],
-                         f"3-32b budget exceeded: {meta['estimated_tokens']} > 128000")
+        self.assertFalse(
+            meta["budget_exceeded"], f"3-32b budget exceeded: {meta['estimated_tokens']} > 128000"
+        )
 
     def test_invalid_tier_raises(self):
         with self.assertRaises(ValueError):
@@ -91,6 +95,7 @@ class TestBuildDispatchPromptBudget(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # build_dispatch_prompt — template rendering with empty inputs
 # ---------------------------------------------------------------------------
+
 
 class TestBuildDispatchPromptRendering(unittest.TestCase):
     def _no_cb(self, *args, **kwargs):
@@ -135,7 +140,12 @@ class TestBuildDispatchPromptRendering(unittest.TestCase):
         with patch.object(ca, "retrieve_cb_exemplars", self._no_cb):
             result = ca.build_dispatch_prompt("t", tier="1-7b", language="yaml")
         meta = result["metadata"]
-        for key in ("cb_exemplars_used", "repo_files_attached", "estimated_tokens", "budget_exceeded"):
+        for key in (
+            "cb_exemplars_used",
+            "repo_files_attached",
+            "estimated_tokens",
+            "budget_exceeded",
+        ):
             self.assertIn(key, meta, f"Missing metadata key: {key}")
 
     def test_target_files_attached_count(self):
@@ -157,6 +167,7 @@ class TestBuildDispatchPromptRendering(unittest.TestCase):
 # CB fallback to cache when HTTP fails
 # ---------------------------------------------------------------------------
 
+
 class TestCBFallback(unittest.TestCase):
     def test_fallback_to_cache_on_http_error(self):
         """When CB HTTP fails, exemplars should load from local cache."""
@@ -173,7 +184,10 @@ class TestCBFallback(unittest.TestCase):
 
             try:
                 # Patch urlopen to raise URLError
-                with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("connection refused")):
+                with patch(
+                    "urllib.request.urlopen",
+                    side_effect=urllib.error.URLError("connection refused"),
+                ):
                     result = ca.retrieve_cb_exemplars("some query", repo, budget_tokens=200)
 
                 self.assertEqual(len(result), 1)
@@ -188,7 +202,9 @@ class TestCBFallback(unittest.TestCase):
             ca._CB_CACHE_BASE = Path(tmpdir)  # empty — no cache files
             try:
                 with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
-                    result = ca.retrieve_cb_exemplars("query", "nonexistent-repo", budget_tokens=100)
+                    result = ca.retrieve_cb_exemplars(
+                        "query", "nonexistent-repo", budget_tokens=100
+                    )
                 self.assertEqual(result, [])
             finally:
                 ca._CB_CACHE_BASE = original_base
@@ -201,6 +217,7 @@ class TestCBFallback(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # cache_exemplars
 # ---------------------------------------------------------------------------
+
 
 class TestCacheExemplars(unittest.TestCase):
     def test_write_and_read_back(self):
@@ -221,7 +238,9 @@ class TestCacheExemplars(unittest.TestCase):
             original_base = ca._CB_CACHE_BASE
             ca._CB_CACHE_BASE = Path(tmpdir)
             try:
-                big_list = [{"source": f"r:{i}.py", "snippet": "x", "tokens": 1} for i in range(100)]
+                big_list = [
+                    {"source": f"r:{i}.py", "snippet": "x", "tokens": 1} for i in range(100)
+                ]
                 ca.cache_exemplars("r", big_list)
                 loaded = ca._load_from_cache("r")
                 self.assertEqual(len(loaded), 50)

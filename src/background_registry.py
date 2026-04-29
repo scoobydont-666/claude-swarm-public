@@ -23,7 +23,7 @@ import signal
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import yaml
 
@@ -341,9 +341,9 @@ def start_task(
     task: str,
     *,
     description: str = "",
-    task_id: Optional[str] = None,
+    task_id: str | None = None,
     model: str = "sonnet",
-    project_dir: Optional[str] = None,
+    project_dir: str | None = None,
     timeout_minutes: int = 30,
 ) -> BackgroundTask:
     """One-shot: dispatch a Claude Code session to a fleet member AND track it.

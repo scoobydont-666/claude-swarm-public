@@ -1577,6 +1577,7 @@ def ratings_benchmark(
     fleet = fleet_from_config() or {}
     # CS2 fix: case-insensitive hostname resolution
     from util import resolve_host_key
+
     canonical = resolve_host_key(host, fleet)
     if canonical is None:
         console.print(f"[red]Unknown host: {host}. Known: {list(fleet.keys())}[/red]")

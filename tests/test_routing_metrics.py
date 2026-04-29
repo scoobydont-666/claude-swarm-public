@@ -1,9 +1,8 @@
 """Tests for routing_metrics — Prometheus textfile exposition."""
+
 from __future__ import annotations
 
-import os
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -28,8 +27,9 @@ def metrics_env(tmp_path, monkeypatch, clean_modules):
     """Sandbox the DB to a temp file; ensure emit() picks a fallback path."""
     db = tmp_path / "routing.db"
     monkeypatch.setenv("CLAUDE_ROUTING_DB", str(db))
-    import routing_state_db as rsdb
     import routing_metrics as rm
+    import routing_state_db as rsdb
+
     rsdb.init_db()
     return rsdb, rm, tmp_path
 
